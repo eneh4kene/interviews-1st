@@ -1,0 +1,20 @@
+{
+    "name": "@interview-me/types",
+    "version": "0.0.0",
+    "private": true,
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsup",
+        "dev": "tsup --watch",
+        "lint": "eslint .",
+        "type-check": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "eslint": "^8.56.0",
+        "tsup": "^8.0.0",
+        "typescript": "^5.3.0"
+    }
+}
