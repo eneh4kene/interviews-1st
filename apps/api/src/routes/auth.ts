@@ -1,0 +1,366 @@
+import express from 'express';
+import { z } from 'zod';
+import { validateRequest } from 'zod-express-middleware';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import {
+    User,
+    LoginRequest,
+    LoginResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    MagicLinkRequest,
+    MagicLinkResponse,
+    ApiResponse
+} from '@interview-me/types';
+
+const router = express.Router();
+
+// Mock data for users (in real app, this would be in a database)
+const mockUsers: User[] = [
+    {
+        id: "worker1",
+        email: "sarah.worker@interview-me.com",
+        name: "Sarah Johnson",
+        role: "WORKER",
+        isActive: true,
+        twoFactorEnabled: false,
+        lastLoginAt: new Date("2024-01-15"),
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-15"),
+    },
+    {
+        id: "worker2",
+        email: "mike.worker@interview-me.com",
+        name: "Mike Chen",
+        role: "WORKER",
+        isActive: true,
+        twoFactorEnabled: true,
+        lastLoginAt: new Date("2024-01-14"),
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-14"),
+    },
+    {
+        id: "manager1",
+        email: "jane.manager@interview-me.com",
+        name: "Jane Smith",
+        role: "MANAGER",
+        isActive: true,
+        twoFactorEnabled: true,
+        lastLoginAt: new Date("2024-01-13"),
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-13"),
+    },
+    {
+        id: "admin1",
+        email: "admin@interview-me.com",
+        name: "System Admin",
+        role: "ADMIN",
+        isActive: true,
+        twoFactorEnabled: true,
+        lastLoginAt: new Date("2024-01-12"),
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-12"),
+    },
+    {
+        id: "client1",
+        email: "sarah.johnson@email.com",
+        name: "Sarah Johnson",
+        role: "CLIENT",
+        isActive: true,
+        twoFactorEnabled: false,
+        lastLoginAt: new Date("2024-01-10"),
+        createdAt: new Date("2024-01-01"),
+        updatedAt: new Date("2024-01-10"),
+    },
+];
+
+// Mock password hashes (in real app, these would be stored in database)
+const mockPasswords: Record<string, string> = {
+    "sarah.worker@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
+    "mike.worker@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
+    "jane.manager@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
+    "admin@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
+    "sarah.johnson@email.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
+};
+
+// Mock refresh tokens (in real app, these would be stored in Redis/database)
+const mockRefreshTokens: Record<string, { userId: string; expiresAt: Date }> = {};
+
+// JWT configuration
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
+const ACCESS_TOKEN_EXPIRY = '15m';
+const REFRESH_TOKEN_EXPIRY = '30d';
+
+// Validation schemas
+const loginSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(1),
+});
+
+const refreshTokenSchema = z.object({
+    refreshToken: z.string(),
+});
+
+const magicLinkSchema = z.object({
+    email: z.string().email(),
+    interviewId: z.string(),
+});
+
+// Helper functions
+const generateAccessToken = (user: User): string => {
+    return jwt.sign(
+        {
+            userId: user.id,
+            email: user.email,
+            role: user.role
+        },
+        JWT_SECRET,
+        { expiresIn: ACCESS_TOKEN_EXPIRY }
+    );
+};
+
+const generateRefreshToken = (userId: string): string => {
+    const token = jwt.sign(
+        { userId, type: 'refresh' },
+        JWT_REFRESH_SECRET,
+        { expiresIn: REFRESH_TOKEN_EXPIRY }
+    );
+
+    // Store refresh token (in real app, this would be in Redis/database)
+    mockRefreshTokens[token] = {
+        userId,
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    };
+
+    return token;
+};
+
+const generateMagicLinkToken = (email: string, interviewId: string): string => {
+    return jwt.sign(
+        {
+            email,
+            interviewId,
+            type: 'magic_link',
+            exp: Math.floor(Date.now() / 1000) + (48 * 60 * 60) // 48 hours
+        },
+        JWT_SECRET
+    );
+};
+
+// Routes
+router.post('/login', validateRequest({ body: loginSchema }), async (req, res) => {
+    try {
+        const { email, password } = req.body as LoginRequest;
+
+        // Find user
+        const user = mockUsers.find(u => u.email === email);
+        if (!user || !user.isActive) {
+            const response: LoginResponse = {
+                success: false,
+                error: 'Invalid credentials',
+            };
+            return res.status(401).json(response);
+        }
+
+        // Verify password
+        const hashedPassword = mockPasswords[email];
+        if (!hashedPassword || !(await bcrypt.compare(password, hashedPassword))) {
+            const response: LoginResponse = {
+                success: false,
+                error: 'Invalid credentials',
+            };
+            return res.status(401).json(response);
+        }
+
+        // Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user.id);
+
+        // Update last login
+        user.lastLoginAt = new Date();
+
+        // Set refresh token as HTTP-only cookie
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        });
+
+        const response: LoginResponse = {
+            success: true,
+            data: {
+                user,
+                accessToken,
+            },
+            message: 'Login successful',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Login error:', error);
+        const response: LoginResponse = {
+            success: false,
+            error: 'Internal server error',
+        };
+        res.status(500).json(response);
+    }
+});
+
+router.post('/logout', (req, res) => {
+    try {
+        // Clear refresh token cookie
+        res.clearCookie('refreshToken');
+
+        const response: ApiResponse<null> = {
+            success: true,
+            data: null,
+            message: 'Logout successful',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Logout error:', error);
+        const response: ApiResponse<null> = {
+            success: false,
+            error: 'Internal server error',
+        };
+        res.status(500).json(response);
+    }
+});
+
+router.post('/refresh', validateRequest({ body: refreshTokenSchema }), (req, res) => {
+    try {
+        const { refreshToken } = req.body as RefreshTokenRequest;
+
+        // Verify refresh token
+        const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as any;
+        const storedToken = mockRefreshTokens[refreshToken];
+
+        if (!storedToken || storedToken.userId !== decoded.userId || storedToken.expiresAt < new Date()) {
+            const response: RefreshTokenResponse = {
+                success: false,
+                error: 'Invalid or expired refresh token',
+            };
+            return res.status(401).json(response);
+        }
+
+        // Find user
+        const user = mockUsers.find(u => u.id === decoded.userId);
+        if (!user || !user.isActive) {
+            const response: RefreshTokenResponse = {
+                success: false,
+                error: 'User not found or inactive',
+            };
+            return res.status(401).json(response);
+        }
+
+        // Generate new tokens
+        const newAccessToken = generateAccessToken(user);
+        const newRefreshToken = generateRefreshToken(user.id);
+
+        // Remove old refresh token
+        delete mockRefreshTokens[refreshToken];
+
+        // Set new refresh token as HTTP-only cookie
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        });
+
+        const response: RefreshTokenResponse = {
+            success: true,
+            data: {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
+            },
+            message: 'Token refreshed successfully',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        const response: RefreshTokenResponse = {
+            success: false,
+            error: 'Invalid refresh token',
+        };
+        res.status(401).json(response);
+    }
+});
+
+router.post('/magic-link', validateRequest({ body: magicLinkSchema }), (req, res) => {
+    try {
+        const { email, interviewId } = req.body as MagicLinkRequest;
+
+        // In real app, verify that the email matches the client for this interview
+        // For now, just generate a magic link token
+        const token = generateMagicLinkToken(email, interviewId);
+        const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
+
+        const response: MagicLinkResponse = {
+            success: true,
+            data: {
+                token,
+                expiresAt,
+            },
+            message: 'Magic link generated successfully',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Magic link error:', error);
+        const response: MagicLinkResponse = {
+            success: false,
+            error: 'Failed to generate magic link',
+        };
+        res.status(500).json(response);
+    }
+});
+
+router.get('/me', (req, res) => {
+    try {
+        // In real app, this would verify the access token from Authorization header
+        // For now, return a mock response
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            const response: ApiResponse<null> = {
+                success: false,
+                error: 'No valid authorization token',
+            };
+            return res.status(401).json(response);
+        }
+
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+
+        const user = mockUsers.find(u => u.id === decoded.userId);
+        if (!user || !user.isActive) {
+            const response: ApiResponse<null> = {
+                success: false,
+                error: 'User not found or inactive',
+            };
+            return res.status(401).json(response);
+        }
+
+        const response: ApiResponse<User> = {
+            success: true,
+            data: user,
+            message: 'User profile retrieved successfully',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Get user profile error:', error);
+        const response: ApiResponse<null> = {
+            success: false,
+            error: 'Invalid token',
+        };
+        res.status(401).json(response);
+    }
+});
+
+export default router; 

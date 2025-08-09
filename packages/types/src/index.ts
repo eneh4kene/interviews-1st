@@ -1,12 +1,100 @@
 // Common types shared across the monorepo
 
+// Authentication Types
 export interface User {
     id: string;
     email: string;
     name: string;
-    role: 'worker' | 'admin';
+    role: 'WORKER' | 'MANAGER' | 'ADMIN' | 'CLIENT';
+    isActive: boolean;
+    twoFactorEnabled: boolean;
+    lastLoginAt?: Date;
     createdAt: Date;
     updatedAt: Date;
+}
+
+export interface LoginRequest {
+    email: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    success: boolean;
+    data?: {
+        user: User;
+        accessToken: string;
+    };
+    message?: string;
+    error?: string;
+}
+
+export interface RefreshTokenRequest {
+    refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+    success: boolean;
+    data?: {
+        accessToken: string;
+        refreshToken: string;
+    };
+    message?: string;
+    error?: string;
+}
+
+export interface MagicLinkRequest {
+    email: string;
+    interviewId: string;
+}
+
+export interface MagicLinkResponse {
+    success: boolean;
+    data?: {
+        token: string;
+        expiresAt: Date;
+    };
+    message?: string;
+    error?: string;
+}
+
+export interface InterviewOffer {
+    id: string;
+    interviewId: string;
+    clientId: string;
+    token: string;
+    status: 'SENT' | 'ACCEPTED' | 'DECLINED' | 'EXPIRED';
+    expiresAt: Date;
+    acceptedAt?: Date;
+    declinedAt?: Date;
+    paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
+    stripeSessionId?: string;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface OfferAcceptRequest {
+    token: string;
+}
+
+export interface OfferAcceptResponse {
+    success: boolean;
+    data?: {
+        checkoutUrl: string;
+        sessionId: string;
+    };
+    message?: string;
+    error?: string;
+}
+
+export interface OfferDeclineRequest {
+    token: string;
+    reason?: string;
+}
+
+export interface OfferDeclineResponse {
+    success: boolean;
+    message?: string;
+    error?: string;
 }
 
 export interface Client {

@@ -10,6 +10,7 @@ import { validateRequest } from 'zod-express-middleware';
 import { ApiResponse } from '@interview-me/types';
 import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
+import authRouter from './routes/auth';
 
 // Load environment variables
 dotenv.config();
@@ -100,6 +101,7 @@ app.get('/api/hello', (req, res) => {
 // API Routes
 app.use('/api/clients', clientsRouter);
 app.use('/api/interviews', interviewsRouter);
+app.use('/api/auth', authRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

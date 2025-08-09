@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { ApiResponse } from "@interview-me/types";
+import Link from "next/link";
 
 export default function Home() {
   const [apiStatus, setApiStatus] = useState<ApiResponse | null>(null);
@@ -133,15 +134,18 @@ export default function Home() {
         </div>
 
         <div className="mt-8 text-center">
-          <Button 
-            onClick={() => window.location.href = '/dashboard'}
-            className="mr-4"
-          >
-            View Dashboard
-          </Button>
-          <Button variant="outline" onClick={() => window.open('/api/hello', '_blank')}>
-            Test API
-          </Button>
+          <div className="flex gap-4">
+            <Link href="/login">
+              <Button size="lg">
+                Get Started
+              </Button>
+            </Link>
+            <Link href="/docs/platform-guide.md">
+              <Button variant="outline" size="lg">
+                View Documentation
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </div>
