@@ -1,14 +1,21 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ["src/index.ts"],
-    format: ["cjs", "esm"],
+    entry: ['src/index.ts'],
+    format: ['cjs', 'esm'],
     dts: true,
     clean: true,
-    external: ["react", "react-dom"],
-    esbuildOptions(options) {
-        options.banner = {
-            js: '"use client";',
-        };
+    external: [
+        'react',
+        'react-dom',
+        '@radix-ui/react-label',
+        '@radix-ui/react-slot',
+        'class-variance-authority',
+        'clsx',
+        'tailwind-merge',
+        'lucide-react'
+    ],
+    banner: {
+        js: '"use client";',
     },
 }); 
