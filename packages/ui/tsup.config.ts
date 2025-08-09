@@ -8,7 +8,6 @@ export default defineConfig({
     external: [
         'react',
         'react-dom',
-        '@radix-ui/react-label',
         '@radix-ui/react-slot',
         'class-variance-authority',
         'clsx',
