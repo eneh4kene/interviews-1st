@@ -2,51 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-    :root {
-        --background: 0 0% 100%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 221.2 83.2% 53.3%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96%;
-        --secondary-foreground: 222.2 84% 4.9%;
-        --muted: 210 40% 96%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 96%;
-        --accent-foreground: 222.2 84% 4.9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 221.2 83.2% 53.3%;
-        --radius: 0.5rem;
-    }
+/* Theme Tokens */
+:root {
+    --bg: #F7F8FB;
+    --surface: #FFFFFF;
+    --border: #E6E8EF;
+    --text: #0B1020;
+    --muted: #4B5563;
+    --primary: #635BFF;
+    --primary-600: #574ef6;
+    --primary-700: #4b43e8;
+    --success: #10B981;
+    --success-2: #34D399;
+    --shadow: 0 10px 30px -12px rgba(10, 22, 70, .18);
+    --radius: 16px;
+    --radius-lg: 24px;
+    --dur-fast: 150ms;
+    --dur: 220ms;
+    --ease: cubic-bezier(.22, .61, .36, 1);
+}
 
-    .dark {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
-        --card-foreground: 210 40% 98%;
-        --popover: 222.2 84% 4.9%;
-        --popover-foreground: 210 40% 98%;
-        --primary: 217.2 91.2% 59.8%;
-        --primary-foreground: 222.2 84% 4.9%;
-        --secondary: 217.2 32.6% 17.5%;
-        --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 224.3 76.3% 94.1%;
-    }
+.dark {
+    --bg: #0B1020;
+    --surface: #11162A;
+    --border: #1E243A;
+    --text: #E9ECF8;
+    --muted: #9AA4B2;
+    --shadow: 0 10px 30px -12px rgba(0, 0, 0, .55);
 }
 
 @layer base {
@@ -55,60 +37,116 @@
     }
 
     body {
-        @apply bg-background text-foreground;
+        @apply bg-bg text-text antialiased;
+    }
+
+    /* Focus rings */
+    *:focus-visible {
+        @apply outline-none ring-2 ring-primary rounded;
     }
 }
 
-/* Custom animations for the landing page */
-@keyframes blob {
-    0% {
-        transform: translate(0px, 0px) scale(1);
+@layer components {
+
+    /* Custom animations for the landing page */
+    @keyframes blob {
+        0% {
+            transform: translate(0px, 0px) scale(1);
+        }
+
+        33% {
+            transform: translate(30px, -50px) scale(1.1);
+        }
+
+        66% {
+            transform: translate(-20px, 20px) scale(0.9);
+        }
+
+        100% {
+            transform: translate(0px, 0px) scale(1);
+        }
     }
 
-    33% {
-        transform: translate(30px, -50px) scale(1.1);
+    .animate-blob {
+        animation: blob 7s infinite;
     }
 
-    66% {
-        transform: translate(-20px, 20px) scale(0.9);
+    .animation-delay-2000 {
+        animation-delay: 2s;
     }
 
-    100% {
-        transform: translate(0px, 0px) scale(1);
+    .animation-delay-4000 {
+        animation-delay: 4s;
+    }
+
+    /* Smooth scrolling */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--muted);
     }
 }
 
-.animate-blob {
-    animation: blob 7s infinite;
-}
+/* shadcn/ui CSS Variables */
+@layer base {
+    :root {
+        --background: var(--bg);
+        --foreground: var(--text);
+        --card: var(--surface);
+        --card-foreground: var(--text);
+        --popover: var(--surface);
+        --popover-foreground: var(--text);
+        --primary: var(--primary);
+        --primary-foreground: #ffffff;
+        --secondary: var(--border);
+        --secondary-foreground: var(--text);
+        --muted: var(--muted);
+        --muted-foreground: var(--muted);
+        --accent: var(--border);
+        --accent-foreground: var(--text);
+        --destructive: #ef4444;
+        --destructive-foreground: #ffffff;
+        --border: var(--border);
+        --input: var(--border);
+        --ring: var(--primary);
+        --radius: var(--radius);
+    }
 
-.animation-delay-2000 {
-    animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-    animation-delay: 4s;
-}
-
-/* Smooth scrolling */
-html {
-    scroll-behavior: smooth;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    .dark {
+        --background: var(--bg);
+        --foreground: var(--text);
+        --card: var(--surface);
+        --card-foreground: var(--text);
+        --popover: var(--surface);
+        --popover-foreground: var(--text);
+        --primary: var(--primary);
+        --primary-foreground: #ffffff;
+        --secondary: var(--border);
+        --secondary-foreground: var(--text);
+        --muted: var(--muted);
+        --muted-foreground: var(--muted);
+        --accent: var(--border);
+        --accent-foreground: var(--text);
+        --destructive: #ef4444;
+        --destructive-foreground: #ffffff;
+        --border: var(--border);
+        --input: var(--border);
+        --ring: var(--primary);
+    }
 }
