@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
+import Logo from '../components/Logo';
 import { 
   Target, 
   UserCheck, 
@@ -157,6 +158,29 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-white dark:from-[#0f1530] dark:via-[#0B1020] dark:to-[#0B1020]">
+      {/* Header */}
+      <header className="relative z-10 border-b border-border/50 bg-surface/80 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Logo size="md" className="text-text" />
+            <nav className="hidden md:flex items-center space-x-8">
+              <a href="#how-it-works" className="text-muted hover:text-text transition-colors">How it works</a>
+              <a href="#features" className="text-muted hover:text-text transition-colors">Features</a>
+              <a href="#testimonials" className="text-muted hover:text-text transition-colors">Testimonials</a>
+              <a href="#pricing" className="text-muted hover:text-text transition-colors">Pricing</a>
+            </nav>
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
+                Sign In
+              </Button>
+              <Button size="sm" className="bg-primary hover:bg-primary-600 text-white">
+                Get Started
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section - Split Layout */}
       <motion.section 
         className="relative overflow-hidden"
@@ -776,7 +800,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
-              <h3 className="text-2xl font-bold mb-4 text-white">Interview Me</h3>
+              <Logo size="lg" className="text-white mb-4" />
               <p className="text-zinc-400 mb-6 max-w-md">
                 The smart way to land your next job. We handle the hard work, you focus on success.
               </p>
@@ -801,7 +825,7 @@ export default function Home() {
               <div className="space-y-2 text-zinc-400">
                 <div className="flex items-center">
                   <Mail className="h-4 w-4 mr-2" />
-                  <span>support@interview-me.com</span>
+                  <span>support@interviewsfirst.com</span>
                 </div>
                 <div className="flex items-center">
                   <Phone className="h-4 w-4 mr-2" />

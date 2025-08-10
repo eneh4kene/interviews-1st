@@ -3,13 +3,15 @@
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@interview-me/ui';
 import { Users, User, Shield } from 'lucide-react';
+import Logo from '../../components/Logo';
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900">Welcome to Interview Me</h1>
+          <Logo size="lg" className="mx-auto mb-6" />
+          <h1 className="text-4xl font-bold text-gray-900">Welcome to InterviewsFirst</h1>
           <p className="mt-2 text-lg text-gray-600">
             Choose your role to access the platform
           </p>
@@ -89,8 +91,8 @@ export default function LoginPage() {
         <div className="text-center">
           <p className="text-sm text-gray-500">
             Need help? Contact support at{' '}
-            <a href="mailto:support@interview-me.com" className="text-blue-600 hover:underline">
-              support@interview-me.com
+            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 hover:underline">
+              support@interviewsfirst.com
             </a>
           </p>
         </div>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Alert, AlertDescription } from '@interview-me/ui';
 import { LoginRequest, LoginResponse, User } from '@interview-me/types';
+import Logo from '../Logo';
 
 interface LoginFormProps {
   userType: 'worker' | 'client' | 'admin';
@@ -69,6 +70,7 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
+          <Logo size="lg" className="mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
           <p className="mt-2 text-sm text-gray-600">{description}</p>
         </div>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Interview Me - Land Interviews. Leave the Hard Work to Us.',
+  title: 'InterviewsFirst - Land Interviews. Leave the Hard Work to Us.',
   description: 'We manage your entire job search portfolio — from crafting tailored resumes to securing interviews — so you can focus on preparing for success.',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#F7F8FB' },

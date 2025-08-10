@@ -5,6 +5,7 @@ import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
 import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown } from "lucide-react";
+import Logo from '../../components/Logo';
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -193,9 +194,12 @@ export default function Dashboard() {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Client Portfolio Dashboard</h1>
-              <p className="text-gray-600">Manage your clients' job search journeys</p>
+            <div className="flex items-center gap-4">
+              <Logo size="md" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Client Portfolio Dashboard</h1>
+                <p className="text-gray-600">Manage your clients' job search journeys</p>
+              </div>
             </div>
             <Button className="flex items-center gap-2" onClick={handleAddNewClient}>
               <Plus className="h-4 w-4" />
