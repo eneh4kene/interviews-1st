@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
+
 // Animation variants
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
@@ -131,6 +132,7 @@ export default function Home() {
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
   const reducedMotion = useReducedMotion();
 
+
   useEffect(() => {
     if (!isAutoPlaying || reducedMotion) return;
     
@@ -163,13 +165,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo size="md" className="text-text" />
-            <nav className="hidden md:flex items-center space-x-8">
-              <a href="#how-it-works" className="text-muted hover:text-text transition-colors">How it works</a>
-              <a href="#features" className="text-muted hover:text-text transition-colors">Features</a>
-              <a href="#testimonials" className="text-muted hover:text-text transition-colors">Testimonials</a>
-              <a href="#pricing" className="text-muted hover:text-text transition-colors">Pricing</a>
-            </nav>
             <div className="flex items-center space-x-4">
+
               <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
                 Sign In
               </Button>
@@ -227,7 +224,7 @@ export default function Home() {
               </motion.p>
 
               <motion.div 
-                className="inline-flex items-center bg-success/10 text-success border border-success/20 dark:bg-success/15 px-4 py-2 rounded-full text-sm font-medium mb-6"
+                className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800/30 px-4 py-2 rounded-full text-sm font-medium mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.6 }}
@@ -237,12 +234,12 @@ export default function Home() {
               </motion.div>
 
               <motion.div 
-                className="bg-surface border border-border rounded-2xl p-6 mb-8 shadow-brand"
+                className="bg-gray-50/80 border border-gray-200 dark:bg-gray-800/50 dark:border-gray-700 rounded-2xl p-6 mb-8 shadow-sm"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
               >
-                <p className="text-lg text-text font-medium">
+                <p className="text-lg text-gray-900 dark:text-gray-100 font-medium">
                   ✨ You'll only hear from us when we've secured you an interview. No spam. No endless updates. Just results.
                 </p>
               </motion.div>
@@ -270,7 +267,7 @@ export default function Home() {
                 <Button 
                   variant="outline" 
                   size="lg" 
-                  className="text-lg px-8 py-4 border-border text-text hover:bg-surface"
+                  className="text-lg px-8 py-4 border-gray-200 text-gray-700 bg-white hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700"
                   onClick={() => scrollToSection('how-it-works')}
                 >
                   How it works
@@ -280,7 +277,7 @@ export default function Home() {
 
             {/* Right Content - Animated Mock */}
             <motion.div 
-              className="hidden lg:block relative"
+              className="hidden lg:block relative ml-8"
               initial={{ opacity: 0, x: 30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
@@ -299,12 +296,14 @@ export default function Home() {
                     ease: "easeInOut"
                   }}
                 >
-                  <div className="flex items-center mb-2">
+                  <div className="flex items-center mb-3">
                     <FileText className="h-5 w-5 text-primary mr-2" />
                     <span className="font-medium text-text">Resume tailored</span>
                   </div>
-                  <div className="h-2 bg-success/20 rounded-full mb-2"></div>
-                  <div className="h-2 bg-success/20 rounded-full w-3/4"></div>
+                  <div className="space-y-2">
+                    <div className="h-2 bg-blue-400 rounded-full"></div>
+                    <div className="h-2 bg-blue-300 rounded-full w-4/5"></div>
+                  </div>
                 </motion.div>
 
                 <motion.div 
@@ -320,12 +319,14 @@ export default function Home() {
                     delay: 1
                   }}
                 >
-                  <div className="flex items-center mb-2">
+                  <div className="flex items-center mb-3">
                     <Send className="h-5 w-5 text-purple-600 mr-2" />
                     <span className="font-medium text-text">Application sent</span>
                   </div>
-                  <div className="h-2 bg-purple-200 rounded-full mb-2"></div>
-                  <div className="h-2 bg-purple-200 rounded-full w-2/3"></div>
+                  <div className="space-y-2">
+                    <div className="h-2 bg-purple-400 rounded-full"></div>
+                    <div className="h-2 bg-purple-300 rounded-full w-3/4"></div>
+                  </div>
                 </motion.div>
 
                 <motion.div 
@@ -341,12 +342,14 @@ export default function Home() {
                     delay: 2
                   }}
                 >
-                  <div className="flex items-center mb-2">
+                  <div className="flex items-center mb-3">
                     <Calendar className="h-5 w-5 text-success mr-2" />
                     <span className="font-medium text-text">Interview booked</span>
                   </div>
-                  <div className="h-2 bg-success/20 rounded-full mb-2"></div>
-                  <div className="h-2 bg-success/20 rounded-full w-full"></div>
+                  <div className="space-y-2">
+                    <div className="h-2 bg-green-400 rounded-full"></div>
+                    <div className="h-2 bg-green-300 rounded-full w-2/3"></div>
+                  </div>
                 </motion.div>
               </div>
             </motion.div>
