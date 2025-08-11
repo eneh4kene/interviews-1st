@@ -196,40 +196,40 @@ const autoAssignClientSchema = z.object({
         email: z.string().email('Invalid email format'),
         phone: z.string().optional(),
         linkedinUrl: z.string().url().optional().or(z.literal('')),
+        company: z.string().optional(),
+        position: z.string().optional(),
     }),
 });
 
 router.post('/auto-assign', validateRequest(autoAssignClientSchema), async (req, res) => {
     try {
-        const { name, email, phone, linkedinUrl } = req.body;
+        const { name, email, phone, linkedinUrl, company, position } = req.body;
 
-        const result = await clientAssignmentService.autoAssignClient({
+        // Create new client with mock data (temporary until database is set up)
+        const newClient: Client = {
+            id: `client_${Date.now()}`,
+            workerId: "worker1", // Hardcoded for now
             name,
             email,
-            phone,
-            linkedinUrl,
-            profilePicture: null
-        });
+            phone: phone || "",
+            linkedinUrl: linkedinUrl || "",
+            status: "active",
+            paymentStatus: "pending",
+            totalInterviews: 0,
+            totalPaid: 0,
+            isNew: true,
+            assignedAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
 
-        if (!result.success) {
-            const response: ApiResponse = {
-                success: false,
-                error: result.error || 'Failed to auto-assign client',
-            };
-            return res.status(400).json(response);
-        }
-
-        // Get the assigned client
-        const { db } = await import('../utils/database');
-        const clientResult = await db.query(
-            'SELECT * FROM clients WHERE id = $1',
-            [result.clientId]
-        );
+        // Add to mock data
+        mockClients.push(newClient);
 
         const response: ApiResponse<Client> = {
             success: true,
-            data: clientResult.rows[0],
-            message: `Client ${name} automatically assigned to worker ${result.workerId}`,
+            data: newClient,
+            message: `Client ${name} automatically assigned to worker worker1`,
         };
 
         res.status(201).json(response);

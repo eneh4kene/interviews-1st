@@ -100,8 +100,37 @@ export default function Dashboard() {
   };
 
   const handleClientFormSuccess = () => {
-    // Refresh the dashboard data
-    window.location.reload();
+    // Refresh the dashboard data by refetching
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch clients and stats in parallel
+        const [clientsResponse, statsResponse] = await Promise.all([
+          apiService.getClients(workerId),
+          apiService.getDashboardStats(workerId)
+        ]);
+
+        if (!clientsResponse.success) {
+          throw new Error(clientsResponse.error);
+        }
+
+        if (!statsResponse.success) {
+          throw new Error(statsResponse.error);
+        }
+
+        setClients(clientsResponse.data);
+        setStats(statsResponse.data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   };
 
   const handleStatusFilterChange = (status: string) => {

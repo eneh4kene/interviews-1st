@@ -22,6 +22,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { apiService } from '../../../../lib/api';
+import EditClientForm from '../../../../components/EditClientForm';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -31,6 +32,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'applications'>('overview');
+  const [showEditForm, setShowEditForm] = useState(false);
 
   // Button click handlers
   const handleBackToDashboard = () => {
@@ -44,7 +46,36 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   };
 
   const handleEditProfile = () => {
-    alert('Edit Profile functionality would open a modal or navigate to edit page');
+    setShowEditForm(true);
+  };
+
+  const handleEditFormClose = () => {
+    setShowEditForm(false);
+  };
+
+  const handleEditFormSuccess = () => {
+    // Refresh the client data
+    const fetchClientData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch client data
+        const clientResponse = await apiService.getClient(params.id);
+        if (!clientResponse.success) {
+          throw new Error(clientResponse.error);
+        }
+
+        setClient(clientResponse.data);
+      } catch (err) {
+        console.error('Failed to fetch client data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load client data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClientData();
   };
 
   const handleUploadResume = () => {
@@ -670,6 +701,14 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
+
+      {/* Edit Client Form Modal */}
+      <EditClientForm
+        isOpen={showEditForm}
+        onClose={handleEditFormClose}
+        onSuccess={handleEditFormSuccess}
+        client={client}
+      />
     </div>
   );
 } 

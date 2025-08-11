@@ -55,6 +55,8 @@ class ApiService {
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
                     ...options.headers,
                 },
                 ...options,
