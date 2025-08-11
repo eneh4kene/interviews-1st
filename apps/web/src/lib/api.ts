@@ -189,8 +189,6 @@ class ApiService {
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
         try {
             const url = `${API_BASE_URL}/resumes`;
-            console.log('🌐 Making resume upload request to:', url);
-
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData, // Don't set Content-Type for FormData
@@ -200,22 +198,22 @@ class ApiService {
                 },
             });
 
-            console.log('📡 Resume Upload Response status:', response.status);
-
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Resume Upload Error Response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: Failed to upload resume`);
             }
 
             const data = await response.json();
-            console.log('✅ Resume Upload Success:', data.success);
-            return convertDates(data);
+            return {
+                success: true,
+                data: data.data,
+                message: data.message,
+            };
         } catch (error) {
-            console.error('❌ Resume upload failed:', error);
+            console.error('Upload resume error:', error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error',
+                error: error instanceof Error ? error.message : 'Failed to upload resume',
             };
         }
     }
@@ -236,12 +234,39 @@ class ApiService {
     async downloadResume(id: string): Promise<Blob> {
         const url = `${API_BASE_URL}/resumes/${id}/download`;
         const response = await fetch(url);
-
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: Failed to download resume`);
         }
-
         return response.blob();
+    }
+
+    // Job Preferences
+    async getJobPreferences(clientId: string): Promise<ApiResponse<any[]>> {
+        return this.request(`/job-preferences?clientId=${clientId}`);
+    }
+
+    async getJobPreference(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/job-preferences/${id}`);
+    }
+
+    async createJobPreference(jobPreferenceData: any): Promise<ApiResponse<any>> {
+        return this.request('/job-preferences', {
+            method: 'POST',
+            body: JSON.stringify(jobPreferenceData),
+        });
+    }
+
+    async updateJobPreference(id: string, jobPreferenceData: any): Promise<ApiResponse<any>> {
+        return this.request(`/job-preferences/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(jobPreferenceData),
+        });
+    }
+
+    async deleteJobPreference(id: string): Promise<ApiResponse<void>> {
+        return this.request(`/job-preferences/${id}`, {
+            method: 'DELETE',
+        });
     }
 }
 

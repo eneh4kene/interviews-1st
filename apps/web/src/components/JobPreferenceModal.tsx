@@ -7,6 +7,7 @@ import { Label } from "@interview-me/ui";
 import { Select } from "@interview-me/ui";
 import { X, Briefcase, MapPin, Building, DollarSign, Save, Plus } from "lucide-react";
 import { JobPreference } from "@interview-me/types";
+import { apiService } from "../lib/api";
 
 interface JobPreferenceModalProps {
   isOpen: boolean;
@@ -93,28 +94,33 @@ export default function JobPreferenceModal({
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newJobPreference: JobPreference = {
-        id: jobPreference?.id || Date.now().toString(),
+      const jobPreferenceData = {
         clientId,
         title: formData.title.trim(),
         company: formData.company.trim() || undefined,
         location: formData.location.trim(),
         workType: formData.workType,
         visaSponsorship: formData.visaSponsorship,
-        salaryRange: formData.salaryMin && formData.salaryMax ? {
-          min: parseInt(formData.salaryMin),
-          max: parseInt(formData.salaryMax),
-          currency: formData.currency
-        } : undefined,
+        salaryMin: formData.salaryMin || undefined,
+        salaryMax: formData.salaryMax || undefined,
+        currency: formData.currency,
         status: formData.status,
-        createdAt: jobPreference?.createdAt || new Date(),
-        updatedAt: new Date(),
       };
 
-      onSuccess(newJobPreference);
+      let response;
+      if (isEditing && jobPreference) {
+        // Update existing job preference
+        response = await apiService.updateJobPreference(jobPreference.id, jobPreferenceData);
+      } else {
+        // Create new job preference
+        response = await apiService.createJobPreference(jobPreferenceData);
+      }
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      onSuccess(response.data);
       onClose();
     } catch (err) {
       console.error('Failed to save job preference:', err);

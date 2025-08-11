@@ -323,52 +323,20 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           setResumes(resumesResponse.data);
         } else {
           console.error('Failed to fetch resumes:', resumesResponse.error);
-          // Fallback to empty array if API fails
-          setResumes([]);
         }
 
-        // For now, we'll use mock data for preferences and applications
+        // Fetch job preferences from API
+        const jobPreferencesResponse = await apiService.getJobPreferences(params.id);
+        if (jobPreferencesResponse.success) {
+          setJobPreferences(jobPreferencesResponse.data);
+        } else {
+          console.error('Failed to fetch job preferences:', jobPreferencesResponse.error);
+        }
+
+        // For now, we'll use mock data for applications
         // since these endpoints don't exist yet in the API
         // TODO: Replace with real API calls when endpoints are created
         
-        // Mock job preferences data
-        const mockJobPreferences: JobPreference[] = [
-          {
-            id: "1",
-            clientId: params.id,
-            title: "Senior Software Engineer",
-            company: "TechCorp Inc.",
-            location: "London, UK",
-            workType: "hybrid",
-            visaSponsorship: false,
-            salaryRange: {
-              min: 60000,
-              max: 80000,
-              currency: "GBP",
-            },
-            status: "active",
-            createdAt: new Date("2024-01-15"),
-            updatedAt: new Date("2024-01-15"),
-          },
-          {
-            id: "2",
-            clientId: params.id,
-            title: "UX Designer",
-            company: "Design Studio Pro",
-            location: "Remote",
-            workType: "remote",
-            visaSponsorship: true,
-            salaryRange: {
-              min: 45000,
-              max: 65000,
-              currency: "GBP",
-            },
-            status: "active",
-            createdAt: new Date("2024-01-20"),
-            updatedAt: new Date("2024-01-20"),
-          },
-        ];
-
         // Mock applications data
         const mockApplications: Application[] = [
           {
@@ -398,7 +366,6 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           },
         ];
 
-        setJobPreferences(mockJobPreferences);
         setApplications(mockApplications);
 
       } catch (err) {

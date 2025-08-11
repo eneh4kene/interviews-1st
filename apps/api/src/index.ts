@@ -13,6 +13,7 @@ import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
 import authRouter from './routes/auth';
 import resumesRouter from './routes/resumes';
+import jobPreferencesRouter from './routes/jobPreferences';
 
 // Load environment variables
 dotenv.config();
@@ -108,6 +109,7 @@ app.use('/api/clients', clientsRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/resumes', resumesRouter);
+app.use('/api/job-preferences', jobPreferencesRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -32,16 +32,12 @@ let mockResumes: Resume[] = [
 
 // Helper function to ensure only one resume per client is default
 const ensureSingleDefault = (clientId: string, defaultResumeId?: string) => {
-    console.log(`Ensuring single default for client ${clientId}, default resume: ${defaultResumeId}`);
-
     mockResumes = mockResumes.map(resume => ({
         ...resume,
         isDefault: resume.clientId === clientId
             ? (defaultResumeId ? resume.id === defaultResumeId : false)
             : resume.isDefault
     }));
-
-    console.log('Updated resumes:', mockResumes.filter(r => r.clientId === clientId));
 };
 
 // Configure multer for file uploads
@@ -240,14 +236,6 @@ router.post('/', upload.single('file'), handleMulterError, validateRequest(creat
 
         // Add the new resume
         mockResumes.push(newResume);
-
-        console.log('Final state:', {
-            shouldBeDefault,
-            isFirstResume,
-            isDefault,
-            newResumeIsDefault: newResume.isDefault,
-            allResumesForClient: mockResumes.filter(r => r.clientId === clientId).map(r => ({ id: r.id, name: r.name, isDefault: r.isDefault }))
-        });
 
         const response: ApiResponse = {
             success: true,
