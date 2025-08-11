@@ -23,6 +23,9 @@ import {
 } from "lucide-react";
 import { apiService } from '../../../../lib/api';
 import EditClientForm from '../../../../components/EditClientForm';
+import EditResumeModal from '../../../../components/EditResumeModal';
+import JobPreferenceModal from '../../../../components/JobPreferenceModal';
+import ViewApplicationsModal from '../../../../components/ViewApplicationsModal';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -33,6 +36,13 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'applications'>('overview');
   const [showEditForm, setShowEditForm] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showEditResumeModal, setShowEditResumeModal] = useState(false);
+  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+  const [showJobPreferenceModal, setShowJobPreferenceModal] = useState(false);
+  const [selectedJobPreference, setSelectedJobPreference] = useState<JobPreference | null>(null);
+  const [showViewApplicationsModal, setShowViewApplicationsModal] = useState(false);
+  const [selectedJobPreferenceForView, setSelectedJobPreferenceForView] = useState<JobPreference | null>(null);
 
   // Button click handlers
   const handleBackToDashboard = () => {
@@ -79,28 +89,220 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   };
 
   const handleUploadResume = () => {
-    alert('Upload Resume functionality would open file upload dialog');
+    // Create a file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.pdf,.doc,.docx';
+    fileInput.multiple = false;
+    
+    fileInput.onchange = async (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      
+      if (file) {
+        try {
+          setIsUploading(true);
+          
+          // Create FormData for file upload
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('clientId', params.id);
+          formData.append('name', file.name.replace(/\.[^/.]+$/, '')); // Remove file extension for name
+          
+          // TODO: Replace with actual API call when endpoint is available
+          // const response = await apiService.uploadResume(formData);
+          
+          // For now, simulate upload success
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Add new resume to the list
+          const newResume: Resume = {
+            id: Date.now().toString(),
+            clientId: params.id,
+            name: file.name.replace(/\.[^/.]+$/, ''),
+            fileUrl: URL.createObjectURL(file),
+            isDefault: resumes.length === 0, // First resume becomes default
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          
+          setResumes(prev => [...prev, newResume]);
+          
+          alert(`Resume "${newResume.name}" uploaded successfully!`);
+          
+        } catch (error) {
+          console.error('Upload failed:', error);
+          alert('Failed to upload resume. Please try again.');
+        } finally {
+          setIsUploading(false);
+        }
+      }
+    };
+    
+    fileInput.click();
   };
 
   const handleDownloadResume = (resume: Resume) => {
-    alert(`Downloading resume: ${resume.name}`);
-    // In real app, this would trigger file download
+    try {
+      // Create a temporary link element
+      const link = document.createElement('a');
+      
+      // For mock data, create a dummy file
+      if (resume.fileUrl.startsWith('blob:')) {
+        // If it's a blob URL (from upload), use it directly
+        link.href = resume.fileUrl;
+      } else {
+        // For mock data, create a dummy PDF content
+        const dummyContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length 44
+>>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+(Resume: ${resume.name}) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000204 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+297
+%%EOF`;
+        
+        const blob = new Blob([dummyContent], { type: 'application/pdf' });
+        link.href = URL.createObjectURL(blob);
+      }
+      
+      link.download = `${resume.name}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up blob URL if created
+      if (!resume.fileUrl.startsWith('blob:')) {
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+      }
+      
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download resume. Please try again.');
+    }
   };
 
   const handleEditResume = (resume: Resume) => {
-    alert(`Edit resume: ${resume.name}`);
+    setSelectedResume(resume);
+    setShowEditResumeModal(true);
+  };
+
+  const handleEditResumeModalClose = () => {
+    setShowEditResumeModal(false);
+    setSelectedResume(null);
+  };
+
+  const handleEditResumeSuccess = (updatedResume: Resume) => {
+    setResumes(prev => prev.map(r => r.id === updatedResume.id ? updatedResume : r));
+    setShowEditResumeModal(false);
+    setSelectedResume(null);
+  };
+
+  const handleSetDefaultResume = (resume: Resume) => {
+    if (resume.isDefault) {
+      alert('This resume is already set as default.');
+      return;
+    }
+    
+    // Update all resumes to set the selected one as default
+    setResumes(prev => prev.map(r => ({
+      ...r,
+      isDefault: r.id === resume.id,
+      updatedAt: r.id === resume.id ? new Date() : r.updatedAt,
+    })));
+    
+    alert(`"${resume.name}" is now set as the default resume.`);
+  };
+
+  const handleDeleteResume = (resume: Resume) => {
+    if (resume.isDefault && resumes.length > 1) {
+      alert('Cannot delete the default resume. Please set another resume as default first.');
+      return;
+    }
+    
+    const confirmed = confirm(`Are you sure you want to delete "${resume.name}"? This action cannot be undone.`);
+    
+    if (confirmed) {
+      setResumes(prev => prev.filter(r => r.id !== resume.id));
+      alert(`Resume "${resume.name}" has been deleted.`);
+    }
   };
 
   const handleAddJobPreference = () => {
-    alert('Add Job Preference functionality would open a form modal');
+    setSelectedJobPreference(null); // null means we're adding new
+    setShowJobPreferenceModal(true);
   };
 
   const handleEditJobPreference = (pref: JobPreference) => {
-    alert(`Edit job preference: ${pref.title}`);
+    setSelectedJobPreference(pref);
+    setShowJobPreferenceModal(true);
+  };
+
+  const handleJobPreferenceModalClose = () => {
+    setShowJobPreferenceModal(false);
+    setSelectedJobPreference(null);
+  };
+
+  const handleJobPreferenceSuccess = (jobPreference: JobPreference) => {
+    if (selectedJobPreference) {
+      // Editing existing preference
+      setJobPreferences(prev => prev.map(p => p.id === jobPreference.id ? jobPreference : p));
+    } else {
+      // Adding new preference
+      setJobPreferences(prev => [...prev, jobPreference]);
+    }
+    setShowJobPreferenceModal(false);
+    setSelectedJobPreference(null);
   };
 
   const handleViewApplications = (pref: JobPreference) => {
-    alert(`View applications for: ${pref.title}`);
+    setSelectedJobPreferenceForView(pref);
+    setShowViewApplicationsModal(true);
   };
 
   const handleAddApplication = () => {
@@ -489,9 +691,18 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">Resumes & CVs</h3>
-                  <Button onClick={handleUploadResume}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Upload Resume
+                  <Button onClick={handleUploadResume} disabled={isUploading}>
+                    {isUploading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Upload Resume
+                      </>
+                    )}
                   </Button>
                 </div>
 
@@ -514,7 +725,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                             <span className="text-gray-600">Uploaded:</span>
                             <span>{resume.createdAt.toLocaleDateString()}</span>
                           </div>
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <Button size="sm" variant="outline" onClick={() => handleDownloadResume(resume)}>
                               <Download className="h-4 w-4 mr-2" />
                               Download
@@ -523,6 +734,18 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </Button>
+                            {!resume.isDefault && (
+                              <Button size="sm" variant="outline" onClick={() => handleSetDefaultResume(resume)}>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Set Default
+                              </Button>
+                            )}
+                            {!resume.isDefault && (
+                              <Button size="sm" variant="outline" onClick={() => handleDeleteResume(resume)}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -709,6 +932,37 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
         onSuccess={handleEditFormSuccess}
         client={client}
       />
+
+      {/* Edit Resume Modal */}
+      {selectedResume && (
+        <EditResumeModal
+          isOpen={showEditResumeModal}
+          onClose={handleEditResumeModalClose}
+          onSuccess={handleEditResumeSuccess}
+          resume={selectedResume}
+        />
+      )}
+
+      {/* Job Preference Modal */}
+      {showJobPreferenceModal && (
+        <JobPreferenceModal
+          isOpen={showJobPreferenceModal}
+          onClose={handleJobPreferenceModalClose}
+          onSuccess={handleJobPreferenceSuccess}
+          jobPreference={selectedJobPreference}
+          clientId={params.id}
+        />
+      )}
+
+      {/* View Applications Modal */}
+      {showViewApplicationsModal && selectedJobPreferenceForView && (
+        <ViewApplicationsModal
+          isOpen={showViewApplicationsModal}
+          onClose={() => setShowViewApplicationsModal(false)}
+          jobPreference={selectedJobPreferenceForView}
+          applications={applications}
+        />
+      )}
     </div>
   );
 } 
