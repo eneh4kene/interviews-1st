@@ -1,6 +1,8 @@
 import express from 'express';
 import { z } from 'zod';
-import { validateRequest } from 'zod-express-middleware';
+import { validateRequest } from '../utils/validation';
+import { authenticate, authorize } from '../middleware/auth';
+import { interviewSchedulingService } from '../services/interviewScheduling';
 import { ApiResponse, Interview, Payment, ClientNotification } from '@interview-me/types';
 
 const router = express.Router();
@@ -264,7 +266,7 @@ router.post('/:id/respond', validateRequest(respondToInterviewSchema), (req, res
     const apiResponse: ApiResponse<Interview> = {
         success: true,
         data: interview,
-        message: `Interview ${responseType === 'accept' ? 'accepted' : 'declined'} successfully`,
+        message: `Interview ${response === 'accept' ? 'accepted' : 'declined'} successfully`,
     };
 
     res.json(apiResponse);

@@ -1,6 +1,8 @@
 import express from 'express';
 import { z } from 'zod';
-import { validateRequest } from 'zod-express-middleware';
+import { validateRequest } from '../utils/validation';
+import { authenticate, authorize } from '../middleware/auth';
+import { clientAssignmentService } from '../services/clientAssignment';
 import { ApiResponse, Client } from '@interview-me/types';
 
 const router = express.Router();
@@ -197,40 +199,48 @@ const autoAssignClientSchema = z.object({
     }),
 });
 
-router.post('/auto-assign', validateRequest(autoAssignClientSchema), (req, res) => {
-    const { name, email, phone, linkedinUrl } = req.body;
+router.post('/auto-assign', validateRequest(autoAssignClientSchema), async (req, res) => {
+    try {
+        const { name, email, phone, linkedinUrl } = req.body;
 
-    // In real app, this would implement load balancing logic
-    // For now, assign to worker1 (could be round-robin, least busy, etc.)
-    const assignedWorkerId = "worker1";
+        const result = await clientAssignmentService.autoAssignClient({
+            name,
+            email,
+            phone,
+            linkedinUrl,
+            profilePicture: null
+        });
 
-    const newClient: Client = {
-        id: `client_${Date.now()}`,
-        workerId: assignedWorkerId,
-        name,
-        email,
-        phone,
-        linkedinUrl,
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
+        if (!result.success) {
+            const response: ApiResponse = {
+                success: false,
+                error: result.error || 'Failed to auto-assign client',
+            };
+            return res.status(400).json(response);
+        }
 
-    // In real app, save to database
-    mockClients.push(newClient);
+        // Get the assigned client
+        const { db } = await import('../utils/database');
+        const clientResult = await db.query(
+            'SELECT * FROM clients WHERE id = $1',
+            [result.clientId]
+        );
 
-    const response: ApiResponse<Client> = {
-        success: true,
-        data: newClient,
-        message: `Client ${name} automatically assigned to worker ${assignedWorkerId}`,
-    };
+        const response: ApiResponse<Client> = {
+            success: true,
+            data: clientResult.rows[0],
+            message: `Client ${name} automatically assigned to worker ${result.workerId}`,
+        };
 
-    res.status(201).json(response);
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Auto-assign error:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to auto-assign client',
+        };
+        res.status(500).json(response);
+    }
 });
 
 // Update client
@@ -291,6 +301,58 @@ router.delete('/:id', (req, res) => {
     const response: ApiResponse = {
         success: true,
         message: 'Client deleted successfully',
+    };
+
+    res.json(response);
+});
+
+// Get dashboard stats for a worker
+router.get('/stats/dashboard', (req, res) => {
+    const workerId = req.query.workerId as string;
+
+    if (!workerId) {
+        const response: ApiResponse = {
+            success: false,
+            error: 'Worker ID is required',
+        };
+        return res.status(400).json(response);
+    }
+
+    // Filter clients for this worker
+    const workerClients = mockClients.filter(client => client.workerId === workerId);
+
+    // Calculate stats
+    const totalClients = workerClients.length;
+    const activeClients = workerClients.filter(c => c.status === 'active').length;
+    const newClients = workerClients.filter(c => c.isNew).length;
+    const interviewsThisMonth = workerClients.reduce((sum, c) => sum + c.totalInterviews, 0);
+    const placementsThisMonth = workerClients.filter(c => c.status === 'placed').length;
+    const pendingPayments = workerClients.filter(c => c.paymentStatus === 'pending').length;
+    const totalRevenue = workerClients.reduce((sum, c) => sum + c.totalPaid, 0);
+
+    // Mock interview stats (in real app, these would come from interviews table)
+    const interviewsScheduled = 8;
+    const interviewsAccepted = 5;
+    const interviewsDeclined = 2;
+    const successRate = interviewsScheduled > 0 ? ((interviewsAccepted / interviewsScheduled) * 100) : 0;
+
+    const stats = {
+        totalClients,
+        activeClients,
+        newClients,
+        interviewsThisMonth,
+        placementsThisMonth,
+        successRate: Math.round(successRate * 10) / 10, // Round to 1 decimal
+        pendingPayments,
+        totalRevenue,
+        interviewsScheduled,
+        interviewsAccepted,
+        interviewsDeclined,
+    };
+
+    const response: ApiResponse<typeof stats> = {
+        success: true,
+        data: stats,
     };
 
     res.json(response);

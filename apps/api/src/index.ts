@@ -6,8 +6,9 @@ import pinoHttp from 'pino-http';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-import { validateRequest } from 'zod-express-middleware';
+import { validateRequest } from './utils/validation';
 import { ApiResponse } from '@interview-me/types';
+import { checkDatabaseHealth } from './utils/database';
 import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
 import authRouter from './routes/auth';
@@ -45,13 +46,16 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+    const dbHealth = await checkDatabaseHealth();
+    
     const response: ApiResponse = {
-        success: true,
-        message: 'API is running',
+        success: dbHealth.status === 'healthy',
+        message: dbHealth.status === 'healthy' ? 'API is running' : 'API is running but database issues detected',
         data: {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
+            database: dbHealth,
         },
     };
     res.json(response);

@@ -173,6 +173,7 @@ export interface Interview {
     clientResponseDate?: Date;
     clientResponseNotes?: string;
     workerNotes?: string;
+    paidAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }

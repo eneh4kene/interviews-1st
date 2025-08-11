@@ -6,113 +6,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@inte
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
 import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown } from "lucide-react";
 import Logo from '../../components/Logo';
+import { apiService } from '../../lib/api';
 
 export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  // Mock worker ID for now - in real app, this would come from auth context
+  const workerId = "worker1";
+
   useEffect(() => {
-    // Mock data for demonstration
-    const mockClients: Client[] = [
-      {
-        id: "1",
-        workerId: "worker1",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@email.com",
-        linkedinUrl: "https://linkedin.com/in/sarahjohnson",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 2,
-        totalPaid: 20,
-        isNew: false,
-        assignedAt: new Date("2024-01-15"),
-        createdAt: new Date("2024-01-15"),
-        updatedAt: new Date("2024-01-15"),
-      },
-      {
-        id: "2",
-        workerId: "worker1",
-        name: "Michael Chen",
-        email: "michael.chen@email.com",
-        linkedinUrl: "https://linkedin.com/in/michaelchen",
-        status: "active",
-        paymentStatus: "paid",
-        totalInterviews: 1,
-        totalPaid: 10,
-        isNew: false,
-        assignedAt: new Date("2024-01-10"),
-        createdAt: new Date("2024-01-10"),
-        updatedAt: new Date("2024-01-10"),
-      },
-      {
-        id: "3",
-        workerId: "worker1",
-        name: "Emily Rodriguez",
-        email: "emily.rodriguez@email.com",
-        linkedinUrl: "https://linkedin.com/in/emilyrodriguez",
-        status: "placed",
-        paymentStatus: "paid",
-        totalInterviews: 3,
-        totalPaid: 30,
-        isNew: false,
-        assignedAt: new Date("2023-12-20"),
-        createdAt: new Date("2023-12-20"),
-        updatedAt: new Date("2024-01-05"),
-      },
-      // NEW: Recently assigned clients (within 72 hours)
-      {
-        id: "4",
-        workerId: "worker1",
-        name: "Alex Thompson",
-        email: "alex.thompson@email.com",
-        linkedinUrl: "https://linkedin.com/in/alexthompson",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      },
-      {
-        id: "5",
-        workerId: "worker1",
-        name: "Jessica Kim",
-        email: "jessica.kim@email.com",
-        linkedinUrl: "https://linkedin.com/in/jessicakim",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-      },
-    ];
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-      const mockStats: DashboardStats = {
-    totalClients: 12,
-    activeClients: 8,
-    newClients: 2, // NEW: Number of clients assigned in the last 72 hours
-    interviewsThisMonth: 15,
-    placementsThisMonth: 3,
-    successRate: 85.5,
-    pendingPayments: 3,
-    totalRevenue: 120,
-    interviewsScheduled: 8,
-    interviewsAccepted: 5,
-    interviewsDeclined: 2,
-  };
+        // Fetch clients and stats in parallel
+        const [clientsResponse, statsResponse] = await Promise.all([
+          apiService.getClients(workerId),
+          apiService.getDashboardStats(workerId)
+        ]);
 
-    setClients(mockClients);
-    setStats(mockStats);
-    setLoading(false);
-  }, []);
+        if (!clientsResponse.success) {
+          throw new Error(clientsResponse.error);
+        }
+
+        if (!statsResponse.success) {
+          throw new Error(statsResponse.error);
+        }
+
+        setClients(clientsResponse.data);
+        setStats(statsResponse.data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [workerId]);
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -168,7 +106,7 @@ export default function Dashboard() {
   };
 
   const handleManageClient = (client: Client) => {
-    alert(`Manage client: ${client.name}`);
+    window.location.href = `/dashboard/clients/${client.id}`;
   };
 
   const handleLinkedInClick = (client: Client) => {
@@ -183,6 +121,20 @@ export default function Dashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 text-xl mb-4">⚠️ Error Loading Dashboard</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -258,27 +210,22 @@ export default function Dashboard() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-orange-600" />
+                  <div className="p-2 bg-yellow-100 rounded-lg">
+                    <DollarSign className="h-6 w-6 text-yellow-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.successRate}%</p>
+                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                    <p className="text-2xl font-bold text-gray-900">£{stats.totalRevenue}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        )}
 
-        {/* Payment & Revenue Stats */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <CreditCard className="h-6 w-6 text-yellow-600" />
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <CreditCard className="h-6 w-6 text-red-600" />
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Pending Payments</p>
@@ -291,12 +238,12 @@ export default function Dashboard() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <DollarSign className="h-6 w-6 text-green-600" />
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <TrendingUp className="h-6 w-6 text-indigo-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-gray-900">£{stats.totalRevenue}</p>
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.successRate}%</p>
                   </div>
                 </div>
               </CardContent>
@@ -335,40 +282,73 @@ export default function Dashboard() {
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="flex-1 max-w-md">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Search clients by name or email..."
+                  placeholder="Search clients..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
-            <div className="flex gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Status</option>
-                <option value="new">New (72h)</option>
-                <option value="active">Active</option>
-                <option value="placed">Placed</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <Button variant="outline" className="flex items-center gap-2" onClick={handleMoreFilters}>
-                <Filter className="h-4 w-4" />
+            
+            <div className="flex items-center gap-2">
+              <div className="flex border border-gray-300 rounded-lg">
+                <button
+                  onClick={() => handleStatusFilterChange("all")}
+                  className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                    statusFilter === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => handleStatusFilterChange("new")}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    statusFilter === "new"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  New
+                </button>
+                <button
+                  onClick={() => handleStatusFilterChange("active")}
+                  className={`px-4 py-2 text-sm font-medium ${
+                    statusFilter === "active"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Active
+                </button>
+                <button
+                  onClick={() => handleStatusFilterChange("placed")}
+                  className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                    statusFilter === "placed"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Placed
+                </button>
+              </div>
+              
+              <Button variant="outline" onClick={handleMoreFilters}>
+                <Filter className="h-4 w-4 mr-2" />
                 More Filters
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Client Portfolio Grid */}
+        {/* Clients Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClients.map((client) => (
             <Card 
@@ -399,51 +379,48 @@ export default function Dashboard() {
                   </div>
                 </div>
               </CardHeader>
+              
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Client since:</span>
-                    <span className="font-medium">
-                      {client.createdAt.toLocaleDateString()}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Interviews:</span>
+                    <span className="font-medium">{client.totalInterviews}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Total Paid:</span>
+                    <span className="font-medium">£{client.totalPaid}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Payment Status:</span>
+                    <span className={`font-medium ${
+                      client.paymentStatus === 'paid' ? 'text-green-600' : 
+                      client.paymentStatus === 'pending' ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {client.paymentStatus}
                     </span>
                   </div>
                   
-                  {client.linkedinUrl && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">LinkedIn:</span>
-                      <a
-                        href={client.linkedinUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleLinkedInClick(client);
-                        }}
-                      >
-                        View Profile
-                      </a>
-                    </div>
-                  )}
-
-                  <div className="pt-3 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Quick Actions:</span>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewProfile(client);
-                        }}>
-                          View Profile
-                        </Button>
-                        <Button size="sm" onClick={(e) => {
-                          e.stopPropagation();
-                          handleManageClient(client);
-                        }}>
-                          Manage
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLinkedInClick(client);
+                      }}
+                    >
+                      LinkedIn
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleManageClient(client);
+                      }}
+                    >
+                      Manage
+                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -453,17 +430,20 @@ export default function Dashboard() {
 
         {filteredClients.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <Users className="h-16 w-16 mx-auto" />
-            </div>
+            <div className="text-gray-400 text-6xl mb-4">👥</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
             <p className="text-gray-600 mb-4">
-              {searchTerm || statusFilter !== "all" 
-                ? "Try adjusting your search or filters"
-                : "Get started by adding your first client"
+              {searchTerm || statusFilter !== 'all' 
+                ? 'Try adjusting your search or filters'
+                : 'Get started by adding your first client'
               }
             </p>
-            <Button>Add New Client</Button>
+            {!searchTerm && statusFilter === 'all' && (
+              <Button onClick={handleAddNewClient}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Client
+              </Button>
+            )}
           </div>
         )}
       </div>

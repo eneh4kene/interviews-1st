@@ -1,8 +1,9 @@
 import express from 'express';
 import { z } from 'zod';
-import { validateRequest } from 'zod-express-middleware';
-import jwt from 'jsonwebtoken';
+import { validateRequest } from '../utils/validation';
 import bcrypt from 'bcryptjs';
+import { generateTokenPair, verifyRefreshToken, revokeRefreshToken, verifyToken } from '../utils/jwt';
+import { authRateLimit } from '../middleware/auth';
 import {
     User,
     LoginRequest,
@@ -87,11 +88,7 @@ const mockPasswords: Record<string, string> = {
 // Mock refresh tokens (in real app, these would be stored in Redis/database)
 const mockRefreshTokens: Record<string, { userId: string; expiresAt: Date }> = {};
 
-// JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '30d';
+// JWT configuration is now handled in utils/jwt.ts
 
 // Validation schemas
 const loginSchema = z.object({
@@ -109,48 +106,14 @@ const magicLinkSchema = z.object({
 });
 
 // Helper functions
-const generateAccessToken = (user: User): string => {
-    return jwt.sign(
-        {
-            userId: user.id,
-            email: user.email,
-            role: user.role
-        },
-        JWT_SECRET,
-        { expiresIn: ACCESS_TOKEN_EXPIRY }
-    );
-};
-
-const generateRefreshToken = (userId: string): string => {
-    const token = jwt.sign(
-        { userId, type: 'refresh' },
-        JWT_REFRESH_SECRET,
-        { expiresIn: REFRESH_TOKEN_EXPIRY }
-    );
-
-    // Store refresh token (in real app, this would be in Redis/database)
-    mockRefreshTokens[token] = {
-        userId,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-    };
-
-    return token;
-};
-
+// JWT functions are now handled in utils/jwt.ts
 const generateMagicLinkToken = (email: string, interviewId: string): string => {
-    return jwt.sign(
-        {
-            email,
-            interviewId,
-            type: 'magic_link',
-            exp: Math.floor(Date.now() / 1000) + (48 * 60 * 60) // 48 hours
-        },
-        JWT_SECRET
-    );
+    // TODO: Implement secure magic link generation
+    return `magic_link_${email}_${interviewId}_${Date.now()}`;
 };
 
 // Routes
-router.post('/login', validateRequest({ body: loginSchema }), async (req, res) => {
+router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: loginSchema }), async (req, res) => {
     try {
         const { email, password } = req.body as LoginRequest;
 
@@ -174,9 +137,12 @@ router.post('/login', validateRequest({ body: loginSchema }), async (req, res) =
             return res.status(401).json(response);
         }
 
-        // Generate tokens
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user.id);
+        // Generate tokens using secure JWT system
+        const { accessToken, refreshToken } = generateTokenPair({
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+        });
 
         // Update last login
         user.lastLoginAt = new Date();
@@ -231,21 +197,12 @@ router.post('/logout', (req, res) => {
     }
 });
 
-router.post('/refresh', validateRequest({ body: refreshTokenSchema }), (req, res) => {
+router.post('/refresh', validateRequest({ body: refreshTokenSchema }), async (req, res) => {
     try {
         const { refreshToken } = req.body as RefreshTokenRequest;
 
-        // Verify refresh token
-        const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as any;
-        const storedToken = mockRefreshTokens[refreshToken];
-
-        if (!storedToken || storedToken.userId !== decoded.userId || storedToken.expiresAt < new Date()) {
-            const response: RefreshTokenResponse = {
-                success: false,
-                error: 'Invalid or expired refresh token',
-            };
-            return res.status(401).json(response);
-        }
+        // Verify refresh token using our secure JWT system
+        const decoded = await verifyRefreshToken(refreshToken);
 
         // Find user
         const user = mockUsers.find(u => u.id === decoded.userId);
@@ -257,12 +214,15 @@ router.post('/refresh', validateRequest({ body: refreshTokenSchema }), (req, res
             return res.status(401).json(response);
         }
 
-        // Generate new tokens
-        const newAccessToken = generateAccessToken(user);
-        const newRefreshToken = generateRefreshToken(user.id);
+        // Generate new tokens using our secure JWT system
+        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokenPair({
+            userId: user.id,
+            email: user.email,
+            role: user.role,
+        });
 
-        // Remove old refresh token
-        delete mockRefreshTokens[refreshToken];
+        // Revoke old refresh token
+        await revokeRefreshToken(decoded.userId, refreshToken);
 
         // Set new refresh token as HTTP-only cookie
         res.cookie('refreshToken', newRefreshToken, {
@@ -335,7 +295,7 @@ router.get('/me', (req, res) => {
         }
 
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = verifyToken(token);
 
         const user = mockUsers.find(u => u.id === decoded.userId);
         if (!user || !user.isActive) {

@@ -21,6 +21,7 @@ import {
   Users,
   TrendingUp
 } from "lucide-react";
+import { apiService } from '../../../../lib/api';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -28,6 +29,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [jobPreferences, setJobPreferences] = useState<JobPreference[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'applications'>('overview');
 
   // Button click handlers
@@ -68,7 +70,6 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
 
   const handleViewApplications = (pref: JobPreference) => {
     alert(`View applications for: ${pref.title}`);
-    setActiveTab('applications');
   };
 
   const handleAddApplication = () => {
@@ -88,487 +89,125 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   };
 
   useEffect(() => {
-    // Mock data for demonstration - different data for each client
-    const getMockClient = (id: string): Client => {
-      const clients = {
-        "1": {
-          id: "1",
-          workerId: "worker1",
-          name: "Sarah Johnson",
-          email: "sarah.johnson@email.com",
-          phone: "+1 (555) 123-4567",
-          linkedinUrl: "https://linkedin.com/in/sarahjohnson",
-          status: "active" as const,
-          paymentStatus: "pending" as const,
-          totalInterviews: 2,
-          totalPaid: 20,
-          isNew: false,
-          assignedAt: new Date("2024-01-15"),
-          createdAt: new Date("2024-01-15"),
-          updatedAt: new Date("2024-01-15"),
-        },
-        "2": {
-          id: "2",
-          workerId: "worker1",
-          name: "Michael Chen",
-          email: "michael.chen@email.com",
-          phone: "+1 (555) 234-5678",
-          linkedinUrl: "https://linkedin.com/in/michaelchen",
-          status: "active" as const,
-          paymentStatus: "paid" as const,
-          totalInterviews: 1,
-          totalPaid: 10,
-          isNew: false,
-          assignedAt: new Date("2024-01-10"),
-          createdAt: new Date("2024-01-10"),
-          updatedAt: new Date("2024-01-10"),
-        },
-        "3": {
-          id: "3",
-          workerId: "worker1",
-          name: "Emily Rodriguez",
-          email: "emily.rodriguez@email.com",
-          phone: "+1 (555) 345-6789",
-          linkedinUrl: "https://linkedin.com/in/emilyrodriguez",
-          status: "placed" as const,
-          paymentStatus: "paid" as const,
-          totalInterviews: 3,
-          totalPaid: 30,
-          isNew: false,
-          assignedAt: new Date("2023-12-20"),
-          createdAt: new Date("2023-12-20"),
-          updatedAt: new Date("2024-01-05"),
-        },
-        // NEW: Recently assigned clients (within 72 hours)
-        "4": {
-          id: "4",
-          workerId: "worker1",
-          name: "Alex Thompson",
-          email: "alex.thompson@email.com",
-          phone: "+1 (555) 456-7890",
-          linkedinUrl: "https://linkedin.com/in/alexthompson",
-          status: "active" as const,
-          paymentStatus: "pending" as const,
-          totalInterviews: 0,
-          totalPaid: 0,
-          isNew: true,
-          assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
-          createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
-        "5": {
-          id: "5",
-          workerId: "worker1",
-          name: "Jessica Kim",
-          email: "jessica.kim@email.com",
-          phone: "+1 (555) 567-8901",
-          linkedinUrl: "https://linkedin.com/in/jessicakim",
-          status: "active" as const,
-          paymentStatus: "pending" as const,
-          totalInterviews: 0,
-          totalPaid: 0,
-          isNew: true,
-          assignedAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-          createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-          updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        },
-      };
-      
-      return clients[id as keyof typeof clients] || clients["1"];
-    };
+    const fetchClientData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const mockClient: Client = getMockClient(params.id);
+        // Fetch client data
+        const clientResponse = await apiService.getClient(params.id);
+        if (!clientResponse.success) {
+          throw new Error(clientResponse.error);
+        }
 
-    const getMockResumes = (clientId: string): Resume[] => {
-      const resumeTemplates = {
-        "1": [
+        setClient(clientResponse.data);
+
+        // For now, we'll use mock data for resumes, preferences, and applications
+        // since these endpoints don't exist yet in the API
+        // TODO: Replace with real API calls when endpoints are created
+        
+        // Mock resumes data
+        const mockResumes: Resume[] = [
           {
             id: "1",
-            clientId: clientId,
-            name: "Default CV - Software Engineer",
-            fileUrl: "/resumes/sarah-default.pdf",
+            clientId: params.id,
+            name: "Software Engineer - Tech Companies",
+            fileUrl: "/resumes/tech-software-engineer.pdf",
             isDefault: true,
             createdAt: new Date("2024-01-15"),
             updatedAt: new Date("2024-01-15"),
           },
           {
             id: "2",
-            clientId: clientId,
-            name: "Senior Software Engineer - Tech Companies",
-            fileUrl: "/resumes/sarah-senior-tech.pdf",
+            clientId: params.id,
+            name: "UX Designer - Creative Agencies",
+            fileUrl: "/resumes/ux-designer.pdf",
             isDefault: false,
             createdAt: new Date("2024-01-20"),
             updatedAt: new Date("2024-01-20"),
           },
-          {
-            id: "3",
-            clientId: clientId,
-            name: "Full Stack Developer - Startups",
-            fileUrl: "/resumes/sarah-fullstack-startup.pdf",
-            isDefault: false,
-            createdAt: new Date("2024-01-25"),
-            updatedAt: new Date("2024-01-25"),
-          },
-        ],
-        "2": [
-          {
-            id: "1",
-            clientId: clientId,
-            name: "Default CV - Data Scientist",
-            fileUrl: "/resumes/michael-default.pdf",
-            isDefault: true,
-            createdAt: new Date("2024-01-10"),
-            updatedAt: new Date("2024-01-10"),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            name: "Machine Learning Engineer - AI Companies",
-            fileUrl: "/resumes/michael-ml-engineer.pdf",
-            isDefault: false,
-            createdAt: new Date("2024-01-18"),
-            updatedAt: new Date("2024-01-18"),
-          },
-        ],
-        "3": [
-          {
-            id: "1",
-            clientId: clientId,
-            name: "Default CV - Product Manager",
-            fileUrl: "/resumes/emily-default.pdf",
-            isDefault: true,
-            createdAt: new Date("2023-12-20"),
-            updatedAt: new Date("2023-12-20"),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            name: "Senior Product Manager - FinTech",
-            fileUrl: "/resumes/emily-senior-pm.pdf",
-            isDefault: false,
-            createdAt: new Date("2023-12-28"),
-            updatedAt: new Date("2023-12-28"),
-          },
-          {
-            id: "3",
-            clientId: clientId,
-            name: "Product Manager - SaaS Companies",
-            fileUrl: "/resumes/emily-pm-saas.pdf",
-            isDefault: false,
-            createdAt: new Date("2024-01-02"),
-            updatedAt: new Date("2024-01-02"),
-          },
-        ],
-        "4": [
-          {
-            id: "1",
-            clientId: clientId,
-            name: "Default CV - Marketing Specialist",
-            fileUrl: "/resumes/alex-default.pdf",
-            isDefault: true,
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            name: "Digital Marketing Manager - Tech Companies",
-            fileUrl: "/resumes/alex-digital-marketing.pdf",
-            isDefault: false,
-            createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
-          },
-        ],
-        "5": [
-          {
-            id: "1",
-            clientId: clientId,
-            name: "Default CV - UX Designer",
-            fileUrl: "/resumes/jessica-default.pdf",
-            isDefault: true,
-            createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            name: "Senior UX Designer - E-commerce",
-            fileUrl: "/resumes/jessica-ux-ecommerce.pdf",
-            isDefault: false,
-            createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
-          },
-          {
-            id: "3",
-            clientId: clientId,
-            name: "Product Designer - Mobile Apps",
-            fileUrl: "/resumes/jessica-product-designer.pdf",
-            isDefault: false,
-            createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
-          },
-        ],
-      };
-      
-      return resumeTemplates[clientId as keyof typeof resumeTemplates] || resumeTemplates["1"];
-    };
+        ];
 
-    const mockResumes: Resume[] = getMockResumes(params.id);
-
-    const getMockJobPreferences = (clientId: string): JobPreference[] => {
-      const preferenceTemplates = {
-        "1": [
+        // Mock job preferences data
+        const mockJobPreferences: JobPreference[] = [
           {
             id: "1",
-            clientId: clientId,
+            clientId: params.id,
             title: "Senior Software Engineer",
-            location: "San Francisco, CA",
-            workType: "hybrid" as const,
-            visaSponsorship: true,
-            salaryRange: { min: 120000, max: 180000, currency: "USD" },
-            status: "active" as const,
+            company: "TechCorp Inc.",
+            location: "London, UK",
+            workType: "hybrid",
+            visaSponsorship: false,
+            salaryRange: {
+              min: 60000,
+              max: 80000,
+              currency: "GBP",
+            },
+            status: "active",
             createdAt: new Date("2024-01-15"),
             updatedAt: new Date("2024-01-15"),
           },
           {
             id: "2",
-            clientId: clientId,
-            title: "Full Stack Developer",
+            clientId: params.id,
+            title: "UX Designer",
+            company: "Design Studio Pro",
             location: "Remote",
-            workType: "remote" as const,
-            visaSponsorship: false,
-            salaryRange: { min: 90000, max: 140000, currency: "USD" },
-            status: "active" as const,
+            workType: "remote",
+            visaSponsorship: true,
+            salaryRange: {
+              min: 45000,
+              max: 65000,
+              currency: "GBP",
+            },
+            status: "active",
             createdAt: new Date("2024-01-20"),
             updatedAt: new Date("2024-01-20"),
           },
-        ],
-        "2": [
-          {
-            id: "1",
-            clientId: clientId,
-            title: "Data Scientist",
-            location: "New York, NY",
-            workType: "hybrid" as const,
-            visaSponsorship: true,
-            salaryRange: { min: 100000, max: 160000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date("2024-01-10"),
-            updatedAt: new Date("2024-01-10"),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            title: "Machine Learning Engineer",
-            location: "Remote",
-            workType: "remote" as const,
-            visaSponsorship: false,
-            salaryRange: { min: 110000, max: 170000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date("2024-01-18"),
-            updatedAt: new Date("2024-01-18"),
-          },
-        ],
-        "3": [
-          {
-            id: "1",
-            clientId: clientId,
-            title: "Senior Product Manager",
-            location: "San Francisco, CA",
-            workType: "hybrid" as const,
-            visaSponsorship: true,
-            salaryRange: { min: 130000, max: 200000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date("2023-12-20"),
-            updatedAt: new Date("2023-12-20"),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            title: "Product Manager - FinTech",
-            location: "Remote",
-            workType: "remote" as const,
-            visaSponsorship: false,
-            salaryRange: { min: 120000, max: 180000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date("2023-12-28"),
-            updatedAt: new Date("2023-12-28"),
-          },
-        ],
-        "4": [
-          {
-            id: "1",
-            clientId: clientId,
-            title: "Marketing Specialist",
-            location: "Los Angeles, CA",
-            workType: "hybrid" as const,
-            visaSponsorship: true,
-            salaryRange: { min: 60000, max: 90000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            title: "Digital Marketing Manager",
-            location: "Remote",
-            workType: "remote" as const,
-            visaSponsorship: false,
-            salaryRange: { min: 70000, max: 110000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
-          },
-        ],
-        "5": [
-          {
-            id: "1",
-            clientId: clientId,
-            title: "UX Designer",
-            location: "Seattle, WA",
-            workType: "hybrid" as const,
-            visaSponsorship: true,
-            salaryRange: { min: 80000, max: 120000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            title: "Senior UX Designer",
-            location: "Remote",
-            workType: "remote" as const,
-            visaSponsorship: false,
-            salaryRange: { min: 90000, max: 140000, currency: "USD" },
-            status: "active" as const,
-            createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
-          },
-        ],
-      };
-      
-      return preferenceTemplates[clientId as keyof typeof preferenceTemplates] || preferenceTemplates["1"];
-    };
+        ];
 
-    const mockJobPreferences: JobPreference[] = getMockJobPreferences(params.id);
-
-    const getMockApplications = (clientId: string): Application[] => {
-      const applicationTemplates = {
-        "1": [
+        // Mock applications data
+        const mockApplications: Application[] = [
           {
             id: "1",
-            clientId: clientId,
+            clientId: params.id,
             jobPreferenceId: "1",
-            resumeId: "2",
+            resumeId: "1",
             companyName: "TechCorp Inc.",
             jobTitle: "Senior Software Engineer",
-            applicationDate: new Date("2024-01-22"),
-            status: "interviewing" as const,
-            interviewDate: new Date("2024-02-01"),
-            notes: "First round interview scheduled",
-            createdAt: new Date("2024-01-22"),
-            updatedAt: new Date("2024-01-22"),
+            applicationDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+            status: "applied",
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+            updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
           },
           {
             id: "2",
-            clientId: clientId,
+            clientId: params.id,
             jobPreferenceId: "2",
-            resumeId: "3",
-            companyName: "StartupXYZ",
-            jobTitle: "Full Stack Developer",
-            applicationDate: new Date("2024-01-25"),
-            status: "applied" as const,
-            createdAt: new Date("2024-01-25"),
-            updatedAt: new Date("2024-01-25"),
-          },
-        ],
-        "2": [
-          {
-            id: "1",
-            clientId: clientId,
-            jobPreferenceId: "1",
-            resumeId: "2",
-            companyName: "DataAI Solutions",
-            jobTitle: "Data Scientist",
-            applicationDate: new Date("2024-01-20"),
-            status: "offered" as const,
-            interviewDate: new Date("2024-01-30"),
-            notes: "Offer received - £85k base + equity",
-            createdAt: new Date("2024-01-20"),
-            updatedAt: new Date("2024-01-28"),
-          },
-        ],
-        "3": [
-          {
-            id: "1",
-            clientId: clientId,
-            jobPreferenceId: "1",
-            resumeId: "2",
-            companyName: "FinTech Pro",
-            jobTitle: "Senior Product Manager",
-            applicationDate: new Date("2024-01-15"),
-            status: "accepted" as const,
-            interviewDate: new Date("2024-01-25"),
-            notes: "Position accepted - starting March 1st",
-            createdAt: new Date("2024-01-15"),
-            updatedAt: new Date("2024-01-26"),
-          },
-          {
-            id: "2",
-            clientId: clientId,
-            jobPreferenceId: "2",
-            resumeId: "3",
-            companyName: "SaaS Startup",
-            jobTitle: "Product Manager - FinTech",
-            applicationDate: new Date("2024-01-18"),
-            status: "rejected" as const,
-            notes: "Position filled internally",
-            createdAt: new Date("2024-01-18"),
-            updatedAt: new Date("2024-01-22"),
-          },
-        ],
-        "4": [
-          {
-            id: "1",
-            clientId: clientId,
-            jobPreferenceId: "1",
-            resumeId: "2",
-            companyName: "Marketing Solutions Inc.",
-            jobTitle: "Marketing Specialist",
-            applicationDate: new Date(Date.now() - 22 * 60 * 60 * 1000),
-            status: "applied" as const,
-            createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 22 * 60 * 60 * 1000),
-          },
-        ],
-        "5": [
-          {
-            id: "1",
-            clientId: clientId,
-            jobPreferenceId: "1",
             resumeId: "2",
             companyName: "Design Studio Pro",
             jobTitle: "UX Designer",
-            applicationDate: new Date(Date.now() - 10 * 60 * 60 * 1000),
-            status: "applied" as const,
-            createdAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
+            applicationDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+            status: "interviewing",
+            interviewDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+            updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
           },
-        ],
-      };
-      
-      return applicationTemplates[clientId as keyof typeof applicationTemplates] || applicationTemplates["1"];
+        ];
+
+        setResumes(mockResumes);
+        setJobPreferences(mockJobPreferences);
+        setApplications(mockApplications);
+
+      } catch (err) {
+        console.error('Failed to fetch client data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load client data');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const mockApplications: Application[] = getMockApplications(params.id);
-
-    setClient(mockClient);
-    setResumes(mockResumes);
-    setJobPreferences(mockJobPreferences);
-    setApplications(mockApplications);
-    setLoading(false);
+    fetchClientData();
   }, [params.id]);
 
   const getStatusIcon = (status: string) => {
@@ -604,12 +243,15 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
     );
   }
 
-  if (!client) {
+  if (error || !client) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Client not found</h3>
-          <Button onClick={() => window.history.back()}>Go Back</Button>
+          <div className="text-red-600 text-xl mb-4">⚠️ Error Loading Client</div>
+          <p className="text-gray-600 mb-4">{error || 'Client not found'}</p>
+          <Button onClick={handleBackToDashboard}>
+            Back to Dashboard
+          </Button>
         </div>
       </div>
     );
@@ -621,14 +263,9 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-6">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.history.back()}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={handleBackToDashboard}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
               <div>
@@ -636,15 +273,15 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 <p className="text-gray-600">{client.email}</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
               {client.linkedinUrl && (
-                <Button variant="outline" className="flex items-center gap-2" onClick={handleLinkedInClick}>
-                  <ExternalLink className="h-4 w-4" />
+                <Button variant="outline" onClick={handleLinkedInClick}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
                   LinkedIn
                 </Button>
               )}
-              <Button className="flex items-center gap-2" onClick={handleEditProfile}>
-                <Edit className="h-4 w-4" />
+              <Button onClick={handleEditProfile}>
+                <Edit className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
             </div>
@@ -653,60 +290,28 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Client Info Card */}
+        {/* Client Overview Card */}
         <Card className="mb-8">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-xl">
-                  {client.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div>
-                  <CardTitle className="text-xl">{client.name}</CardTitle>
-                  <CardDescription>
-                    Client since {client.createdAt.toLocaleDateString()}
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  client.status === 'active' ? 'text-green-600 bg-green-50' : 
-                  client.status === 'placed' ? 'text-blue-600 bg-blue-50' : 
-                  'text-gray-600 bg-gray-50'
-                }`}>
-                  {client.status}
-                </span>
-              </div>
-            </div>
+            <CardTitle>Client Overview</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Contact Information</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>{client.email}</p>
-                  {client.phone && <p>{client.phone}</p>}
-                  {client.linkedinUrl && (
-                    <a href={client.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                      LinkedIn Profile
-                    </a>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{client.totalInterviews}</div>
+                <div className="text-sm text-gray-600">Total Interviews</div>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Quick Stats</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>Resumes: {resumes.length}</p>
-                  <p>Job Preferences: {jobPreferences.length}</p>
-                  <p>Applications: {applications.length}</p>
-                </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">£{client.totalPaid}</div>
+                <div className="text-sm text-gray-600">Total Paid</div>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Recent Activity</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>Last application: {applications[0]?.applicationDate.toLocaleDateString() || 'None'}</p>
-                  <p>Next interview: {applications.find(a => a.status === 'interviewing')?.interviewDate?.toLocaleDateString() || 'None'}</p>
-                </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{client.status}</div>
+                <div className="text-sm text-gray-600">Status</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-600">{client.paymentStatus}</div>
+                <div className="text-sm text-gray-600">Payment Status</div>
               </div>
             </div>
           </CardContent>
@@ -714,113 +319,178 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow-sm border mb-8">
-          <div className="border-b border-gray-200">
+          <div className="border-b">
             <nav className="flex space-x-8 px-6">
               {[
-                { id: 'overview', label: 'Overview', icon: <Users className="h-4 w-4" /> },
-                { id: 'resumes', label: 'Resumes', icon: <FileText className="h-4 w-4" /> },
-                { id: 'preferences', label: 'Job Preferences', icon: <Briefcase className="h-4 w-4" /> },
-                { id: 'applications', label: 'Applications', icon: <TrendingUp className="h-4 w-4" /> },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.label}
-                </button>
-              ))}
+                { id: 'overview', label: 'Overview', icon: Users },
+                { id: 'resumes', label: 'Resumes', icon: FileText },
+                { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
+                { id: 'applications', label: 'Applications', icon: TrendingUp },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </nav>
           </div>
 
           <div className="p-6">
+            {/* Overview Tab */}
             {activeTab === 'overview' && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Recent Applications */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Applications</h3>
-                  <div className="space-y-3">
-                    {applications.slice(0, 3).map((app) => (
-                      <div key={app.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium text-gray-900">{app.companyName}</p>
-                          <p className="text-sm text-gray-600">{app.jobTitle}</p>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Contact Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 w-24">Email:</span>
+                        <span className="font-medium">{client.email}</span>
+                      </div>
+                      {client.phone && (
+                        <div className="flex items-center">
+                          <span className="text-gray-600 w-24">Phone:</span>
+                          <span className="font-medium">{client.phone}</span>
                         </div>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
-                          {app.status}
+                      )}
+                      {client.linkedinUrl && (
+                        <div className="flex items-center">
+                          <span className="text-gray-600 w-24">LinkedIn:</span>
+                          <a
+                            href={client.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View Profile
+                          </a>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Account Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center">
+                        <span className="text-gray-600 w-24">Status:</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
+                          {client.status}
                         </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Job Preferences Summary */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Job Preferences</h3>
-                  <div className="space-y-3">
-                    {jobPreferences.slice(0, 3).map((pref) => (
-                      <div key={pref.id} className="p-3 bg-gray-50 rounded-lg">
-                        <p className="font-medium text-gray-900">{pref.title}</p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {pref.location}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            {pref.salaryRange ? `${pref.salaryRange.min}k-${pref.salaryRange.max}k` : 'Not specified'}
+                      <div className="flex items-center">
+                        <span className="text-gray-600 w-24">Payment:</span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          client.paymentStatus === 'paid' ? 'text-green-600 bg-green-50' : 
+                          client.paymentStatus === 'pending' ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50'
+                        }`}>
+                          {client.paymentStatus}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="text-gray-600 w-24">Assigned:</span>
+                        <span className="font-medium">{client.assignedAt.toLocaleDateString()}</span>
+                      </div>
+                      {client.isNew && (
+                        <div className="flex items-center">
+                          <span className="text-gray-600 w-24">New Client:</span>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            🆕 Within 72 hours
                           </span>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm">Client profile created</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{client.createdAt.toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-sm">Assigned to worker</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{client.assignedAt.toLocaleDateString()}</span>
+                      </div>
+                      {client.totalInterviews > 0 && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="text-sm">{client.totalInterviews} interview(s) scheduled</span>
+                          </div>
+                          <span className="text-sm text-gray-500">Recently</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
 
+            {/* Resumes Tab */}
             {activeTab === 'resumes' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">Resumes & CVs</h3>
-                  <Button className="flex items-center gap-2" onClick={handleUploadResume}>
-                    <Plus className="h-4 w-4" />
-                    Upload New Resume
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Resumes & CVs</h3>
+                  <Button onClick={handleUploadResume}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Upload Resume
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {resumes.map((resume) => (
-                    <Card key={resume.id} className="hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-base">{resume.name}</CardTitle>
-                            <CardDescription>
-                              {resume.isDefault ? 'Default CV' : 'Custom Resume'}
-                            </CardDescription>
-                          </div>
+                    <Card key={resume.id}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{resume.name}</CardTitle>
                           {resume.isDefault && (
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                               Default
                             </span>
                           )}
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            {resume.createdAt.toLocaleDateString()}
-                          </span>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Uploaded:</span>
+                            <span>{resume.createdAt.toLocaleDateString()}</span>
+                          </div>
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={() => handleDownloadResume(resume)}>
-                              <Download className="h-3 w-3" />
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => handleEditResume(resume)}>
-                              <Edit className="h-3 w-3" />
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
                             </Button>
                           </div>
                         </div>
@@ -828,99 +498,129 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                     </Card>
                   ))}
                 </div>
+
+                {resumes.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 text-6xl mb-4">📄</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No resumes uploaded</h3>
+                    <p className="text-gray-600 mb-4">Upload a resume to get started with job applications</p>
+                    <Button onClick={handleUploadResume}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Upload First Resume
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Job Preferences Tab */}
             {activeTab === 'preferences' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">Job Preferences</h3>
-                  <Button className="flex items-center gap-2" onClick={handleAddJobPreference}>
-                    <Plus className="h-4 w-4" />
-                    Add Job Preference
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Job Preferences</h3>
+                  <Button onClick={handleAddJobPreference}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Preference
                   </Button>
                 </div>
-                <div className="space-y-4">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {jobPreferences.map((pref) => (
                     <Card key={pref.id}>
                       <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-lg">{pref.title}</CardTitle>
-                            <CardDescription>
-                              {pref.company && `at ${pref.company}`}
-                            </CardDescription>
-                          </div>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{pref.title}</CardTitle>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            pref.status === 'active' ? 'text-green-600 bg-green-50' : 
-                            pref.status === 'paused' ? 'text-yellow-600 bg-yellow-50' : 
-                            'text-blue-600 bg-blue-50'
+                            pref.status === 'active' ? 'bg-green-100 text-green-700' :
+                            pref.status === 'paused' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-blue-100 text-blue-700'
                           }`}>
                             {pref.status}
                           </span>
                         </div>
+                        {pref.company && (
+                          <CardDescription>{pref.company}</CardDescription>
+                        )}
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="flex items-center gap-2">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm">
                             <MapPin className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm">{pref.location}</span>
+                            <span>{pref.location}</span>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-sm">
                             <Briefcase className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm capitalize">{pref.workType}</span>
+                            <span className="capitalize">{pref.workType}</span>
                           </div>
-                          {pref.salaryRange && (
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm">
-                                {pref.salaryRange.min}k-{pref.salaryRange.max}k {pref.salaryRange.currency}
-                              </span>
+                          {pref.visaSponsorship && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="h-4 w-4 text-green-500" />
+                              <span>Visa sponsorship required</span>
                             </div>
                           )}
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">
-                              Visa Sponsorship: {pref.visaSponsorship ? 'Yes' : 'No'}
-                            </span>
+                          {pref.salaryRange && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <DollarSign className="h-4 w-4 text-gray-400" />
+                              <span>£{pref.salaryRange.min.toLocaleString()} - £{pref.salaryRange.max.toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="flex gap-2 pt-2">
+                            <Button size="sm" variant="outline" onClick={() => handleEditJobPreference(pref)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleViewApplications(pref)}>
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                              View Applications
+                            </Button>
                           </div>
-                        </div>
-                        <div className="flex gap-2 mt-4">
-                          <Button size="sm" variant="outline" onClick={() => handleEditJobPreference(pref)}>Edit</Button>
-                          <Button size="sm" variant="outline" onClick={() => handleViewApplications(pref)}>View Applications</Button>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
+
+                {jobPreferences.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 text-6xl mb-4">🎯</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No job preferences set</h3>
+                    <p className="text-gray-600 mb-4">Add job preferences to start receiving targeted applications</p>
+                    <Button onClick={handleAddJobPreference}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Preference
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Applications Tab */}
             {activeTab === 'applications' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-medium text-gray-900">Job Applications</h3>
-                  <Button className="flex items-center gap-2" onClick={handleAddApplication}>
-                    <Plus className="h-4 w-4" />
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium">Job Applications</h3>
+                  <Button onClick={handleAddApplication}>
+                    <Plus className="h-4 w-4 mr-2" />
                     Add Application
                   </Button>
                 </div>
+
                 <div className="space-y-4">
                   {applications.map((app) => (
                     <Card key={app.id}>
                       <CardHeader>
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-lg">{app.jobTitle}</CardTitle>
                             <CardDescription>{app.companyName}</CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(app.status)}`}>
                             {getStatusIcon(app.status)}
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>
-                              {app.status}
-                            </span>
-                          </div>
+                            {app.status}
+                          </span>
                         </div>
                       </CardHeader>
+                      
                       <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                           <div>
@@ -953,6 +653,18 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                     </Card>
                   ))}
                 </div>
+
+                {applications.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-gray-400 text-6xl mb-4">📝</div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
+                    <p className="text-gray-600 mb-4">Start applying to jobs to track your progress</p>
+                    <Button onClick={handleAddApplication}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add First Application
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
