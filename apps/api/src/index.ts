@@ -12,6 +12,7 @@ import { checkDatabaseHealth } from './utils/database';
 import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
 import authRouter from './routes/auth';
+import resumesRouter from './routes/resumes';
 
 // Load environment variables
 dotenv.config();
@@ -48,7 +49,7 @@ app.use(limiter);
 // Health check endpoint
 app.get('/health', async (req, res) => {
     const dbHealth = await checkDatabaseHealth();
-    
+
     const response: ApiResponse = {
         success: dbHealth.status === 'healthy',
         message: dbHealth.status === 'healthy' ? 'API is running' : 'API is running but database issues detected',
@@ -106,6 +107,7 @@ app.get('/api/hello', (req, res) => {
 app.use('/api/clients', clientsRouter);
 app.use('/api/interviews', interviewsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/resumes', resumesRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

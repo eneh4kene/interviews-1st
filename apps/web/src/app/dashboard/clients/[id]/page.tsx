@@ -112,27 +112,19 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           formData.append('file', file);
           formData.append('clientId', params.id);
           formData.append('name', file.name.replace(/\.[^/.]+$/, '')); // Remove file extension for name
+          formData.append('isDefault', (resumes.length === 0).toString()); // First resume becomes default
           
-          // TODO: Replace with actual API call when endpoint is available
-          // const response = await apiService.uploadResume(formData);
+          // Call the real API
+          const response = await apiService.uploadResume(formData);
           
-          // For now, simulate upload success
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          if (!response.success) {
+            throw new Error(response.error);
+          }
           
           // Add new resume to the list
-          const newResume: Resume = {
-            id: Date.now().toString(),
-            clientId: params.id,
-            name: file.name.replace(/\.[^/.]+$/, ''),
-            fileUrl: URL.createObjectURL(file),
-            isDefault: resumes.length === 0, // First resume becomes default
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
+          setResumes(prev => [...prev, response.data]);
           
-          setResumes(prev => [...prev, newResume]);
-          
-          alert(`Resume "${newResume.name}" uploaded successfully!`);
+          alert(`Resume "${response.data.name}" uploaded successfully!`);
           
         } catch (error) {
           console.error('Upload failed:', error);
@@ -146,84 +138,21 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
     fileInput.click();
   };
 
-  const handleDownloadResume = (resume: Resume) => {
+  const handleDownloadResume = async (resume: Resume) => {
     try {
+      // Download the resume from the API
+      const blob = await apiService.downloadResume(resume.id);
+      
       // Create a temporary link element
       const link = document.createElement('a');
-      
-      // For mock data, create a dummy file
-      if (resume.fileUrl.startsWith('blob:')) {
-        // If it's a blob URL (from upload), use it directly
-        link.href = resume.fileUrl;
-      } else {
-        // For mock data, create a dummy PDF content
-        const dummyContent = `%PDF-1.4
-1 0 obj
-<<
-/Type /Catalog
-/Pages 2 0 R
->>
-endobj
-
-2 0 obj
-<<
-/Type /Pages
-/Kids [3 0 R]
-/Count 1
->>
-endobj
-
-3 0 obj
-<<
-/Type /Page
-/Parent 2 0 R
-/MediaBox [0 0 612 792]
-/Contents 4 0 R
->>
-endobj
-
-4 0 obj
-<<
-/Length 44
->>
-stream
-BT
-/F1 12 Tf
-72 720 Td
-(Resume: ${resume.name}) Tj
-ET
-endstream
-endobj
-
-xref
-0 5
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000204 00000 n 
-trailer
-<<
-/Size 5
-/Root 1 0 R
->>
-startxref
-297
-%%EOF`;
-        
-        const blob = new Blob([dummyContent], { type: 'application/pdf' });
-        link.href = URL.createObjectURL(blob);
-      }
-      
+      link.href = URL.createObjectURL(blob);
       link.download = `${resume.name}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up blob URL if created
-      if (!resume.fileUrl.startsWith('blob:')) {
-        setTimeout(() => URL.revokeObjectURL(link.href), 100);
-      }
+      // Clean up the blob URL
+      setTimeout(() => URL.revokeObjectURL(link.href), 100);
       
     } catch (error) {
       console.error('Download failed:', error);
@@ -247,33 +176,55 @@ startxref
     setSelectedResume(null);
   };
 
-  const handleSetDefaultResume = (resume: Resume) => {
-    if (resume.isDefault) {
-      alert('This resume is already set as default.');
-      return;
+  const handleSetDefaultResume = async (resume: Resume) => {
+    try {
+      const response = await apiService.updateResume(resume.id, {
+        name: resume.name,
+        isDefault: true,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      // Update the resumes list
+      setResumes(prev => prev.map(r => ({
+        ...r,
+        isDefault: r.id === resume.id
+      })));
+
+      alert(`Resume "${resume.name}" set as default successfully!`);
+    } catch (error) {
+      console.error('Failed to set default resume:', error);
+      alert('Failed to set default resume. Please try again.');
     }
-    
-    // Update all resumes to set the selected one as default
-    setResumes(prev => prev.map(r => ({
-      ...r,
-      isDefault: r.id === resume.id,
-      updatedAt: r.id === resume.id ? new Date() : r.updatedAt,
-    })));
-    
-    alert(`"${resume.name}" is now set as the default resume.`);
   };
 
-  const handleDeleteResume = (resume: Resume) => {
-    if (resume.isDefault && resumes.length > 1) {
-      alert('Cannot delete the default resume. Please set another resume as default first.');
+  const handleDeleteResume = async (resume: Resume) => {
+    // Prevent deleting the default resume if it's the only one
+    if (resume.isDefault && resumes.length === 1) {
+      alert('Cannot delete the only resume. Please upload another resume first.');
       return;
     }
-    
-    const confirmed = confirm(`Are you sure you want to delete "${resume.name}"? This action cannot be undone.`);
-    
-    if (confirmed) {
+
+    if (!confirm(`Are you sure you want to delete "${resume.name}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await apiService.deleteResume(resume.id);
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      // Remove the resume from the list
       setResumes(prev => prev.filter(r => r.id !== resume.id));
-      alert(`Resume "${resume.name}" has been deleted.`);
+
+      alert(`Resume "${resume.name}" deleted successfully!`);
+    } catch (error) {
+      console.error('Failed to delete resume:', error);
+      alert('Failed to delete resume. Please try again.');
     }
   };
 
@@ -366,32 +317,20 @@ startxref
 
         setClient(clientResponse.data);
 
-        // For now, we'll use mock data for resumes, preferences, and applications
+        // Fetch resumes from API
+        const resumesResponse = await apiService.getResumes(params.id);
+        if (resumesResponse.success) {
+          setResumes(resumesResponse.data);
+        } else {
+          console.error('Failed to fetch resumes:', resumesResponse.error);
+          // Fallback to empty array if API fails
+          setResumes([]);
+        }
+
+        // For now, we'll use mock data for preferences and applications
         // since these endpoints don't exist yet in the API
         // TODO: Replace with real API calls when endpoints are created
         
-        // Mock resumes data
-        const mockResumes: Resume[] = [
-          {
-            id: "1",
-            clientId: params.id,
-            name: "Software Engineer - Tech Companies",
-            fileUrl: "/resumes/tech-software-engineer.pdf",
-            isDefault: true,
-            createdAt: new Date("2024-01-15"),
-            updatedAt: new Date("2024-01-15"),
-          },
-          {
-            id: "2",
-            clientId: params.id,
-            name: "UX Designer - Creative Agencies",
-            fileUrl: "/resumes/ux-designer.pdf",
-            isDefault: false,
-            createdAt: new Date("2024-01-20"),
-            updatedAt: new Date("2024-01-20"),
-          },
-        ];
-
         // Mock job preferences data
         const mockJobPreferences: JobPreference[] = [
           {
@@ -459,7 +398,6 @@ startxref
           },
         ];
 
-        setResumes(mockResumes);
         setJobPreferences(mockJobPreferences);
         setApplications(mockApplications);
 

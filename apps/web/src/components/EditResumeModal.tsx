@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { Button } from "@interview-me/ui";
 import { Input } from "@interview-me/ui";
 import { Label } from "@interview-me/ui";
-import { X, FileText, Save, CheckCircle } from "lucide-react";
+import { X, Save } from "lucide-react";
 import { Resume } from "@interview-me/types";
+import { apiService } from "../lib/api";
 
 interface EditResumeModalProps {
   isOpen: boolean;
@@ -47,8 +48,15 @@ export default function EditResumeModal({ isOpen, onClose, onSuccess, resume }: 
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the real API
+      const response = await apiService.updateResume(resume.id, {
+        name: formData.name.trim(),
+        isDefault: formData.isDefault,
+      });
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
       
       const updatedResume: Resume = {
         ...resume,
@@ -121,12 +129,10 @@ export default function EditResumeModal({ isOpen, onClose, onSuccess, resume }: 
 
             <div className="bg-gray-50 rounded-md p-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <FileText className="h-4 w-4" />
                 <span>Uploaded: {resume.createdAt.toLocaleDateString()}</span>
               </div>
               {resume.isDefault && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 mt-1">
-                  <CheckCircle className="h-4 w-4" />
                   <span>Currently set as default</span>
                 </div>
               )}
