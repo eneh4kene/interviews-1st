@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@inte
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
 import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown } from "lucide-react";
 import Logo from '../../components/Logo';
+import ClientForm from '../../components/ClientForm';
 import { apiService } from '../../lib/api';
 
 export default function Dashboard() {
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showClientForm, setShowClientForm] = useState(false);
 
   // Mock worker ID for now - in real app, this would come from auth context
   const workerId = "worker1";
@@ -90,7 +92,16 @@ export default function Dashboard() {
 
   // Button click handlers
   const handleAddNewClient = () => {
-    alert('Add New Client functionality would open a form modal');
+    setShowClientForm(true);
+  };
+
+  const handleClientFormClose = () => {
+    setShowClientForm(false);
+  };
+
+  const handleClientFormSuccess = () => {
+    // Refresh the dashboard data
+    window.location.reload();
   };
 
   const handleStatusFilterChange = (status: string) => {
@@ -447,6 +458,13 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Client Form Modal */}
+      <ClientForm
+        isOpen={showClientForm}
+        onClose={handleClientFormClose}
+        onSuccess={handleClientFormSuccess}
+      />
     </div>
   );
 } 
