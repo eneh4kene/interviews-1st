@@ -333,40 +333,13 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           console.error('Failed to fetch job preferences:', jobPreferencesResponse.error);
         }
 
-        // For now, we'll use mock data for applications
-        // since these endpoints don't exist yet in the API
-        // TODO: Replace with real API calls when endpoints are created
-        
-        // Mock applications data
-        const mockApplications: Application[] = [
-          {
-            id: "1",
-            clientId: params.id,
-            jobPreferenceId: "1",
-            resumeId: "1",
-            companyName: "TechCorp Inc.",
-            jobTitle: "Senior Software Engineer",
-            applicationDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            status: "applied",
-            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-          },
-          {
-            id: "2",
-            clientId: params.id,
-            jobPreferenceId: "2",
-            resumeId: "2",
-            companyName: "Design Studio Pro",
-            jobTitle: "UX Designer",
-            applicationDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            status: "interviewing",
-            interviewDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-            createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-            updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-          },
-        ];
-
-        setApplications(mockApplications);
+        // Fetch applications from API
+        const applicationsResponse = await apiService.getApplications(params.id);
+        if (applicationsResponse.success) {
+          setApplications(applicationsResponse.data);
+        } else {
+          console.error('Failed to fetch applications:', applicationsResponse.error);
+        }
 
       } catch (err) {
         console.error('Failed to fetch client data:', err);
@@ -910,6 +883,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           resumes={resumes}
           jobPreferences={jobPreferences}
           mode={applicationModalMode}
+          clientId={params.id}
         />
       )}
     </div>

@@ -8,6 +8,7 @@ import { Select } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { X, Calendar, MapPin, Building, Clock, CheckCircle, XCircle, Save, Plus, FileText, Edit } from "lucide-react";
 import { Application, Resume, JobPreference } from "@interview-me/types";
+import { apiService } from "../lib/api";
 
 interface ApplicationModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface ApplicationModalProps {
   resumes: Resume[];
   jobPreferences: JobPreference[];
   mode: 'view' | 'edit' | 'add'; // view details, edit, or add new
+  clientId: string; // Add clientId for API calls
 }
 
 export default function ApplicationModal({ 
@@ -26,7 +28,8 @@ export default function ApplicationModal({
   application, 
   resumes,
   jobPreferences,
-  mode 
+  mode,
+  clientId
 }: ApplicationModalProps) {
   const [formData, setFormData] = useState({
     jobTitle: "",
@@ -93,29 +96,46 @@ export default function ApplicationModal({
       return;
     }
 
+    if (!formData.jobPreferenceId) {
+      setError("Job preference is required");
+      return;
+    }
+
+    if (!formData.resumeId) {
+      setError("Resume is required");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const updatedApplication: Application = {
-        id: application?.id || Date.now().toString(),
-        clientId: application?.clientId || "",
+      const applicationData = {
+        clientId,
         jobPreferenceId: formData.jobPreferenceId,
         resumeId: formData.resumeId,
-        jobTitle: formData.jobTitle.trim(),
         companyName: formData.companyName.trim(),
-        applicationDate: new Date(formData.applicationDate),
+        jobTitle: formData.jobTitle.trim(),
+        applicationDate: formData.applicationDate,
         status: formData.status,
-        interviewDate: formData.interviewDate ? new Date(formData.interviewDate) : undefined,
+        interviewDate: formData.interviewDate || undefined,
         notes: formData.notes.trim() || undefined,
-        createdAt: application?.createdAt || new Date(),
-        updatedAt: new Date(),
       };
 
-      onSuccess(updatedApplication);
+      let response;
+      if (isEditMode && application) {
+        // Update existing application
+        response = await apiService.updateApplication(application.id, applicationData);
+      } else {
+        // Create new application
+        response = await apiService.createApplication(applicationData);
+      }
+
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      onSuccess(response.data);
       onClose();
     } catch (err) {
       console.error('Failed to save application:', err);

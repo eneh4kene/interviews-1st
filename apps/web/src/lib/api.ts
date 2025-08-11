@@ -268,6 +268,35 @@ class ApiService {
             method: 'DELETE',
         });
     }
+
+    // Applications
+    async getApplications(clientId: string): Promise<ApiResponse<any[]>> {
+        return this.request(`/applications?clientId=${clientId}`);
+    }
+
+    async getApplication(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/applications/${id}`);
+    }
+
+    async createApplication(applicationData: any): Promise<ApiResponse<any>> {
+        return this.request('/applications', {
+            method: 'POST',
+            body: JSON.stringify(applicationData),
+        });
+    }
+
+    async updateApplication(id: string, applicationData: any): Promise<ApiResponse<any>> {
+        return this.request(`/applications/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(applicationData),
+        });
+    }
+
+    async deleteApplication(id: string): Promise<ApiResponse<void>> {
+        return this.request(`/applications/${id}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export const apiService = new ApiService(); 
