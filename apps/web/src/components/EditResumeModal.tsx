@@ -129,7 +129,7 @@ export default function EditResumeModal({ isOpen, onClose, onSuccess, resume }: 
 
             <div className="bg-gray-50 rounded-md p-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span>Uploaded: {resume.createdAt.toLocaleDateString()}</span>
+                <span>Uploaded: {new Date(resume.createdAt).toLocaleDateString()}</span>
               </div>
               {resume.isDefault && (
                 <div className="flex items-center gap-2 text-sm text-blue-600 mt-1">

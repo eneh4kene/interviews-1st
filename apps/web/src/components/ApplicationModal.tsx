@@ -217,12 +217,12 @@ export default function ApplicationModal({
                       <div className="space-y-4">
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Application Date</Label>
-                          <p className="text-sm">{application.applicationDate.toLocaleDateString()}</p>
+                          <p className="text-sm">{new Date(application.applicationDate).toLocaleDateString()}</p>
                         </div>
                         {application.interviewDate && (
-                          <div>
-                            <Label className="text-sm font-medium text-gray-600">Interview Date</Label>
-                            <p className="text-sm">{application.interviewDate.toLocaleDateString()}</p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <p className="text-sm">{new Date(application.interviewDate).toLocaleDateString()}</p>
                           </div>
                         )}
                         <div>

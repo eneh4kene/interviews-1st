@@ -546,7 +546,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                       </div>
                       <div className="flex items-center">
                         <span className="text-gray-600 w-24">Assigned:</span>
-                        <span className="font-medium">{client.assignedAt.toLocaleDateString()}</span>
+                        <span className="font-medium">{new Date(client.assignedAt).toLocaleDateString()}</span>
                       </div>
                       {client.isNew && (
                         <div className="flex items-center">
@@ -571,14 +571,14 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                           <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           <span className="text-sm">Client profile created</span>
                         </div>
-                        <span className="text-sm text-gray-500">{client.createdAt.toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-500">{new Date(client.createdAt).toLocaleDateString()}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <span className="text-sm">Assigned to worker</span>
                         </div>
-                        <span className="text-sm text-gray-500">{client.assignedAt.toLocaleDateString()}</span>
+                        <span className="text-sm text-gray-500">{new Date(client.assignedAt).toLocaleDateString()}</span>
                       </div>
                       {client.totalInterviews > 0 && (
                         <div className="flex items-center justify-between">
@@ -632,7 +632,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                         <div className="space-y-3">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-gray-600">Uploaded:</span>
-                            <span>{resume.createdAt.toLocaleDateString()}</span>
+                            <span>{new Date(resume.createdAt).toLocaleDateString()}</span>
                           </div>
                           <div className="flex gap-2 flex-wrap">
                             <Button size="sm" variant="outline" onClick={() => handleDownloadResume(resume)}>
@@ -788,12 +788,12 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                           <div>
                             <p className="text-sm font-medium text-gray-600">Application Date</p>
-                            <p className="text-sm">{app.applicationDate.toLocaleDateString()}</p>
+                            <p className="text-sm">{new Date(app.applicationDate).toLocaleDateString()}</p>
                           </div>
                           {app.interviewDate && (
-                            <div>
-                              <p className="text-sm font-medium text-gray-600">Interview Date</p>
-                              <p className="text-sm">{app.interviewDate.toLocaleDateString()}</p>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-gray-400" />
+                              <p className="text-sm">{new Date(app.interviewDate).toLocaleDateString()}</p>
                             </div>
                           )}
                           <div>

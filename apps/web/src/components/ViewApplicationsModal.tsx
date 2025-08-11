@@ -98,12 +98,12 @@ export default function ViewApplicationsModal({
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Application Date</p>
-                        <p className="text-sm">{app.applicationDate.toLocaleDateString()}</p>
+                        <p className="text-sm">{new Date(app.applicationDate).toLocaleDateString()}</p>
                       </div>
                       {app.interviewDate && (
-                        <div>
-                          <p className="text-sm font-medium text-gray-600">Interview Date</p>
-                          <p className="text-sm">{app.interviewDate.toLocaleDateString()}</p>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-400" />
+                          <p className="text-sm">{new Date(app.interviewDate).toLocaleDateString()}</p>
                         </div>
                       )}
                       <div>
