@@ -26,6 +26,7 @@ import EditClientForm from '../../../../components/EditClientForm';
 import EditResumeModal from '../../../../components/EditResumeModal';
 import JobPreferenceModal from '../../../../components/JobPreferenceModal';
 import ViewApplicationsModal from '../../../../components/ViewApplicationsModal';
+import ApplicationModal from '../../../../components/ApplicationModal';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -43,6 +44,9 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [selectedJobPreference, setSelectedJobPreference] = useState<JobPreference | null>(null);
   const [showViewApplicationsModal, setShowViewApplicationsModal] = useState(false);
   const [selectedJobPreferenceForView, setSelectedJobPreferenceForView] = useState<JobPreference | null>(null);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [applicationModalMode, setApplicationModalMode] = useState<'view' | 'edit' | 'add'>('view');
 
   // Button click handlers
   const handleBackToDashboard = () => {
@@ -306,19 +310,46 @@ startxref
   };
 
   const handleAddApplication = () => {
-    alert('Add Application functionality would open a form modal');
+    setSelectedApplication(null);
+    setApplicationModalMode('add');
+    setShowApplicationModal(true);
   };
 
   const handleUpdateStatus = (app: Application) => {
-    alert(`Update status for application: ${app.jobTitle} at ${app.companyName}`);
+    setSelectedApplication(app);
+    setApplicationModalMode('edit');
+    setShowApplicationModal(true);
   };
 
   const handleAddNotes = (app: Application) => {
-    alert(`Add notes for application: ${app.jobTitle} at ${app.companyName}`);
+    setSelectedApplication(app);
+    setApplicationModalMode('edit');
+    setShowApplicationModal(true);
   };
 
   const handleViewDetails = (app: Application) => {
-    alert(`View details for application: ${app.jobTitle} at ${app.companyName}`);
+    setSelectedApplication(app);
+    setApplicationModalMode('view');
+    setShowApplicationModal(true);
+  };
+
+  const handleApplicationModalClose = () => {
+    setShowApplicationModal(false);
+    setSelectedApplication(null);
+    setApplicationModalMode('view');
+  };
+
+  const handleApplicationSuccess = (application: Application) => {
+    if (selectedApplication) {
+      // Editing existing application
+      setApplications(prev => prev.map(a => a.id === application.id ? application : a));
+    } else {
+      // Adding new application
+      setApplications(prev => [...prev, application]);
+    }
+    setShowApplicationModal(false);
+    setSelectedApplication(null);
+    setApplicationModalMode('view');
   };
 
   useEffect(() => {
@@ -961,6 +992,19 @@ startxref
           onClose={() => setShowViewApplicationsModal(false)}
           jobPreference={selectedJobPreferenceForView}
           applications={applications}
+        />
+      )}
+
+      {/* Application Modal */}
+      {showApplicationModal && (
+        <ApplicationModal
+          isOpen={showApplicationModal}
+          onClose={handleApplicationModalClose}
+          onSuccess={handleApplicationSuccess}
+          application={selectedApplication}
+          resumes={resumes}
+          jobPreferences={jobPreferences}
+          mode={applicationModalMode}
         />
       )}
     </div>
