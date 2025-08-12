@@ -11,6 +11,41 @@
             "import": "./dist/index.mjs",
             "require": "./dist/index.js"
         },
+        "./button": {
+            "types": "./dist/components/ui/button.d.ts",
+            "import": "./dist/components/ui/button.mjs",
+            "require": "./dist/components/ui/button.js"
+        },
+        "./input": {
+            "types": "./dist/components/ui/input.d.ts",
+            "import": "./dist/components/ui/input.mjs",
+            "require": "./dist/components/ui/input.js"
+        },
+        "./card": {
+            "types": "./dist/components/ui/card.d.ts",
+            "import": "./dist/components/ui/card.mjs",
+            "require": "./dist/components/ui/card.js"
+        },
+        "./badge": {
+            "types": "./dist/components/ui/badge.d.ts",
+            "import": "./dist/components/ui/badge.mjs",
+            "require": "./dist/components/ui/badge.js"
+        },
+        "./select": {
+            "types": "./dist/components/ui/select.d.ts",
+            "import": "./dist/components/ui/select.mjs",
+            "require": "./dist/components/ui/select.js"
+        },
+        "./label": {
+            "types": "./dist/components/ui/label.d.ts",
+            "import": "./dist/components/ui/label.mjs",
+            "require": "./dist/components/ui/label.js"
+        },
+        "./alert": {
+            "types": "./dist/components/ui/alert.d.ts",
+            "import": "./dist/components/ui/alert.mjs",
+            "require": "./dist/components/ui/alert.js"
+        },
         "./styles.css": "./dist/styles.css"
     },
     "scripts": {
@@ -21,6 +56,7 @@
     },
     "dependencies": {
         "@radix-ui/react-label": "^2.1.7",
+        "@radix-ui/react-select": "^2.2.5",
         "@radix-ui/react-slot": "^1.0.2",
         "@types/jsonwebtoken": "^9.0.10",
         "class-variance-authority": "^0.7.0",

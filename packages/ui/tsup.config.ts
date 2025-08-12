@@ -1,7 +1,16 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-    entry: ['src/index.ts'],
+    entry: [
+        'src/index.ts',
+        'src/components/ui/button.tsx',
+        'src/components/ui/input.tsx',
+        'src/components/ui/card.tsx',
+        'src/components/ui/badge.tsx',
+        'src/components/ui/select.tsx',
+        'src/components/ui/label.tsx',
+        'src/components/ui/alert.tsx'
+    ],
     format: ['cjs', 'esm'],
     dts: true,
     clean: true,

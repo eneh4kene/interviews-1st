@@ -10,6 +10,7 @@ A modern B2B SaaS platform for career coaches, recruiters, and job placement pro
 - **Client Portfolio Management**: Manage job seekers with detailed profiles
 - **Resume Management**: Upload, organize, and manage multiple resume versions
 - **Job Preference Tracking**: Set target roles, locations, and requirements
+- **Job Aggregation System**: Multi-source job listings from Adzuna, Jooble, and more
 - **Application Tracking**: Monitor job applications and interview status
 - **Interview Scheduling**: Schedule interviews on behalf of clients
 - **Payment Processing**: £10 fee when clients accept interviews
@@ -86,6 +87,7 @@ npm run dev
 - **Client Management**: Add, edit, and manage client profiles
 - **Resume Management**: Upload and organize client resumes
 - **Job Preferences**: Set target roles and requirements
+- **Job Search**: Browse aggregated job listings from multiple sources
 - **Application Tracking**: Monitor application progress
 - **Interview Scheduling**: Schedule interviews on behalf of clients
 - **Analytics**: Track success rates and revenue
@@ -146,6 +148,54 @@ npm run dev
 - `GET /api/applications` - Get applications for client
 - `POST /api/applications` - Create new application
 - `PUT /api/applications/:id` - Update application status
+
+### **Job Aggregation**
+- `GET /api/jobs/search` - Search jobs from live aggregators and stored database
+- `GET /api/jobs/search?source=live` - Search only live aggregator APIs
+- `GET /api/jobs/search?source=stored` - Search only stored database jobs
+- `GET /api/jobs/:id` - Get specific job details
+- `PUT /api/jobs/:id/auto-apply` - Update auto-apply status for job
+- `GET /api/jobs/stats/aggregators` - Get aggregator statistics
+- `GET /api/jobs/health/aggregators` - Health check for job aggregators
+
+## 🔍 **Job Aggregation System**
+
+### **Overview**
+The platform includes a sophisticated job aggregation system that fetches job listings from multiple sources, normalizes the data, and provides a unified search interface.
+
+### **Supported Aggregators**
+- **Adzuna**: UK job listings with comprehensive metadata
+- **Jooble**: Global job search with location-based filtering
+- **Future**: Indeed, ZipRecruiter, Workable, Greenhouse
+
+### **Key Features**
+- **Multi-Source Integration**: Fetch jobs from multiple aggregators simultaneously
+- **Data Normalization**: Consistent job data structure across all sources
+- **Deduplication**: Prevent duplicate job listings using smart hashing
+- **Caching**: Redis-based caching for improved performance (30-minute TTL)
+- **Partial Persistence**: Store essential job data in PostgreSQL for search and analytics
+- **Auto-Cleanup**: Automatic removal of old jobs (30-day TTL)
+- **Rate Limiting**: Respect API rate limits for each aggregator
+- **Error Handling**: Graceful degradation when aggregators are unavailable
+
+### **Search Capabilities**
+- **Keyword Search**: Search across job titles, companies, and descriptions
+- **Location Filtering**: Filter by city, remote, hybrid, or onsite
+- **Job Type Filtering**: Full-time, part-time, contract, internship, etc.
+- **Salary Range**: Filter by minimum and maximum salary
+- **Date Filtering**: Jobs posted in last 24h, 7 days, 30 days
+- **Company Filtering**: Search by specific company names
+
+### **Auto-Apply Integration**
+- **Status Tracking**: Track jobs eligible for automated applications
+- **AI Integration Ready**: Prepared for future AI-powered auto-apply features
+- **Status Types**: Eligible, ineligible, pending review, applied, failed, blacklisted
+
+### **Performance Optimizations**
+- **Parallel Fetching**: Fetch from multiple aggregators simultaneously
+- **Smart Caching**: Cache results to reduce API calls
+- **Database Indexing**: Optimized PostgreSQL indexes for fast searches
+- **Connection Pooling**: Efficient database connection management
 
 ## 💰 **Business Model**
 
@@ -216,6 +266,10 @@ Shared TypeScript interfaces and types used across the monorepo:
 - `Resume` - Resume data structure
 - `JobPreference` - Job preference details
 - `Application` - Application tracking data
+- `Job` - Job listing data structure
+- `JobAggregator` - Supported job aggregator types
+- `JobSearchFilters` - Job search filter parameters
+- `AutoApplyStatus` - Auto-apply status enumeration
 
 ### **@interview-me/ui**
 Reusable UI components built with shadcn/ui and Tailwind CSS:
@@ -248,6 +302,21 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jobplace
 REDIS_URL=redis://localhost:6379
 PORT=3001
 NODE_ENV=development
+
+# Job Aggregators
+ADZUNA_APP_ID=your_adzuna_app_id
+ADZUNA_APP_KEY=your_adzuna_app_key
+ADZUNA_BASE_URL=https://api.adzuna.com/v1/api
+JOOBLE_API_KEY=your_jooble_api_key
+JOOBLE_BASE_URL=https://jooble.org/api
+
+# Rate Limits (requests per minute)
+ADZUNA_RATE_LIMIT_PER_MINUTE=25
+JOOBLE_RATE_LIMIT_PER_MINUTE=60
+
+# Job Cache Settings
+JOB_CACHE_TTL_SECONDS=1800
+JOB_STORAGE_TTL_DAYS=30
 ```
 
 ## 🚀 **Deployment**
@@ -274,6 +343,9 @@ docker-compose up -d
 - Client portfolio management
 - Resume upload and management
 - Job preference tracking
+- **Job aggregation system with Adzuna and Jooble APIs**
+- **Multi-source job search with caching and deduplication**
+- **Job storage with TTL cleanup and auto-apply status tracking**
 - Application status tracking
 - Professional modal interfaces
 - Payment model implementation

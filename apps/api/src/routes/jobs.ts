@@ -91,8 +91,41 @@ router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const result = await jobAggregationService.getStoredJobs({});
-        const job = result.jobs.find(j => j.id === id);
+        // First, try to find the job in stored database
+        const storedResult = await jobAggregationService.getStoredJobs({});
+        let job = storedResult.jobs.find(j => j.id === id);
+
+        // If not found in database, try to find by external_id (in case the ID is from an aggregator)
+        if (!job) {
+            try {
+                const externalResult = await jobAggregationService.getStoredJobs({});
+                job = externalResult.jobs.find(j => j.externalId === id);
+            } catch (externalError) {
+                console.error('Error searching by external ID:', externalError);
+            }
+        }
+
+        // If still not found, try to fetch from live aggregators
+        if (!job) {
+            try {
+                // Search with a broad query to get more jobs
+                const liveResult = await jobAggregationService.searchJobs({
+                    keywords: 'developer', // Use a broad search term
+                    location: 'London', // Use a common location
+                    limit: 50 // Get more jobs to increase chances of finding the specific one
+                });
+                
+                // Find the job with matching ID (from aggregator)
+                job = liveResult.jobs.find(j => j.id === id);
+                
+                // If found, store it in the database for future access
+                if (job) {
+                    await jobAggregationService.storeJobs([job]);
+                }
+            } catch (liveError) {
+                console.error('Error fetching from live aggregators:', liveError);
+            }
+        }
 
         if (!job) {
             const apiResponse: ApiResponse = {

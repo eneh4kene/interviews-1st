@@ -370,7 +370,7 @@ export class JobAggregationService {
                 // Convert salary values to integers for database storage
                 const salaryMin = job.salaryMin ? Math.round(parseFloat(job.salaryMin.toString())) : null;
                 const salaryMax = job.salaryMax ? Math.round(parseFloat(job.salaryMax.toString())) : null;
-                
+
                 params.push(
                     job.externalId,
                     job.title,
@@ -560,6 +560,13 @@ export class JobAggregationService {
     // Get jobs from database (for stored jobs)
     async getStoredJobs(filters: JobSearchFilters): Promise<JobSearchResponse> {
         try {
+            // If no specific filters are applied, use the optimized view for better performance
+            if (!filters.keywords && !filters.location && !filters.jobType && !filters.workLocation &&
+                !filters.salaryMin && !filters.salaryMax && !filters.company &&
+                filters.autoApplyEligible === undefined && (!filters.postedWithin || filters.postedWithin === 'all')) {
+                return this.getRecentJobsFromView(filters);
+            }
+
             let query = 'SELECT * FROM jobs WHERE 1=1';
             const params: any[] = [];
             let paramIndex = 1;
@@ -673,6 +680,60 @@ export class JobAggregationService {
             };
         } catch (error) {
             console.error('Error getting stored jobs:', error);
+            return {
+                jobs: [],
+                totalCount: 0,
+                page: 1,
+                totalPages: 0,
+                aggregatorResults: {}
+            };
+        }
+    }
+
+    // Get recent jobs from optimized view for better performance
+    private async getRecentJobsFromView(filters: JobSearchFilters): Promise<JobSearchResponse> {
+        try {
+            const page = filters.page || 1;
+            const limit = filters.limit || 20;
+            const offset = (page - 1) * limit;
+
+            // Query the optimized view
+            const query = `
+                SELECT * FROM recent_jobs_view 
+                WHERE row_num > $1 AND row_num <= $2
+                ORDER BY posted_date DESC
+            `;
+
+            const result = await db.query(query, [offset, offset + limit]);
+            const jobs = result.rows.map(row => ({
+                ...row,
+                postedDate: row.posted_date,
+                descriptionSnippet: row.description_snippet,
+                applyUrl: row.apply_url,
+                jobType: row.job_type,
+                workLocation: row.work_location,
+                salaryMin: row.salary_min,
+                salaryMax: row.salary_max,
+                salaryCurrency: row.salary_currency,
+                autoApplyStatus: row.auto_apply_status,
+                externalId: row.external_id,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            }));
+
+            // Get total count from view
+            const countResult = await db.query('SELECT COUNT(*) FROM recent_jobs_view');
+            const totalCount = parseInt(countResult.rows[0].count);
+
+            return {
+                jobs,
+                totalCount,
+                page,
+                totalPages: Math.ceil(totalCount / limit),
+                aggregatorResults: {}
+            };
+        } catch (error) {
+            console.error('Error getting recent jobs from view:', error);
             return {
                 jobs: [],
                 totalCount: 0,

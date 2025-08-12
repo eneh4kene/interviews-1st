@@ -246,4 +246,40 @@ CREATE TRIGGER update_interviews_updated_at BEFORE UPDATE ON interviews FOR EACH
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_client_notifications_updated_at BEFORE UPDATE ON client_notifications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_interview_offers_updated_at BEFORE UPDATE ON interview_offers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Create view for top 100 most recent jobs (for job page performance)
+CREATE OR REPLACE VIEW recent_jobs_view AS
+SELECT 
+    id,
+    external_id,
+    title,
+    company,
+    location,
+    salary,
+    description_snippet,
+    source,
+    posted_date,
+    apply_url,
+    job_type,
+    work_location,
+    salary_min,
+    salary_max,
+    salary_currency,
+    requirements,
+    benefits,
+    auto_apply_status,
+    auto_apply_notes,
+    title_hash,
+    company_location_hash,
+    created_at,
+    updated_at,
+    -- Add a row number for easy pagination
+    ROW_NUMBER() OVER (ORDER BY posted_date DESC) as row_num
+FROM jobs 
+WHERE posted_date >= CURRENT_DATE - INTERVAL '30 days'  -- Only jobs from last 30 days
+ORDER BY posted_date DESC
+LIMIT 100;
+
+-- Create index on the view for better performance
+CREATE INDEX idx_recent_jobs_posted_date ON jobs(posted_date DESC) WHERE posted_date >= CURRENT_DATE - INTERVAL '30 days'; 

@@ -166,7 +166,11 @@ export default function Home() {
           <div className="flex items-center justify-between h-16">
             <Logo size="md" className="text-text" />
             <div className="flex items-center space-x-4">
-
+              <Link href="/jobs">
+                <Button variant="ghost" size="sm" className="text-text hover:bg-surface">
+                  Browse Jobs
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
                 Sign In
               </Button>
