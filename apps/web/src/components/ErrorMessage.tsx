@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react';
-import { Button } from '@interview-me/ui/button';
+import { Button } from '@interview-me/ui';
 
 interface ErrorMessageProps {
   title?: string;

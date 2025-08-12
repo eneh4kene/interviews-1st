@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
-import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase } from "lucide-react";
 import Logo from '../../components/Logo';
 import ClientForm from '../../components/ClientForm';
 import { apiService } from '../../lib/api';
 
 export default function Dashboard() {
+  const router = useRouter();
   const [clients, setClients] = useState<Client[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showClientForm, setShowClientForm] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Mock worker ID for now - in real app, this would come from auth context
   const workerId = "worker1";
@@ -93,6 +96,11 @@ export default function Dashboard() {
   // Button click handlers
   const handleAddNewClient = () => {
     setShowClientForm(true);
+  };
+
+  const handleFindJobs = () => {
+    setIsNavigating(true);
+    router.push('/jobs');
   };
 
   const handleClientFormClose = () => {
@@ -193,10 +201,30 @@ export default function Dashboard() {
                 <p className="text-gray-600">Manage your clients' job search journeys</p>
               </div>
             </div>
-            <Button className="flex items-center gap-2" onClick={handleAddNewClient}>
-              <Plus className="h-4 w-4" />
-              Add New Client
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2" 
+                onClick={handleFindJobs}
+                disabled={isNavigating}
+              >
+                {isNavigating ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    <Briefcase className="h-4 w-4" />
+                    Find Jobs
+                  </>
+                )}
+              </Button>
+              <Button className="flex items-center gap-2" onClick={handleAddNewClient}>
+                <Plus className="h-4 w-4" />
+                Add New Client
+              </Button>
+            </div>
           </div>
         </div>
       </div>

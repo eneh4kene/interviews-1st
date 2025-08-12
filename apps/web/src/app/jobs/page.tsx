@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, DollarSign, Calendar, Building, Filter, X } from 'lucide-react';
-import { Button } from '@interview-me/ui/button';
-import { Input } from '@interview-me/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@interview-me/ui/card';
-import { Badge } from '@interview-me/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@interview-me/ui/select';
+import { useRouter } from 'next/navigation';
+import { Search, MapPin, Briefcase, DollarSign, Calendar, Building, Filter, X, ArrowLeft } from 'lucide-react';
+import { Button } from '@interview-me/ui';
+import { Input } from '@interview-me/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@interview-me/ui';
+import { Badge } from '@interview-me/ui';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@interview-me/ui';
 import { Job, JobType, WorkLocation } from '@interview-me/types';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
@@ -34,6 +35,7 @@ interface JobSearchResponse {
 }
 
 export default function JobsPage() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<JobSearchFilters>({
@@ -50,6 +52,7 @@ export default function JobsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const searchJobs = async (page = 1) => {
     setLoading(true);
@@ -96,6 +99,11 @@ export default function JobsPage() {
 
   const handlePageChange = (page: number) => {
     searchJobs(page);
+  };
+
+  const handleBackToDashboard = () => {
+    setIsNavigating(true);
+    router.push('/dashboard');
   };
 
   const clearFilters = () => {
@@ -146,31 +154,49 @@ export default function JobsPage() {
   const getWorkLocationColor = (location: WorkLocation) => {
     const colors = {
       'remote': 'bg-emerald-100 text-emerald-800',
-      'on-site': 'bg-blue-100 text-blue-800',
+      'onsite': 'bg-blue-100 text-blue-800',
       'hybrid': 'bg-purple-100 text-purple-800'
     };
     return colors[location] || 'bg-gray-100 text-gray-800';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Find Your Dream Job
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Discover thousands of opportunities from top companies worldwide
-            </p>
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={handleBackToDashboard}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                disabled={isNavigating}
+              >
+                {isNavigating ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  <>
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Dashboard
+                  </>
+                )}
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Find the Right Fit for Your Client</h1>
+                <p className="text-gray-600">Discover thousands of opportunities from top companies worldwide</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Bar */}
-        <Card className="mb-8 shadow-lg">
+        <Card className="mb-8">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
@@ -180,7 +206,7 @@ export default function JobsPage() {
                     placeholder="Search jobs, companies, or keywords..."
                     value={filters.keywords}
                     onChange={(e) => setFilters({ ...filters, keywords: e.target.value })}
-                    className="pl-10 h-12 text-lg"
+                    className="pl-10 h-12"
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
@@ -192,7 +218,7 @@ export default function JobsPage() {
                     placeholder="Location (e.g., London, Remote)"
                     value={filters.location}
                     onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-                    className="pl-10 h-12 text-lg"
+                    className="pl-10 h-12"
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </div>
@@ -202,7 +228,14 @@ export default function JobsPage() {
                 className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-lg font-semibold"
                 disabled={loading}
               >
-                {loading ? 'Searching...' : 'Search Jobs'}
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Searching...
+                  </div>
+                ) : (
+                  'Search Jobs'
+                )}
               </Button>
             </div>
           </CardContent>
@@ -270,7 +303,7 @@ export default function JobsPage() {
                     <SelectContent>
                       <SelectItem value="">All locations</SelectItem>
                       <SelectItem value="remote">Remote</SelectItem>
-                      <SelectItem value="on-site">On-site</SelectItem>
+                      <SelectItem value="onsite">On-site</SelectItem>
                       <SelectItem value="hybrid">Hybrid</SelectItem>
                     </SelectContent>
                   </Select>
@@ -327,7 +360,7 @@ export default function JobsPage() {
             jobs.map((job) => (
               <Card 
                 key={job.id} 
-                className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+                className="hover:shadow-md transition-shadow duration-200 cursor-pointer"
                 onClick={() => window.location.href = `/jobs/${job.id}`}
               >
                 <CardContent className="p-6">
@@ -335,7 +368,7 @@ export default function JobsPage() {
                     <div className="flex-1">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h3 className="text-xl font-semibold text-gray-900 mb-2 hover:text-blue-600 transition-colors">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-blue-600 transition-colors">
                             {job.title}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
@@ -371,7 +404,7 @@ export default function JobsPage() {
                         )}
                         {job.workLocation && (
                           <Badge className={getWorkLocationColor(job.workLocation)}>
-                            {job.workLocation.replace('-', ' ')}
+                            {job.workLocation}
                           </Badge>
                         )}
                       </div>
@@ -390,12 +423,22 @@ export default function JobsPage() {
                     
                     <div className="flex flex-col gap-2 lg:items-end">
                       <Button 
-                        onClick={() => window.open(job.applyUrl, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(job.applyUrl, '_blank');
+                        }}
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                       >
                         Apply Now
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // TODO: Implement save job functionality
+                        }}
+                      >
                         Save Job
                       </Button>
                     </div>

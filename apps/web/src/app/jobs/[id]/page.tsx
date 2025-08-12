@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, Building, DollarSign, Calendar, Clock, ExternalLink, Bookmark, Share2, Mail } from 'lucide-react';
-import { Button } from '@interview-me/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@interview-me/ui/card';
-import { Badge } from '@interview-me/ui/badge';
+import { Button } from '@interview-me/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@interview-me/ui';
+import { Badge } from '@interview-me/ui';
 import { Job, JobType, WorkLocation } from '@interview-me/types';
 import LoadingSpinner from '../../../components/LoadingSpinner';
 
@@ -77,7 +77,7 @@ export default function JobDetailsPage() {
   const getWorkLocationColor = (location: WorkLocation) => {
     const colors = {
       'remote': 'bg-emerald-100 text-emerald-800',
-      'on-site': 'bg-blue-100 text-blue-800',
+      'onsite': 'bg-blue-100 text-blue-800',
       'hybrid': 'bg-purple-100 text-purple-800'
     };
     return colors[location] || 'bg-gray-100 text-gray-800';
@@ -85,7 +85,7 @@ export default function JobDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <LoadingSpinner size="lg" text="Loading job details..." />
       </div>
     );
@@ -93,7 +93,7 @@ export default function JobDetailsPage() {
 
   if (error || !job) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Job Not Found</h2>
@@ -108,9 +108,9 @@ export default function JobDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <Button
             variant="ghost"
@@ -125,7 +125,7 @@ export default function JobDetailsPage() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Job Header */}
-        <Card className="mb-8 shadow-lg">
+        <Card className="mb-8">
           <CardContent className="p-8">
             <div className="flex flex-col lg:flex-row justify-between gap-6">
               <div className="flex-1">
@@ -163,7 +163,7 @@ export default function JobDetailsPage() {
                   )}
                   {job.workLocation && (
                     <Badge className={getWorkLocationColor(job.workLocation)}>
-                      {job.workLocation.replace('-', ' ')}
+                      {job.workLocation}
                     </Badge>
                   )}
                 </div>
