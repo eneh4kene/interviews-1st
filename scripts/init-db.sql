@@ -158,6 +158,37 @@ CREATE TABLE refresh_tokens (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Jobs table for aggregated job listings
+CREATE TABLE jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    external_id VARCHAR(255), -- Original ID from aggregator
+    title VARCHAR(500) NOT NULL,
+    company VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    salary VARCHAR(255),
+    description_snippet TEXT NOT NULL,
+    source VARCHAR(20) NOT NULL CHECK (source IN ('adzuna', 'jooble', 'indeed', 'ziprecruiter', 'workable', 'greenhouse')),
+    posted_date TIMESTAMP NOT NULL,
+    apply_url VARCHAR(1000) NOT NULL,
+    -- Additional fields for enhanced functionality
+    job_type VARCHAR(20) CHECK (job_type IN ('full-time', 'part-time', 'contract', 'internship', 'temporary', 'freelance')),
+    work_location VARCHAR(20) CHECK (work_location IN ('remote', 'hybrid', 'onsite')),
+    salary_min INTEGER,
+    salary_max INTEGER,
+    salary_currency VARCHAR(3) DEFAULT 'GBP',
+    requirements TEXT[], -- Array of requirements
+    benefits TEXT[], -- Array of benefits
+    -- Auto-apply functionality
+    auto_apply_status VARCHAR(20) DEFAULT 'pending_review' CHECK (auto_apply_status IN ('eligible', 'ineligible', 'pending_review', 'applied', 'failed', 'blacklisted')),
+    auto_apply_notes TEXT,
+    -- Deduplication fields
+    title_hash VARCHAR(64), -- Hash of title for deduplication
+    company_location_hash VARCHAR(64), -- Hash of company + location for deduplication
+    -- Internal tracking
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_clients_worker_id ON clients(worker_id);
 CREATE INDEX idx_clients_status ON clients(status);
@@ -172,6 +203,29 @@ CREATE INDEX idx_offers_token ON interview_offers(token);
 CREATE INDEX idx_offers_expires_at ON interview_offers(expires_at);
 CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
+
+-- Job-specific indexes
+CREATE INDEX idx_jobs_source ON jobs(source);
+CREATE INDEX idx_jobs_posted_date ON jobs(posted_date);
+CREATE INDEX idx_jobs_company ON jobs(company);
+CREATE INDEX idx_jobs_location ON jobs(location);
+CREATE INDEX idx_jobs_job_type ON jobs(job_type);
+CREATE INDEX idx_jobs_work_location ON jobs(work_location);
+CREATE INDEX idx_jobs_auto_apply_status ON jobs(auto_apply_status);
+CREATE INDEX idx_jobs_title_hash ON jobs(title_hash);
+CREATE INDEX idx_jobs_company_location_hash ON jobs(company_location_hash);
+CREATE INDEX idx_jobs_external_id_source ON jobs(external_id, source);
+
+-- Add unique constraint for deduplication
+ALTER TABLE jobs ADD CONSTRAINT jobs_external_id_source_unique UNIQUE (external_id, source);
+
+-- Full-text search index for job search
+CREATE INDEX idx_jobs_search ON jobs USING gin(to_tsvector('english', title || ' ' || company || ' ' || description_snippet));
+
+-- Composite indexes for common queries
+CREATE INDEX idx_jobs_location_posted_date ON jobs(location, posted_date);
+CREATE INDEX idx_jobs_source_posted_date ON jobs(source, posted_date);
+CREATE INDEX idx_jobs_auto_apply_posted_date ON jobs(auto_apply_status, posted_date);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -191,4 +245,5 @@ CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON applications FOR 
 CREATE TRIGGER update_interviews_updated_at BEFORE UPDATE ON interviews FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_payments_updated_at BEFORE UPDATE ON payments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_client_notifications_updated_at BEFORE UPDATE ON client_notifications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_interview_offers_updated_at BEFORE UPDATE ON interview_offers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 
+CREATE TRIGGER update_interview_offers_updated_at BEFORE UPDATE ON interview_offers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column(); 

@@ -220,6 +220,96 @@ export interface DashboardStats {
     interviewsDeclined: number;
 }
 
+// Job Aggregation Types
+export type JobAggregator = 'adzuna' | 'jooble' | 'indeed' | 'ziprecruiter' | 'workable' | 'greenhouse';
+
+export type JobType = 'full-time' | 'part-time' | 'contract' | 'internship' | 'temporary' | 'freelance';
+
+export type WorkLocation = 'remote' | 'hybrid' | 'onsite';
+
+export type AutoApplyStatus =
+    | 'eligible'           // Job is eligible for auto-apply
+    | 'ineligible'         // Job is not eligible (e.g., requires manual application)
+    | 'pending_review'     // Job needs manual review before auto-apply
+    | 'applied'            // Auto-apply has been attempted
+    | 'failed'             // Auto-apply failed
+    | 'blacklisted';       // Job is blacklisted from auto-apply
+
+export interface Job {
+    id: string;
+    title: string;
+    company: string;
+    location: string;
+    salary?: string;
+    descriptionSnippet: string;
+    source: JobAggregator;
+    postedDate: string;
+    applyUrl: string;
+    // Additional fields for enhanced functionality
+    jobType?: JobType;
+    workLocation?: WorkLocation;
+    salaryMin?: number;
+    salaryMax?: number;
+    salaryCurrency?: string;
+    requirements?: string[];
+    benefits?: string[];
+    // Auto-apply functionality
+    autoApplyStatus: AutoApplyStatus;
+    autoApplyNotes?: string;
+    // Internal tracking
+    externalId?: string; // Original ID from aggregator
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface JobSearchFilters {
+    keywords?: string;
+    location?: string;
+    radius?: number; // in km
+    jobType?: JobType[];
+    workLocation?: WorkLocation[];
+    salaryMin?: number;
+    salaryMax?: number;
+    postedWithin?: '24h' | '7d' | '30d' | 'all';
+    company?: string;
+    autoApplyEligible?: boolean;
+    page?: number;
+    limit?: number;
+}
+
+export interface JobSearchResponse {
+    jobs: Job[];
+    totalCount: number;
+    page: number;
+    totalPages: number;
+    aggregatorResults: {
+        [key in JobAggregator]?: {
+            count: number;
+            success: boolean;
+            error?: string;
+        };
+    };
+}
+
+export interface AggregatorConfig {
+    name: JobAggregator;
+    apiKey: string;
+    appId?: string; // For Adzuna
+    baseUrl: string;
+    rateLimit: {
+        requestsPerMinute: number;
+        requestsPerDay: number;
+    };
+    enabled: boolean;
+}
+
+export interface JobAggregatorResponse {
+    success: boolean;
+    jobs: Job[];
+    error?: string;
+    source: JobAggregator;
+}
+
 export interface ApiResponse<T = any> {
     success: boolean;
     data?: T;

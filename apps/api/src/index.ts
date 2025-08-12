@@ -15,9 +15,18 @@ import authRouter from './routes/auth';
 import resumesRouter from './routes/resumes';
 import jobPreferencesRouter from './routes/jobPreferences';
 import applicationsRouter from './routes/applications';
+import jobsRouter from './routes/jobs';
+import { jobAggregationService } from './services/jobAggregation';
 
 // Load environment variables
 dotenv.config();
+
+// Debug environment variables
+console.log('🔍 Main API Environment Variables Debug:');
+console.log('ADZUNA_APP_ID:', process.env.ADZUNA_APP_ID);
+console.log('ADZUNA_APP_KEY:', process.env.ADZUNA_APP_KEY ? '***SET***' : 'NOT SET');
+console.log('JOOBLE_API_KEY:', process.env.JOOBLE_API_KEY ? '***SET***' : 'NOT SET');
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -112,6 +121,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/resumes', resumesRouter);
 app.use('/api/job-preferences', jobPreferencesRouter);
 app.use('/api/applications', applicationsRouter);
+app.use('/api/jobs', jobsRouter);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -137,7 +147,15 @@ app.use('*', (req, res) => {
     res.status(404).json(response);
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🚀 API server running on http://localhost:${PORT}`);
     console.log(`📊 Health check: http://localhost:${PORT}/health`);
+
+    // Initialize job aggregation service
+    try {
+        await jobAggregationService.initializeCleanup();
+        console.log('✅ Job aggregation service initialized');
+    } catch (error) {
+        console.error('❌ Failed to initialize job aggregation service:', error);
+    }
 }); 
