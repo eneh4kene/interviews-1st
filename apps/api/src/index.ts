@@ -51,13 +51,16 @@ const logger = pinoHttp({
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
 });
 
+// Trust proxy for rate limiting (needed for Replit)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(logger);
 app.use(helmet());
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
         ? ['https://yourdomain.com']
-        : ['http://localhost:3000'],
+        : ['http://localhost:3000', 'https://*.replit.dev', 'https://*.replit.co'],
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
