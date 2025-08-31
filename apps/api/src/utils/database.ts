@@ -9,20 +9,60 @@ const pgPool = new Pool({
     connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
 });
 
-// Redis client
-const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
+// Redis client - REPLIT FIX
+let redisClient: any = null;
 
-// Connect to Redis
-redisClient.connect().catch(console.error);
+if (process.env.REDIS_URL) {
+    // Use external Redis if URL provided
+    redisClient = createClient({
+        url: process.env.REDIS_URL,
+    });
+    redisClient.connect().catch(console.error);
+} else {
+    // Mock Redis for Replit
+    console.log('⚠️ Using mock Redis for Replit');
+    const mockRedis = new Map<string, { value: any; expiresAt?: number }>();
+
+    redisClient = {
+        set: async (key: string, value: string, expireSeconds?: number) => {
+            const expiresAt = expireSeconds ? Date.now() + (expireSeconds * 1000) : undefined;
+            mockRedis.set(key, { value, expiresAt });
+            return 'OK';
+        },
+        get: async (key: string) => {
+            const item = mockRedis.get(key);
+            if (!item) return null;
+
+            // Check expiration
+            if (item.expiresAt && Date.now() > item.expiresAt) {
+                mockRedis.delete(key);
+                return null;
+            }
+
+            return item.value;
+        },
+        del: async (key: string) => mockRedis.delete(key) ? 1 : 0,
+        exists: async (key: string) => {
+            const item = mockRedis.get(key);
+            if (!item) return 0;
+
+            if (item.expiresAt && Date.now() > item.expiresAt) {
+                mockRedis.delete(key);
+                return 0;
+            }
+
+            return 1;
+        },
+        on: () => { }, // Mock event handlers
+    };
+}
 
 // Handle Redis connection events
-redisClient.on('error', (err) => {
+redisClient.on?.('error', (err: any) => {
     console.error('Redis Client Error:', err);
 });
 
-redisClient.on('connect', () => {
+redisClient.on?.('connect', () => {
     console.log('✅ Connected to Redis');
 });
 

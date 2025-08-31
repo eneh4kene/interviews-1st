@@ -1,4 +1,19 @@
 import express from 'express';
+
+// Test database connection
+import { db } from './utils/database';
+
+console.log('🔍 Testing database connection...');
+db.query('SELECT NOW() as current_time, version() as db_version')
+    .then(result => {
+        console.log('✅ Database connected successfully!');
+        console.log('📅 Current time:', result.rows[0].current_time);
+        console.log('🗄️ Database version:', result.rows[0].db_version);
+    })
+    .catch(error => {
+        console.error('❌ Database connection failed:', error.message);
+        console.error('💡 Make sure DATABASE_URL is set in Replit Secrets');
+    });
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
