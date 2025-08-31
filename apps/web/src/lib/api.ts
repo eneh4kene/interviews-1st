@@ -1,5 +1,5 @@
 // API service layer for frontend
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001') + '/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002') + '/api';
 
 console.log('🔧 API_BASE_URL configured as:', API_BASE_URL);
 
