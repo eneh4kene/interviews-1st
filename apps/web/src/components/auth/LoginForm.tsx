@@ -130,12 +130,12 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
                 Demo credentials for {userType}:
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Email: {userType === 'worker' ? 'sarah.worker@interview-me.com' : 
+                Email: {userType === 'worker' ? 'worker1@interview-me.com' : 
                        userType === 'admin' ? 'admin@interview-me.com' : 
-                       'sarah.johnson@email.com'}
+                       'client1@email.com'}
               </p>
               <p className="text-xs text-gray-500">
-                Password: password
+                Password: {userType === 'worker' ? 'password@worker' : userType === 'admin' ? 'admin@admin' : 'password@client'}
               </p>
             </div>
           </CardContent>

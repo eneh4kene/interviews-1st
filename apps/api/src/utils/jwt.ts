@@ -1,30 +1,27 @@
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
 import { redis } from './database';
 
 // JWT Configuration
-const JWT_ALGORITHM = 'RS256';
+const JWT_ALGORITHM = 'HS256';
 const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes
 const REFRESH_TOKEN_EXPIRY = '30d'; // 30 days
 
-// Load JWT keys
-const getPrivateKey = () => {
-    try {
-        return fs.readFileSync(path.join(process.cwd(), 'private.pem'), 'utf8');
-    } catch (error) {
-        console.error('Error loading private key:', error);
-        throw new Error('JWT private key not found');
+// HS256 secrets from env
+const getAccessTokenSecret = () => {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('JWT_SECRET is not set');
     }
+    return secret;
 };
 
-const getPublicKey = () => {
-    try {
-        return fs.readFileSync(path.join(process.cwd(), 'public.pem'), 'utf8');
-    } catch (error) {
-        console.error('Error loading public key:', error);
-        throw new Error('JWT public key not found');
+const getRefreshTokenSecret = () => {
+    // Prefer dedicated refresh secret if provided, otherwise fall back to JWT_SECRET
+    const secret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('JWT_REFRESH_SECRET or JWT_SECRET must be set');
     }
+    return secret;
 };
 
 // JWT Payload interface
@@ -39,11 +36,11 @@ interface JWTPayload {
 
 // Generate access token
 export const generateAccessToken = (payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string => {
-    const privateKey = getPrivateKey();
+    const secret = getAccessTokenSecret();
 
     return jwt.sign(
         { ...payload, type: 'access' },
-        privateKey,
+        secret,
         {
             algorithm: JWT_ALGORITHM,
             expiresIn: ACCESS_TOKEN_EXPIRY,
@@ -55,11 +52,11 @@ export const generateAccessToken = (payload: Omit<JWTPayload, 'type' | 'iat' | '
 
 // Generate refresh token
 export const generateRefreshToken = (payload: Omit<JWTPayload, 'type' | 'iat' | 'exp'>): string => {
-    const privateKey = getPrivateKey();
+    const secret = getRefreshTokenSecret();
 
     const token = jwt.sign(
         { ...payload, type: 'refresh' },
-        privateKey,
+        secret,
         {
             algorithm: JWT_ALGORITHM,
             expiresIn: REFRESH_TOKEN_EXPIRY,
@@ -77,23 +74,29 @@ export const generateRefreshToken = (payload: Omit<JWTPayload, 'type' | 'iat' | 
 
 // Verify and decode JWT token
 export const verifyToken = (token: string): JWTPayload => {
-    const publicKey = getPublicKey();
+    // Try verifying with access secret first, then refresh secret as needed
+    const accessSecret = getAccessTokenSecret();
+    const refreshSecret = getRefreshTokenSecret();
+
+    const tryVerify = (secret: string) => jwt.verify(token, secret, {
+        algorithms: [JWT_ALGORITHM],
+        issuer: 'interviewsfirst',
+        audience: 'interviewsfirst-users',
+    }) as JWTPayload;
 
     try {
-        const decoded = jwt.verify(token, publicKey, {
-            algorithms: [JWT_ALGORITHM],
-            issuer: 'interviewsfirst',
-            audience: 'interviewsfirst-users',
-        }) as JWTPayload;
-
-        return decoded;
-    } catch (error) {
-        if (error instanceof jwt.TokenExpiredError) {
-            throw new Error('Token expired');
-        } else if (error instanceof jwt.JsonWebTokenError) {
-            throw new Error('Invalid token');
-        } else {
-            throw new Error('Token verification failed');
+        return tryVerify(accessSecret);
+    } catch (err) {
+        try {
+            return tryVerify(refreshSecret);
+        } catch (error) {
+            if (error instanceof jwt.TokenExpiredError) {
+                throw new Error('Token expired');
+            } else if (error instanceof jwt.JsonWebTokenError) {
+                throw new Error('Invalid token');
+            } else {
+                throw new Error('Token verification failed');
+            }
         }
     }
 };

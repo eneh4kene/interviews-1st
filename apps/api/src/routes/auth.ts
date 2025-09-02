@@ -4,6 +4,7 @@ import { validateRequest } from '../utils/validation';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair, verifyRefreshToken, revokeRefreshToken, verifyToken } from '../utils/jwt';
 import { authRateLimit } from '../middleware/auth';
+import { db } from '../utils/database';
 import {
     User,
     LoginRequest,
@@ -17,76 +18,7 @@ import {
 
 const router = express.Router();
 
-// Mock data for users (in real app, this would be in a database)
-const mockUsers: User[] = [
-    {
-        id: "worker1",
-        email: "sarah.worker@interview-me.com",
-        name: "Sarah Johnson",
-        role: "WORKER",
-        isActive: true,
-        twoFactorEnabled: false,
-        lastLoginAt: new Date("2024-01-15"),
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-15"),
-    },
-    {
-        id: "worker2",
-        email: "mike.worker@interview-me.com",
-        name: "Mike Chen",
-        role: "WORKER",
-        isActive: true,
-        twoFactorEnabled: true,
-        lastLoginAt: new Date("2024-01-14"),
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-14"),
-    },
-    {
-        id: "manager1",
-        email: "jane.manager@interview-me.com",
-        name: "Jane Smith",
-        role: "MANAGER",
-        isActive: true,
-        twoFactorEnabled: true,
-        lastLoginAt: new Date("2024-01-13"),
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-13"),
-    },
-    {
-        id: "admin1",
-        email: "admin@interview-me.com",
-        name: "System Admin",
-        role: "ADMIN",
-        isActive: true,
-        twoFactorEnabled: true,
-        lastLoginAt: new Date("2024-01-12"),
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-12"),
-    },
-    {
-        id: "client1",
-        email: "sarah.johnson@email.com",
-        name: "Sarah Johnson",
-        role: "CLIENT",
-        isActive: true,
-        twoFactorEnabled: false,
-        lastLoginAt: new Date("2024-01-10"),
-        createdAt: new Date("2024-01-01"),
-        updatedAt: new Date("2024-01-10"),
-    },
-];
-
-// Mock password hashes (in real app, these would be stored in database)
-const mockPasswords: Record<string, string> = {
-    "sarah.worker@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-    "mike.worker@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-    "jane.manager@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-    "admin@interview-me.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-    "sarah.johnson@email.com": "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-};
-
-// Mock refresh tokens (in real app, these would be stored in Redis/database)
-const mockRefreshTokens: Record<string, { userId: string; expiresAt: Date }> = {};
+// No mock users or passwords; all authentication uses the Neon database
 
 // JWT configuration is now handled in utils/jwt.ts
 
@@ -117,9 +49,13 @@ router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: 
     try {
         const { email, password } = req.body as LoginRequest;
 
-        // Find user
-        const user = mockUsers.find(u => u.email === email);
-        if (!user || !user.isActive) {
+        // Find user in database
+        const { rows } = await db.query(
+            'SELECT id, email, name, role, password_hash, is_active, two_factor_enabled, last_login_at, created_at, updated_at FROM users WHERE email = $1 LIMIT 1',
+            [email]
+        );
+
+        if (rows.length === 0) {
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -127,9 +63,20 @@ router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: 
             return res.status(401).json(response);
         }
 
-        // Verify password
-        const hashedPassword = mockPasswords[email];
-        if (!hashedPassword || !(await bcrypt.compare(password, hashedPassword))) {
+        const dbUser = rows[0];
+
+        if (!dbUser.is_active) {
+            const response: LoginResponse = {
+                success: false,
+                error: 'Account disabled',
+            };
+            return res.status(403).json(response);
+        }
+
+        // Verify password using bcrypt
+        const passwordHash: string = dbUser.password_hash;
+        const isValid = passwordHash && await bcrypt.compare(password, passwordHash);
+        if (!isValid) {
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -137,7 +84,19 @@ router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: 
             return res.status(401).json(response);
         }
 
-        // Generate tokens using secure JWT system
+        const user: User = {
+            id: dbUser.id,
+            email: dbUser.email,
+            name: dbUser.name,
+            role: dbUser.role,
+            isActive: dbUser.is_active,
+            twoFactorEnabled: dbUser.two_factor_enabled,
+            lastLoginAt: dbUser.last_login_at || null,
+            createdAt: dbUser.created_at,
+            updatedAt: dbUser.updated_at,
+        };
+
+        // Generate tokens
         const { accessToken, refreshToken } = generateTokenPair({
             userId: user.id,
             email: user.email,
@@ -145,7 +104,7 @@ router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: 
         });
 
         // Update last login
-        user.lastLoginAt = new Date();
+        await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
 
         // Set refresh token as HTTP-only cookie
         res.cookie('refreshToken', refreshToken, {
@@ -154,6 +113,17 @@ router.post('/login', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: 
             sameSite: 'lax',
             maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         });
+
+        // Clear rate-limit counter on successful login
+        try {
+            const ip = req.ip || (req.connection as any).remoteAddress || 'unknown';
+            const endpoint = req.path;
+            const key = `auth_rate_limit:${ip}:${endpoint}`;
+            const { redis } = await import('../utils/database');
+            await redis.del(key);
+        } catch (e) {
+            // ignore
+        }
 
         const response: LoginResponse = {
             success: true,
@@ -204,15 +174,20 @@ router.post('/refresh', validateRequest({ body: refreshTokenSchema }), async (re
         // Verify refresh token using our secure JWT system
         const decoded = await verifyRefreshToken(refreshToken);
 
-        // Find user
-        const user = mockUsers.find(u => u.id === decoded.userId);
-        if (!user || !user.isActive) {
+        // Find user in database
+        const { rows } = await db.query(
+            'SELECT id, email, name, role, is_active, two_factor_enabled, last_login_at, created_at, updated_at FROM users WHERE id = $1 LIMIT 1',
+            [decoded.userId]
+        );
+        if (rows.length === 0 || !rows[0].is_active) {
             const response: RefreshTokenResponse = {
                 success: false,
                 error: 'User not found or inactive',
             };
             return res.status(401).json(response);
         }
+
+        const user = rows[0];
 
         // Generate new tokens using our secure JWT system
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokenPair({
@@ -281,10 +256,8 @@ router.post('/magic-link', validateRequest({ body: magicLinkSchema }), (req, res
     }
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
     try {
-        // In real app, this would verify the access token from Authorization header
-        // For now, return a mock response
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             const response: ApiResponse<null> = {
@@ -297,14 +270,29 @@ router.get('/me', (req, res) => {
         const token = authHeader.substring(7);
         const decoded = verifyToken(token);
 
-        const user = mockUsers.find(u => u.id === decoded.userId);
-        if (!user || !user.isActive) {
+        const { rows } = await db.query(
+            'SELECT id, email, name, role, is_active, two_factor_enabled, last_login_at, created_at, updated_at FROM users WHERE id = $1 LIMIT 1',
+            [decoded.userId]
+        );
+        if (rows.length === 0 || !rows[0].is_active) {
             const response: ApiResponse<null> = {
                 success: false,
                 error: 'User not found or inactive',
             };
             return res.status(401).json(response);
         }
+
+        const user: User = {
+            id: rows[0].id,
+            email: rows[0].email,
+            name: rows[0].name,
+            role: rows[0].role,
+            isActive: rows[0].is_active,
+            twoFactorEnabled: rows[0].two_factor_enabled,
+            lastLoginAt: rows[0].last_login_at || null,
+            createdAt: rows[0].created_at,
+            updatedAt: rows[0].updated_at,
+        };
 
         const response: ApiResponse<User> = {
             success: true,

@@ -4,358 +4,353 @@ import { validateRequest } from '../utils/validation';
 import { authenticate, authorize } from '../middleware/auth';
 import { clientAssignmentService } from '../services/clientAssignment';
 import { ApiResponse, Client } from '@interview-me/types';
+import { db } from '../utils/database';
 
 const router = express.Router();
 
-// Mock data - in real app, this would come from database
-const mockClients: Client[] = [
-    {
-        id: "1",
-        workerId: "worker1",
-        name: "Sarah Johnson",
-        email: "sarah.johnson@email.com",
-        phone: "+1 (555) 123-4567",
-        linkedinUrl: "https://linkedin.com/in/sarahjohnson",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 2,
-        totalPaid: 20,
-        isNew: false,
-        assignedAt: new Date("2024-01-15"),
-        createdAt: new Date("2024-01-15"),
-        updatedAt: new Date("2024-01-15"),
-    },
-    {
-        id: "2",
-        workerId: "worker1",
-        name: "Michael Chen",
-        email: "michael.chen@email.com",
-        phone: "+1 (555) 234-5678",
-        linkedinUrl: "https://linkedin.com/in/michaelchen",
-        status: "active",
-        paymentStatus: "paid",
-        totalInterviews: 1,
-        totalPaid: 10,
-        isNew: false,
-        assignedAt: new Date("2024-01-10"),
-        createdAt: new Date("2024-01-10"),
-        updatedAt: new Date("2024-01-10"),
-    },
-    {
-        id: "3",
-        workerId: "worker1",
-        name: "Emily Rodriguez",
-        email: "emily.rodriguez@email.com",
-        phone: "+1 (555) 345-6789",
-        linkedinUrl: "https://linkedin.com/in/emilyrodriguez",
-        status: "placed",
-        paymentStatus: "paid",
-        totalInterviews: 3,
-        totalPaid: 30,
-        isNew: false,
-        assignedAt: new Date("2023-12-20"),
-        createdAt: new Date("2023-12-20"),
-        updatedAt: new Date("2024-01-05"),
-    },
-    // NEW: Recently assigned clients (within 72 hours)
-    {
-        id: "4",
-        workerId: "worker1",
-        name: "Alex Thompson",
-        email: "alex.thompson@email.com",
-        phone: "+1 (555) 456-7890",
-        linkedinUrl: "https://linkedin.com/in/alexthompson",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 24 hours ago
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
-    },
-    {
-        id: "5",
-        workerId: "worker1",
-        name: "Jessica Kim",
-        email: "jessica.kim@email.com",
-        phone: "+1 (555) 567-8901",
-        linkedinUrl: "https://linkedin.com/in/jessicakim",
-        status: "active",
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
-        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-        updatedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
-    },
-];
-
 // Get all clients for a worker
-router.get('/', (req, res) => {
-    const workerId = req.query.workerId as string;
-    const status = req.query.status as string;
+router.get('/', async (req, res) => {
+    try {
+        const workerId = req.query.workerId as string;
+        const status = req.query.status as string;
 
-    let filteredClients = mockClients;
-
-    if (workerId) {
-        filteredClients = filteredClients.filter(client => client.workerId === workerId);
-    }
-
-    if (status && status !== 'all') {
-        if (status === 'new') {
-            // Filter for clients assigned within the last 72 hours
-            const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-            filteredClients = filteredClients.filter(client =>
-                client.assignedAt > seventyTwoHoursAgo
-            );
-        } else {
-            filteredClients = filteredClients.filter(client => client.status === status);
+        if (!workerId) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Worker ID is required',
+            };
+            return res.status(400).json(response);
         }
+
+        let query = `
+            SELECT 
+                c.id,
+                c.worker_id as "workerId",
+                c.name,
+                c.email,
+                c.phone,
+                c.linkedin_url as "linkedinUrl",
+                c.status,
+                c.payment_status as "paymentStatus",
+                c.total_interviews as "totalInterviews",
+                c.total_paid as "totalPaid",
+                c.is_new as "isNew",
+                c.assigned_at as "assignedAt",
+                c.created_at as "createdAt",
+                c.updated_at as "updatedAt"
+            FROM clients c
+            WHERE c.worker_id = $1
+        `;
+
+        const params: any[] = [workerId];
+
+        if (status && status !== 'all') {
+            if (status === 'new') {
+                // Filter for clients assigned within the last 72 hours
+                query += ` AND c.assigned_at > NOW() - INTERVAL '72 hours'`;
+            } else {
+                query += ` AND c.status = $2`;
+                params.push(status);
+            }
+        }
+
+        query += ` ORDER BY c.assigned_at DESC`;
+
+        const result = await db.query(query, params);
+
+        const response: ApiResponse<Client[]> = {
+            success: true,
+            data: result.rows,
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching clients:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to fetch clients',
+        };
+        res.status(500).json(response);
     }
-
-    const response: ApiResponse<Client[]> = {
-        success: true,
-        data: filteredClients,
-        message: `Found ${filteredClients.length} clients`,
-    };
-
-    res.json(response);
 });
 
 // Get client by ID
-router.get('/:id', (req, res) => {
-    const clientId = req.params.id;
-    const client = mockClients.find(c => c.id === clientId);
-
-    if (!client) {
-        const response: ApiResponse = {
-            success: false,
-            error: 'Client not found',
-        };
-        return res.status(404).json(response);
-    }
-
-    const response: ApiResponse<Client> = {
-        success: true,
-        data: client,
-    };
-
-    res.json(response);
-});
-
-// Create new client
-const createClientSchema = z.object({
-    body: z.object({
-        workerId: z.string().min(1, 'Worker ID is required'),
-        name: z.string().min(1, 'Name is required'),
-        email: z.string().email('Invalid email format'),
-        phone: z.string().optional(),
-        linkedinUrl: z.string().url().optional().or(z.literal('')),
-        status: z.enum(['active', 'inactive', 'placed']).default('active'),
-    }),
-});
-
-router.post('/', validateRequest(createClientSchema), (req, res) => {
-    const { workerId, name, email, phone, linkedinUrl, status } = req.body;
-
-    const newClient: Client = {
-        id: `client_${Date.now()}`,
-        workerId,
-        name,
-        email,
-        phone,
-        linkedinUrl,
-        status,
-        paymentStatus: "pending",
-        totalInterviews: 0,
-        totalPaid: 0,
-        isNew: true,
-        assignedAt: new Date(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-    };
-
-    // In real app, save to database
-    mockClients.push(newClient);
-
-    const response: ApiResponse<Client> = {
-        success: true,
-        data: newClient,
-        message: 'Client created successfully',
-    };
-
-    res.status(201).json(response);
-});
-
-// NEW: Automatic client assignment endpoint (for when clients sign up)
-const autoAssignClientSchema = z.object({
-    body: z.object({
-        name: z.string().min(1, 'Name is required'),
-        email: z.string().email('Invalid email format'),
-        phone: z.string().optional(),
-        linkedinUrl: z.string().url().optional().or(z.literal('')),
-        company: z.string().optional(),
-        position: z.string().optional(),
-    }),
-});
-
-router.post('/auto-assign', validateRequest(autoAssignClientSchema), async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const { name, email, phone, linkedinUrl, company, position } = req.body;
+        const clientId = req.params.id;
 
-        // Create new client with mock data (temporary until database is set up)
-        const newClient: Client = {
-            id: `client_${Date.now()}`,
-            workerId: "worker1", // Hardcoded for now
-            name,
-            email,
-            phone: phone || "",
-            linkedinUrl: linkedinUrl || "",
-            status: "active",
-            paymentStatus: "pending",
-            totalInterviews: 0,
-            totalPaid: 0,
-            isNew: true,
-            assignedAt: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
+        const result = await db.query(`
+            SELECT 
+                c.id,
+                c.worker_id as "workerId",
+                c.name,
+                c.email,
+                c.phone,
+                c.linkedin_url as "linkedinUrl",
+                c.status,
+                c.payment_status as "paymentStatus",
+                c.total_interviews as "totalInterviews",
+                c.total_paid as "totalPaid",
+                c.is_new as "isNew",
+                c.assigned_at as "assignedAt",
+                c.created_at as "createdAt",
+                c.updated_at as "updatedAt"
+            FROM clients c
+            WHERE c.id = $1
+        `, [clientId]);
 
-        // Add to mock data
-        mockClients.push(newClient);
+        if (result.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Client not found',
+            };
+            return res.status(404).json(response);
+        }
 
         const response: ApiResponse<Client> = {
             success: true,
-            data: newClient,
-            message: `Client ${name} automatically assigned to worker worker1`,
+            data: result.rows[0],
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching client:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to fetch client',
+        };
+        res.status(500).json(response);
+    }
+});
+
+// Create new client
+router.post('/', async (req, res) => {
+    try {
+        const { workerId, name, email, phone, linkedinUrl } = req.body;
+
+        if (!workerId || !name || !email) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Worker ID, name, and email are required',
+            };
+            return res.status(400).json(response);
+        }
+
+        const result = await db.query(`
+            INSERT INTO clients (worker_id, name, email, phone, linkedin_url, status, payment_status, total_interviews, total_paid, is_new)
+            VALUES ($1, $2, $3, $4, $5, 'active', 'pending', 0, 0, true)
+            RETURNING 
+                id,
+                worker_id as "workerId",
+                name,
+                email,
+                phone,
+                linkedin_url as "linkedinUrl",
+                status,
+                payment_status as "paymentStatus",
+                total_interviews as "totalInterviews",
+                total_paid as "totalPaid",
+                is_new as "isNew",
+                assigned_at as "assignedAt",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [workerId, name, email, phone || null, linkedinUrl || null]);
+
+        const response: ApiResponse<Client> = {
+            success: true,
+            data: result.rows[0],
+            message: 'Client created successfully',
         };
 
         res.status(201).json(response);
     } catch (error) {
-        console.error('Auto-assign error:', error);
+        console.error('Error creating client:', error);
         const response: ApiResponse = {
             success: false,
-            error: 'Failed to auto-assign client',
+            error: 'Failed to create client',
         };
         res.status(500).json(response);
     }
 });
 
 // Update client
-const updateClientSchema = z.object({
-    body: z.object({
-        name: z.string().min(1, 'Name is required').optional(),
-        email: z.string().email('Invalid email format').optional(),
-        phone: z.string().optional(),
-        linkedinUrl: z.string().url().optional().or(z.literal('')),
-        status: z.enum(['active', 'inactive', 'placed']).optional(),
-    }),
-});
+router.put('/:id', async (req, res) => {
+    try {
+        const clientId = req.params.id;
+        const { name, email, phone, linkedinUrl, status, paymentStatus } = req.body;
 
-router.put('/:id', validateRequest(updateClientSchema), (req, res) => {
-    const clientId = req.params.id;
-    const clientIndex = mockClients.findIndex(c => c.id === clientId);
+        const result = await db.query(`
+            UPDATE clients 
+            SET 
+                name = COALESCE($2, name),
+                email = COALESCE($3, email),
+                phone = COALESCE($4, phone),
+                linkedin_url = COALESCE($5, linkedin_url),
+                status = COALESCE($6, status),
+                payment_status = COALESCE($7, payment_status),
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING 
+                id,
+                worker_id as "workerId",
+                name,
+                email,
+                phone,
+                linkedin_url as "linkedinUrl",
+                status,
+                payment_status as "paymentStatus",
+                total_interviews as "totalInterviews",
+                total_paid as "totalPaid",
+                is_new as "isNew",
+                assigned_at as "assignedAt",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [clientId, name, email, phone, linkedinUrl, status, paymentStatus]);
 
-    if (clientIndex === -1) {
+        if (result.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Client not found',
+            };
+            return res.status(404).json(response);
+        }
+
+        const response: ApiResponse<Client> = {
+            success: true,
+            data: result.rows[0],
+            message: 'Client updated successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error updating client:', error);
         const response: ApiResponse = {
             success: false,
-            error: 'Client not found',
+            error: 'Failed to update client',
         };
-        return res.status(404).json(response);
+        res.status(500).json(response);
     }
-
-    const updatedClient = {
-        ...mockClients[clientIndex],
-        ...req.body,
-        updatedAt: new Date(),
-    };
-
-    mockClients[clientIndex] = updatedClient;
-
-    const response: ApiResponse<Client> = {
-        success: true,
-        data: updatedClient,
-        message: 'Client updated successfully',
-    };
-
-    res.json(response);
 });
 
 // Delete client
-router.delete('/:id', (req, res) => {
-    const clientId = req.params.id;
-    const clientIndex = mockClients.findIndex(c => c.id === clientId);
+router.delete('/:id', async (req, res) => {
+    try {
+        const clientId = req.params.id;
 
-    if (clientIndex === -1) {
+        const result = await db.query('DELETE FROM clients WHERE id = $1 RETURNING id', [clientId]);
+
+        if (result.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Client not found',
+            };
+            return res.status(404).json(response);
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            message: 'Client deleted successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error deleting client:', error);
         const response: ApiResponse = {
             success: false,
-            error: 'Client not found',
+            error: 'Failed to delete client',
         };
-        return res.status(404).json(response);
+        res.status(500).json(response);
     }
-
-    mockClients.splice(clientIndex, 1);
-
-    const response: ApiResponse = {
-        success: true,
-        message: 'Client deleted successfully',
-    };
-
-    res.json(response);
 });
 
 // Get dashboard stats for a worker
-router.get('/stats/dashboard', (req, res) => {
-    const workerId = req.query.workerId as string;
+router.get('/stats/dashboard', async (req, res) => {
+    let workerId: string = '';
+    try {
+        workerId = req.query.workerId as string;
 
-    if (!workerId) {
+        if (!workerId) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Worker ID is required',
+            };
+            return res.status(400).json(response);
+        }
+
+        // Get client stats
+        const clientStats = await db.query(`
+            SELECT 
+                COUNT(*) as total_clients,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_clients,
+                COUNT(CASE WHEN is_new = true THEN 1 END) as new_clients,
+                COUNT(CASE WHEN status = 'placed' THEN 1 END) as placements_this_month,
+                COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
+                COALESCE(SUM(total_paid), 0) as total_revenue,
+                COALESCE(SUM(total_interviews), 0) as interviews_this_month
+            FROM clients 
+            WHERE worker_id = $1
+        `, [workerId]);
+
+        // Get interview stats (more robust approach)
+        const interviewStats = await db.query(`
+            SELECT 
+                COUNT(*) as interviews_scheduled,
+                COUNT(CASE WHEN status = 'client_accepted' THEN 1 END) as interviews_accepted,
+                COUNT(CASE WHEN status = 'client_declined' THEN 1 END) as interviews_declined
+            FROM interviews i
+            WHERE i.client_id IN (
+                SELECT id FROM clients WHERE worker_id = $1
+            )
+        `, [workerId]);
+
+        const cs = clientStats.rows[0] || {
+            total_clients: '0',
+            active_clients: '0',
+            new_clients: '0',
+            interviews_this_month: '0',
+            placements_this_month: '0',
+            pending_payments: '0',
+            total_revenue: '0',
+        } as any;
+
+        const is = interviewStats.rows[0] || {
+            interviews_scheduled: '0',
+            interviews_accepted: '0',
+            interviews_declined: '0',
+        } as any;
+
+        const stats: any = {
+            totalClients: Number(cs.total_clients || 0),
+            activeClients: Number(cs.active_clients || 0),
+            newClients: Number(cs.new_clients || 0),
+            interviewsThisMonth: Number(cs.interviews_this_month || 0),
+            placementsThisMonth: Number(cs.placements_this_month || 0),
+            pendingPayments: Number(cs.pending_payments || 0),
+            totalRevenue: Number(cs.total_revenue || 0),
+            interviewsScheduled: Number(is.interviews_scheduled || 0),
+            interviewsAccepted: Number(is.interviews_accepted || 0),
+            interviewsDeclined: Number(is.interviews_declined || 0),
+        };
+
+        // Calculate success rate
+        stats.successRate = stats.interviewsScheduled > 0
+            ? Math.round((stats.interviewsAccepted / stats.interviewsScheduled) * 1000) / 10
+            : 0;
+
+        const response: ApiResponse<typeof stats> = {
+            success: true,
+            data: stats,
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching dashboard stats for workerId:', workerId, 'Error:', error);
         const response: ApiResponse = {
             success: false,
-            error: 'Worker ID is required',
+            error: 'Failed to fetch dashboard stats',
         };
-        return res.status(400).json(response);
+        res.status(500).json(response);
     }
-
-    // Filter clients for this worker
-    const workerClients = mockClients.filter(client => client.workerId === workerId);
-
-    // Calculate stats
-    const totalClients = workerClients.length;
-    const activeClients = workerClients.filter(c => c.status === 'active').length;
-    const newClients = workerClients.filter(c => c.isNew).length;
-    const interviewsThisMonth = workerClients.reduce((sum, c) => sum + c.totalInterviews, 0);
-    const placementsThisMonth = workerClients.filter(c => c.status === 'placed').length;
-    const pendingPayments = workerClients.filter(c => c.paymentStatus === 'pending').length;
-    const totalRevenue = workerClients.reduce((sum, c) => sum + c.totalPaid, 0);
-
-    // Mock interview stats (in real app, these would come from interviews table)
-    const interviewsScheduled = 8;
-    const interviewsAccepted = 5;
-    const interviewsDeclined = 2;
-    const successRate = interviewsScheduled > 0 ? ((interviewsAccepted / interviewsScheduled) * 100) : 0;
-
-    const stats = {
-        totalClients,
-        activeClients,
-        newClients,
-        interviewsThisMonth,
-        placementsThisMonth,
-        successRate: Math.round(successRate * 10) / 10, // Round to 1 decimal
-        pendingPayments,
-        totalRevenue,
-        interviewsScheduled,
-        interviewsAccepted,
-        interviewsDeclined,
-    };
-
-    const response: ApiResponse<typeof stats> = {
-        success: true,
-        data: stats,
-    };
-
-    res.json(response);
 });
 
 export default router; 

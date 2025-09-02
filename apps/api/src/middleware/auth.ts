@@ -196,6 +196,9 @@ export const requireOwnership = (resourceType: 'client' | 'interview' | 'applica
 // Rate limiting middleware for auth endpoints
 export const authRateLimit = (maxAttempts: number = 5, windowMs: number = 15 * 60 * 1000) => {
     return async (req: Request, res: Response, next: NextFunction) => {
+        if (process.env.AUTH_RATE_LIMIT_DISABLED === 'true') {
+            return next();
+        }
         const ip = req.ip || req.connection.remoteAddress || 'unknown';
         const endpoint = req.path;
         const key = `auth_rate_limit:${ip}:${endpoint}`;

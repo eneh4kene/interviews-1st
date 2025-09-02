@@ -1,13 +1,27 @@
 import { Pool, PoolClient } from 'pg';
 import { createClient } from 'redis';
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
+
+// console.log('Database URL:', process.env.DATABASE_URL);
+// console.log('Redis URL:', process.env.REDIS_URL);
+
+if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set');
+}
 
 // PostgreSQL connection pool
 const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/jobplace',
+    connectionString: process.env.DATABASE_URL,
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
     connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
 });
+
+// Removed eager connection testing that closed the pool on startup. The pool
+// will be managed by the application lifecycle.
 
 // Redis client - REPLIT FIX
 let redisClient: any = null;

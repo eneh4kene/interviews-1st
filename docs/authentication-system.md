@@ -243,7 +243,7 @@ Authorization: Bearer access_token_here
 ## Environment Variables
 
 ```env
-# JWT Configuration
+# JWT Configuration (HS256)
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret-key
 
@@ -293,15 +293,10 @@ NODE_ENV=development
 
 ### API Testing
 ```bash
-# Test worker login
+# Test login (use a real user from the Neon database)
 curl -X POST http://localhost:3001/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"sarah.worker@interview-me.com","password":"password"}'
-
-# Test admin login
-curl -X POST http://localhost:3001/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@interview-me.com","password":"password"}'
+  -d '{"email":"YOUR_EMAIL","password":"YOUR_PASSWORD"}'
 
 # Test user profile
 curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \

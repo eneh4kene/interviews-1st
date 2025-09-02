@@ -21,8 +21,20 @@ export default function Dashboard() {
   const [showClientForm, setShowClientForm] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  // Mock worker ID for now - in real app, this would come from auth context
-  const workerId = "worker1";
+  // Determine workerId from logged-in user (stored at login)
+  const [workerId, setWorkerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user && (user.role === 'WORKER' || user.role === 'MANAGER')) {
+          setWorkerId(user.id);
+        }
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -31,9 +43,13 @@ export default function Dashboard() {
         setError(null);
 
         // Fetch clients and stats in parallel
+        if (!workerId) {
+          throw new Error('Missing worker ID');
+        }
+        const resolvedWorkerId = workerId as string;
         const [clientsResponse, statsResponse] = await Promise.all([
-          apiService.getClients(workerId),
-          apiService.getDashboardStats(workerId)
+          apiService.getClients(resolvedWorkerId),
+          apiService.getDashboardStats(resolvedWorkerId)
         ]);
 
         if (!clientsResponse.success) {
@@ -115,9 +131,13 @@ export default function Dashboard() {
         setError(null);
 
         // Fetch clients and stats in parallel
+        if (!workerId) {
+          throw new Error('Missing worker ID');
+        }
+        const wid = workerId as string;
         const [clientsResponse, statsResponse] = await Promise.all([
-          apiService.getClients(workerId),
-          apiService.getDashboardStats(workerId)
+          apiService.getClients(wid),
+          apiService.getDashboardStats(wid)
         ]);
 
         if (!clientsResponse.success) {
@@ -163,7 +183,7 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading || !workerId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
