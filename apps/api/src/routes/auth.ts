@@ -352,12 +352,16 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
             return res.status(409).json(response);
         }
 
-        // For now, we'll auto-assign to the first available worker
-        // In a real app, you might have a queue system or round-robin assignment
-        const availableWorkers = await db.query(
-            'SELECT id FROM users WHERE role IN ($1, $2) AND is_active = true ORDER BY created_at ASC LIMIT 1',
-            ['WORKER', 'MANAGER']
-        );
+        // Use load-balanced assignment to worker with least clients
+        const availableWorkers = await db.query(`
+            SELECT u.id, u.name, u.email, COUNT(c.id) as client_count
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id AND c.status = 'active'
+            WHERE u.role IN ('WORKER', 'MANAGER') AND u.is_active = true
+            GROUP BY u.id, u.name, u.email
+            ORDER BY client_count ASC, u.last_login_at ASC
+            LIMIT 1
+        `);
 
         if (availableWorkers.rows.length === 0) {
             const response: ApiResponse = {
@@ -368,6 +372,8 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
         }
 
         const workerId = availableWorkers.rows[0].id;
+        const workerName = availableWorkers.rows[0].name;
+        const clientCount = availableWorkers.rows[0].client_count;
 
         // Create the client
         const result = await db.query(`
@@ -417,7 +423,7 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
         const response: ApiResponse = {
             success: true,
             data: result.rows[0],
-            message: 'Client registered successfully. You will be contacted by your assigned career coach soon.',
+            message: `Client registered successfully. Assigned to ${workerName} (${clientCount + 1} clients). You will be contacted by your assigned career coach soon.`,
         };
 
         res.status(201).json(response);
