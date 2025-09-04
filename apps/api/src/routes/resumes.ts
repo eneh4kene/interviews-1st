@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { validateRequest } from '../utils/validation';
 import { ApiResponse, Resume } from '@interview-me/types';
+import { db } from '../utils/database';
 
 const router = express.Router();
 
@@ -146,11 +147,23 @@ router.get('/', validateRequest(getResumesSchema), async (req, res) => {
     try {
         const { clientId } = req.query;
 
-        const clientResumes = mockResumes.filter(resume => resume.clientId === clientId);
+        const result = await db.query(`
+            SELECT 
+                id,
+                client_id as "clientId",
+                name,
+                file_url as "fileUrl",
+                is_default as "isDefault",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+            FROM resumes 
+            WHERE client_id = $1
+            ORDER BY created_at DESC
+        `, [clientId]);
 
         const response: ApiResponse = {
             success: true,
-            data: clientResumes,
+            data: result.rows,
             message: 'Resumes retrieved successfully',
         };
 
@@ -169,9 +182,20 @@ router.get('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const resume = mockResumes.find(r => r.id === id);
+        const result = await db.query(`
+            SELECT 
+                id,
+                client_id as "clientId",
+                name,
+                file_url as "fileUrl",
+                is_default as "isDefault",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+            FROM resumes 
+            WHERE id = $1
+        `, [id]);
 
-        if (!resume) {
+        if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: 'Resume not found',
@@ -180,7 +204,7 @@ router.get('/:id', async (req, res) => {
 
         const response: ApiResponse = {
             success: true,
-            data: resume,
+            data: result.rows[0],
             message: 'Resume retrieved successfully',
         };
 
@@ -195,7 +219,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Upload a new resume
-router.post('/', upload.single('file'), handleMulterError, validateRequest(createResumeSchema), async (req, res) => {
+router.post('/', upload.single('file'), handleMulterError, validateRequest(createResumeSchema), async (req: any, res: any) => {
     try {
         const { clientId, name, isDefault = false } = req.body;
         const file = req.file;
@@ -208,8 +232,11 @@ router.post('/', upload.single('file'), handleMulterError, validateRequest(creat
         }
 
         // Check if this is the first resume for this client
-        const existingResumes = mockResumes.filter(r => r.clientId === clientId);
-        const isFirstResume = existingResumes.length === 0;
+        const existingResumesResult = await db.query(
+            'SELECT COUNT(*) as count FROM resumes WHERE client_id = $1',
+            [clientId]
+        );
+        const isFirstResume = parseInt(existingResumesResult.rows[0].count) === 0;
 
         // Determine if this should be the default resume
         // Only set as default if explicitly requested OR if it's the first resume
@@ -217,29 +244,29 @@ router.post('/', upload.single('file'), handleMulterError, validateRequest(creat
 
         // If this should be default, unset other defaults for this client first
         if (shouldBeDefault) {
-            mockResumes = mockResumes.map(r => ({
-                ...r,
-                isDefault: r.clientId === clientId ? false : r.isDefault
-            }));
+            await db.query(
+                'UPDATE resumes SET is_default = false WHERE client_id = $1',
+                [clientId]
+            );
         }
 
-        // Create new resume
-        const newResume: Resume = {
-            id: Date.now().toString(),
-            clientId,
-            name,
-            fileUrl: file.filename,
-            isDefault: shouldBeDefault,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-
-        // Add the new resume
-        mockResumes.push(newResume);
+        // Create new resume in database
+        const result = await db.query(`
+            INSERT INTO resumes (client_id, name, file_url, is_default)
+            VALUES ($1, $2, $3, $4)
+            RETURNING 
+                id,
+                client_id as "clientId",
+                name,
+                file_url as "fileUrl",
+                is_default as "isDefault",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [clientId, name, file.filename, shouldBeDefault]);
 
         const response: ApiResponse = {
             success: true,
-            data: newResume,
+            data: result.rows[0],
             message: 'Resume uploaded successfully',
         };
 
@@ -315,16 +342,21 @@ router.get('/:id/download', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const resume = mockResumes.find(r => r.id === id);
+        const result = await db.query(`
+            SELECT name, file_url 
+            FROM resumes 
+            WHERE id = $1
+        `, [id]);
 
-        if (!resume) {
+        if (result.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: 'Resume not found',
             });
         }
 
-        const filePath = path.join(__dirname, '../../uploads/resumes', resume.fileUrl);
+        const resume = result.rows[0];
+        const filePath = path.join(__dirname, '../../uploads/resumes', resume.file_url);
 
         if (!fs.existsSync(filePath)) {
             return res.status(404).json({
