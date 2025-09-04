@@ -85,6 +85,137 @@ export class JobAggregationService {
     private cacheTTL = parseInt(process.env.JOB_CACHE_TTL_SECONDS || '1800'); // 30 minutes
     private storageTTLDays = parseInt(process.env.JOB_STORAGE_TTL_DAYS || '30');
 
+    // Strip HTML tags from text
+    private stripHtmlTags(text: string): string {
+        return text.replace(/<[^>]*>/g, ''); // removes <b>, <i>, <br>, etc.
+    }
+
+    // Decode HTML entities in text
+    private decodeHtmlEntities(text: string): string {
+        const htmlEntities: Record<string, string> = {
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#39;': "'",
+            '&apos;': "'",
+            '&nbsp;': ' ',
+            '&copy;': '©',
+            '&reg;': '®',
+            '&trade;': '™',
+            '&hellip;': '...',
+            '&mdash;': '—',
+            '&ndash;': '–',
+            '&lsquo;': '\u2018',
+            '&rsquo;': '\u2019',
+            '&ldquo;': '"',
+            '&rdquo;': '"',
+            '&bull;': '•',
+            '&para;': '¶',
+            '&dagger;': '†',
+            '&Dagger;': '‡',
+            '&permil;': '‰',
+            '&lsaquo;': '‹',
+            '&rsaquo;': '›',
+            '&euro;': '€',
+            '&pound;': '£',
+            '&yen;': '¥',
+            '&cent;': '¢',
+            '&curren;': '¤',
+            '&brvbar;': '¦',
+            '&sect;': '§',
+            '&uml;': '¨',
+            '&ordf;': 'ª',
+            '&laquo;': '«',
+            '&not;': '¬',
+            '&shy;': '',
+            '&macr;': '¯',
+            '&deg;': '°',
+            '&plusmn;': '±',
+            '&sup2;': '²',
+            '&sup3;': '³',
+            '&acute;': '´',
+            '&micro;': 'µ',
+            '&middot;': '·',
+            '&cedil;': '¸',
+            '&sup1;': '¹',
+            '&ordm;': 'º',
+            '&raquo;': '»',
+            '&frac14;': '¼',
+            '&frac12;': '½',
+            '&frac34;': '¾',
+            '&iquest;': '¿',
+            '&Agrave;': 'À',
+            '&Aacute;': 'Á',
+            '&Acirc;': 'Â',
+            '&Atilde;': 'Ã',
+            '&Auml;': 'Ä',
+            '&Aring;': 'Å',
+            '&AElig;': 'Æ',
+            '&Ccedil;': 'Ç',
+            '&Egrave;': 'È',
+            '&Eacute;': 'É',
+            '&Ecirc;': 'Ê',
+            '&Euml;': 'Ë',
+            '&Igrave;': 'Ì',
+            '&Iacute;': 'Í',
+            '&Icirc;': 'Î',
+            '&Iuml;': 'Ï',
+            '&ETH;': 'Ð',
+            '&Ntilde;': 'Ñ',
+            '&Ograve;': 'Ò',
+            '&Oacute;': 'Ó',
+            '&Ocirc;': 'Ô',
+            '&Otilde;': 'Õ',
+            '&Ouml;': 'Ö',
+            '&times;': '×',
+            '&Oslash;': 'Ø',
+            '&Ugrave;': 'Ù',
+            '&Uacute;': 'Ú',
+            '&Ucirc;': 'Û',
+            '&Uuml;': 'Ü',
+            '&Yacute;': 'Ý',
+            '&THORN;': 'Þ',
+            '&szlig;': 'ß',
+            '&agrave;': 'à',
+            '&aacute;': 'á',
+            '&acirc;': 'â',
+            '&atilde;': 'ã',
+            '&auml;': 'ä',
+            '&aring;': 'å',
+            '&aelig;': 'æ',
+            '&ccedil;': 'ç',
+            '&egrave;': 'è',
+            '&eacute;': 'é',
+            '&ecirc;': 'ê',
+            '&euml;': 'ë',
+            '&igrave;': 'ì',
+            '&iacute;': 'í',
+            '&icirc;': 'î',
+            '&iuml;': 'ï',
+            '&eth;': 'ð',
+            '&ntilde;': 'ñ',
+            '&ograve;': 'ò',
+            '&oacute;': 'ó',
+            '&ocirc;': 'ô',
+            '&otilde;': 'õ',
+            '&ouml;': 'ö',
+            '&divide;': '÷',
+            '&oslash;': 'ø',
+            '&ugrave;': 'ù',
+            '&uacute;': 'ú',
+            '&ucirc;': 'û',
+            '&uuml;': 'ü',
+            '&yacute;': 'ý',
+            '&thorn;': 'þ',
+            '&yuml;': 'ÿ'
+        };
+
+        return text.replace(/&[a-zA-Z0-9#]+;/g, (entity) => {
+            return htmlEntities[entity] || entity;
+        });
+    }
+
     // Generate hash for deduplication
     private generateHash(text: string): string {
         return createHash('sha256').update(text.toLowerCase().trim()).digest('hex');
@@ -109,12 +240,12 @@ export class JobAggregationService {
         switch (source) {
             case 'adzuna':
                 normalized.id = rawJob.id || '';
-                normalized.title = rawJob.title || '';
-                normalized.company = rawJob.company?.display_name || '';
-                normalized.location = rawJob.location?.display_name || '';
+                normalized.title = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.title || ''));
+                normalized.company = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.company?.display_name || ''));
+                normalized.location = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.location?.display_name || ''));
                 normalized.salary = rawJob.salary_min || rawJob.salary_max ?
                     `${rawJob.salary_min || ''} - ${rawJob.salary_max || ''} ${rawJob.salary_currency || 'GBP'}` : undefined;
-                normalized.descriptionSnippet = rawJob.description || '';
+                normalized.descriptionSnippet = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.description || ''));
                 normalized.postedDate = rawJob.created || '';
                 normalized.applyUrl = rawJob.redirect_url || '';
                 normalized.externalId = rawJob.id?.toString() || '';
@@ -127,11 +258,11 @@ export class JobAggregationService {
 
             case 'jooble':
                 normalized.id = rawJob.id?.toString() || '';
-                normalized.title = rawJob.title || '';
-                normalized.company = rawJob.company || '';
-                normalized.location = rawJob.location || '';
+                normalized.title = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.title || ''));
+                normalized.company = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.company || ''));
+                normalized.location = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.location || ''));
                 normalized.salary = rawJob.salary || '';
-                normalized.descriptionSnippet = rawJob.snippet || '';
+                normalized.descriptionSnippet = this.stripHtmlTags(this.decodeHtmlEntities(rawJob.snippet || ''));
                 normalized.postedDate = rawJob.updated || '';
                 normalized.applyUrl = rawJob.link || '';
                 normalized.externalId = rawJob.id?.toString() || '';

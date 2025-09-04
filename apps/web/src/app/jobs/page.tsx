@@ -70,7 +70,7 @@ export default function JobsPage() {
         ...(filters.source !== 'all' && { source: filters.source })
       });
 
-      const response = await fetch(`http://localhost:3001/api/jobs/search?${params}`);
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/search?${params}`);
       const data: JobSearchResponse = await response.json();
 
       if (data.success) {
@@ -117,6 +117,14 @@ export default function JobsPage() {
       source: 'all'
     });
     searchJobs(1);
+  };
+
+  const handleFilterChange = (newFilters: Partial<JobSearchFilters>) => {
+    setFilters({ ...filters, ...newFilters });
+    // Auto-search when filters change (with a small delay to avoid too many requests)
+    setTimeout(() => {
+      searchJobs(1);
+    }, 300);
   };
 
   const formatSalary = (min?: number, max?: number, currency = 'GBP') => {
@@ -205,7 +213,7 @@ export default function JobsPage() {
                   <Input
                     placeholder="Search jobs, companies, or keywords..."
                     value={filters.keywords}
-                    onChange={(e) => setFilters({ ...filters, keywords: e.target.value })}
+                    onChange={(e) => handleFilterChange({ keywords: e.target.value })}
                     className="pl-10 h-12"
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
@@ -217,7 +225,7 @@ export default function JobsPage() {
                   <Input
                     placeholder="Location (e.g., London, Remote)"
                     value={filters.location}
-                    onChange={(e) => setFilters({ ...filters, location: e.target.value })}
+                    onChange={(e) => handleFilterChange({ location: e.target.value })}
                     className="pl-10 h-12"
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                   />
@@ -279,12 +287,12 @@ export default function JobsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Job Type</label>
-                  <Select value={filters.jobType} onValueChange={(value) => setFilters({ ...filters, jobType: value })}>
+                  <Select value={filters.jobType || "all"} onValueChange={(value) => handleFilterChange({ jobType: value === "all" ? "" : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="All job types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All job types</SelectItem>
+                      <SelectItem value="all">All job types</SelectItem>
                       <SelectItem value="full-time">Full-time</SelectItem>
                       <SelectItem value="part-time">Part-time</SelectItem>
                       <SelectItem value="contract">Contract</SelectItem>
@@ -296,12 +304,12 @@ export default function JobsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Work Location</label>
-                  <Select value={filters.workLocation} onValueChange={(value) => setFilters({ ...filters, workLocation: value })}>
+                  <Select value={filters.workLocation || "all"} onValueChange={(value) => handleFilterChange({ workLocation: value === "all" ? "" : value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="All locations" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All locations</SelectItem>
+                      <SelectItem value="all">All locations</SelectItem>
                       <SelectItem value="remote">Remote</SelectItem>
                       <SelectItem value="onsite">On-site</SelectItem>
                       <SelectItem value="hybrid">Hybrid</SelectItem>
@@ -313,7 +321,7 @@ export default function JobsPage() {
                   <Input
                     placeholder="£0"
                     value={filters.salaryMin}
-                    onChange={(e) => setFilters({ ...filters, salaryMin: e.target.value })}
+                    onChange={(e) => handleFilterChange({ salaryMin: e.target.value })}
                     type="number"
                   />
                 </div>
@@ -322,14 +330,14 @@ export default function JobsPage() {
                   <Input
                     placeholder="£100,000"
                     value={filters.salaryMax}
-                    onChange={(e) => setFilters({ ...filters, salaryMax: e.target.value })}
+                    onChange={(e) => handleFilterChange({ salaryMax: e.target.value })}
                     type="number"
                   />
                 </div>
               </div>
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
-                <Select value={filters.source} onValueChange={(value: any) => setFilters({ ...filters, source: value })}>
+                <Select value={filters.source} onValueChange={(value: any) => handleFilterChange({ source: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
