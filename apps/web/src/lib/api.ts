@@ -186,6 +186,23 @@ class ApiService {
         return this.request(`/resumes/${id}`);
     }
 
+    // Admin API methods
+    async getAdminOverview(): Promise<ApiResponse<any>> {
+        return this.request('/admin/overview');
+    }
+
+    async getAdminActivity(limit: number = 20): Promise<ApiResponse<any[]>> {
+        return this.request(`/admin/activity?limit=${limit}`);
+    }
+
+    async getAdminHealth(): Promise<ApiResponse<any>> {
+        return this.request('/admin/health');
+    }
+
+    async getWorkerPerformance(): Promise<ApiResponse<any[]>> {
+        return this.request('/admin/workers/performance');
+    }
+
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
         try {
             const url = `${API_BASE_URL}/resumes`;

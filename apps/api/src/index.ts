@@ -31,6 +31,7 @@ import resumesRouter from './routes/resumes';
 import jobPreferencesRouter from './routes/jobPreferences';
 import applicationsRouter from './routes/applications';
 import jobsRouter from './routes/jobs';
+import adminRouter from './routes/admin';
 import { jobAggregationService } from './services/jobAggregation';
 
 // Load environment variables
@@ -140,6 +141,7 @@ app.use('/api/resumes', resumesRouter);
 app.use('/api/job-preferences', jobPreferencesRouter);
 app.use('/api/applications', applicationsRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/admin', adminRouter);
 
 // Static file serving for uploaded resumes
 app.use('/uploads/resumes', express.static('uploads/resumes'));
