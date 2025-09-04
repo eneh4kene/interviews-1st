@@ -356,7 +356,7 @@ export default function ClientSignupPage() {
                             <SelectTrigger>
                               <SelectValue placeholder="Select work type" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border border-gray-200 shadow-lg">
                               <SelectItem value="remote">Remote</SelectItem>
                               <SelectItem value="hybrid">Hybrid</SelectItem>
                               <SelectItem value="onsite">On-site</SelectItem>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@interview-me/ui';
-import { Users, User, Shield } from 'lucide-react';
+import { Users, User, Shield, Home, ArrowLeft } from 'lucide-react';
 import Logo from '../../components/Logo';
 
 export default function LoginPage() {
@@ -10,6 +10,14 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <Link href="/">
+              <Button variant="outline" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </div>
           <Logo size="lg" className="mx-auto mb-6" />
           <h1 className="text-4xl font-bold text-gray-900">Welcome to InterviewsFirst</h1>
           <p className="mt-2 text-lg text-gray-600">
