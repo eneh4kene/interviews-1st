@@ -260,7 +260,7 @@ export default function AdminDashboard() {
                 <BarChart3 className="h-5 w-5 mr-3" />
                 Dashboard Overview
               </a>
-              <a href="#" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+              <a href="/admin/workers" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <Users className="h-5 w-5 mr-3" />
                 Worker Management
               </a>

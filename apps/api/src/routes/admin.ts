@@ -34,7 +34,7 @@ router.get('/overview', async (req, res) => {
                     COUNT(CASE WHEN last_login_at > NOW() - INTERVAL '7 days' THEN 1 END) as active_last_week
                 FROM users
             `),
-            
+
             // Client statistics
             db.query(`
                 SELECT 
@@ -46,7 +46,7 @@ router.get('/overview', async (req, res) => {
                     COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments
                 FROM clients
             `),
-            
+
             // Worker performance statistics
             db.query(`
                 SELECT 
@@ -63,7 +63,7 @@ router.get('/overview', async (req, res) => {
                     GROUP BY worker_id
                 ) c
             `),
-            
+
             // Revenue statistics
             db.query(`
                 SELECT 
@@ -73,7 +73,7 @@ router.get('/overview', async (req, res) => {
                     COALESCE(AVG(total_paid), 0) as avg_revenue_per_client
                 FROM clients
             `),
-            
+
             // Interview statistics
             db.query(`
                 SELECT 
@@ -164,7 +164,7 @@ router.get('/activity', async (req, res) => {
             ...recentClients.rows.map(row => ({ ...row, type: 'client_registration' })),
             ...recentInterviews.rows.map(row => ({ ...row, type: 'interview_scheduled' }))
         ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-         .slice(0, parseInt(limit as string));
+            .slice(0, parseInt(limit as string));
 
         const response: ApiResponse = {
             success: true,
@@ -252,6 +252,375 @@ router.get('/workers/performance', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch worker performance metrics',
+        });
+    }
+});
+
+// Get all workers
+router.get('/workers', async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search = '', status = 'all' } = req.query;
+        const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+        let whereClause = "WHERE u.role IN ('WORKER', 'MANAGER')";
+        const queryParams: any[] = [];
+        let paramCount = 0;
+
+        if (search) {
+            paramCount++;
+            whereClause += ` AND (u.name ILIKE $${paramCount} OR u.email ILIKE $${paramCount})`;
+            queryParams.push(`%${search}%`);
+        }
+
+        if (status !== 'all') {
+            paramCount++;
+            whereClause += ` AND u.is_active = $${paramCount}`;
+            queryParams.push(status === 'active');
+        }
+
+        const result = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.role,
+                u.is_active,
+                u.two_factor_enabled,
+                u.last_login_at,
+                u.created_at,
+                u.updated_at,
+                COUNT(c.id) as total_clients,
+                COUNT(CASE WHEN c.status = 'active' THEN 1 END) as active_clients,
+                COUNT(CASE WHEN c.status = 'placed' THEN 1 END) as placed_clients,
+                COALESCE(SUM(c.total_interviews), 0) as total_interviews,
+                COALESCE(SUM(c.total_paid), 0) as total_revenue
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id
+            ${whereClause}
+            GROUP BY u.id, u.name, u.email, u.role, u.is_active, u.two_factor_enabled, u.last_login_at, u.created_at, u.updated_at
+            ORDER BY u.created_at DESC
+            LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
+        `, [...queryParams, parseInt(limit as string), offset]);
+
+        // Get total count for pagination
+        const countResult = await db.query(`
+            SELECT COUNT(*) as total
+            FROM users u
+            ${whereClause}
+        `, queryParams);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                workers: result.rows,
+                pagination: {
+                    page: parseInt(page as string),
+                    limit: parseInt(limit as string),
+                    total: parseInt(countResult.rows[0].total),
+                    pages: Math.ceil(parseInt(countResult.rows[0].total) / parseInt(limit as string))
+                }
+            },
+            message: 'Workers retrieved successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching workers:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch workers',
+        });
+    }
+});
+
+// Get single worker
+router.get('/workers/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.role,
+                u.is_active,
+                u.two_factor_enabled,
+                u.last_login_at,
+                u.created_at,
+                u.updated_at,
+                COUNT(c.id) as total_clients,
+                COUNT(CASE WHEN c.status = 'active' THEN 1 END) as active_clients,
+                COUNT(CASE WHEN c.status = 'placed' THEN 1 END) as placed_clients,
+                COALESCE(SUM(c.total_interviews), 0) as total_interviews,
+                COALESCE(SUM(c.total_paid), 0) as total_revenue
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id
+            WHERE u.id = $1 AND u.role IN ('WORKER', 'MANAGER')
+            GROUP BY u.id, u.name, u.email, u.role, u.is_active, u.two_factor_enabled, u.last_login_at, u.created_at, u.updated_at
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Worker not found',
+            });
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0],
+            message: 'Worker retrieved successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching worker:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch worker',
+        });
+    }
+});
+
+// Create new worker
+router.post('/workers', async (req, res) => {
+    try {
+        const { name, email, password, role = 'WORKER', isActive = true, twoFactorEnabled = false } = req.body;
+
+        // Validate required fields
+        if (!name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Name, email, and password are required',
+            });
+        }
+
+        // Check if user already exists
+        const existingUser = await db.query(
+            'SELECT id FROM users WHERE email = $1',
+            [email]
+        );
+
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'User with this email already exists',
+            });
+        }
+
+        // Hash password
+        const bcrypt = require('bcryptjs');
+        const passwordHash = await bcrypt.hash(password, 10);
+
+        // Create worker
+        const result = await db.query(`
+            INSERT INTO users (name, email, role, password_hash, is_active, two_factor_enabled)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id, name, email, role, is_active, two_factor_enabled, created_at, updated_at
+        `, [name, email, role, passwordHash, isActive, twoFactorEnabled]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0],
+            message: 'Worker created successfully',
+        };
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Error creating worker:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create worker',
+        });
+    }
+});
+
+// Update worker
+router.put('/workers/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, role, isActive, twoFactorEnabled } = req.body;
+
+        // Check if worker exists
+        const existingWorker = await db.query(
+            'SELECT id FROM users WHERE id = $1 AND role IN (\'WORKER\', \'MANAGER\')',
+            [id]
+        );
+
+        if (existingWorker.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Worker not found',
+            });
+        }
+
+        // Check if email is already taken by another user
+        if (email) {
+            const emailCheck = await db.query(
+                'SELECT id FROM users WHERE email = $1 AND id != $2',
+                [email, id]
+            );
+
+            if (emailCheck.rows.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Email already taken by another user',
+                });
+            }
+        }
+
+        // Build update query dynamically
+        const updateFields = [];
+        const updateValues = [];
+        let paramCount = 0;
+
+        if (name !== undefined) {
+            paramCount++;
+            updateFields.push(`name = $${paramCount}`);
+            updateValues.push(name);
+        }
+
+        if (email !== undefined) {
+            paramCount++;
+            updateFields.push(`email = $${paramCount}`);
+            updateValues.push(email);
+        }
+
+        if (role !== undefined) {
+            paramCount++;
+            updateFields.push(`role = $${paramCount}`);
+            updateValues.push(role);
+        }
+
+        if (isActive !== undefined) {
+            paramCount++;
+            updateFields.push(`is_active = $${paramCount}`);
+            updateValues.push(isActive);
+        }
+
+        if (twoFactorEnabled !== undefined) {
+            paramCount++;
+            updateFields.push(`two_factor_enabled = $${paramCount}`);
+            updateValues.push(twoFactorEnabled);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No fields to update',
+            });
+        }
+
+        updateFields.push(`updated_at = CURRENT_TIMESTAMP`);
+        updateValues.push(id);
+
+        const result = await db.query(`
+            UPDATE users 
+            SET ${updateFields.join(', ')}
+            WHERE id = $${paramCount + 1}
+            RETURNING id, name, email, role, is_active, two_factor_enabled, last_login_at, created_at, updated_at
+        `, updateValues);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0],
+            message: 'Worker updated successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error updating worker:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update worker',
+        });
+    }
+});
+
+// Delete worker (soft delete by deactivating)
+router.delete('/workers/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if worker exists
+        const existingWorker = await db.query(
+            'SELECT id, name FROM users WHERE id = $1 AND role IN (\'WORKER\', \'MANAGER\')',
+            [id]
+        );
+
+        if (existingWorker.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Worker not found',
+            });
+        }
+
+        // Check if worker has active clients
+        const activeClients = await db.query(
+            'SELECT COUNT(*) as count FROM clients WHERE worker_id = $1 AND status = \'active\'',
+            [id]
+        );
+
+        if (parseInt(activeClients.rows[0].count) > 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Cannot delete worker with active clients. Please reassign clients first.',
+            });
+        }
+
+        // Soft delete by deactivating
+        await db.query(
+            'UPDATE users SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+            [id]
+        );
+
+        const response: ApiResponse = {
+            success: true,
+            message: 'Worker deactivated successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error deleting worker:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete worker',
+        });
+    }
+});
+
+// Reactivate worker
+router.post('/workers/:id/reactivate', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const result = await db.query(`
+            UPDATE users 
+            SET is_active = true, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $1 AND role IN ('WORKER', 'MANAGER')
+            RETURNING id, name, email, role, is_active, updated_at
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Worker not found',
+            });
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0],
+            message: 'Worker reactivated successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error reactivating worker:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to reactivate worker',
         });
     }
 });

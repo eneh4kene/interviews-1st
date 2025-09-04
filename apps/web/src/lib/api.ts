@@ -220,6 +220,60 @@ class ApiService {
         return this.request('/admin/workers/performance');
     }
 
+    // Worker Management API methods
+    async getWorkers(page: number = 1, limit: number = 10, search: string = '', status: string = 'all'): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            search,
+            status
+        });
+        return this.request(`/admin/workers?${params}`);
+    }
+
+    async getWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`);
+    }
+
+    async createWorker(workerData: {
+        name: string;
+        email: string;
+        password: string;
+        role?: 'WORKER' | 'MANAGER';
+        isActive?: boolean;
+        twoFactorEnabled?: boolean;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/admin/workers', {
+            method: 'POST',
+            body: JSON.stringify(workerData),
+        });
+    }
+
+    async updateWorker(id: string, workerData: {
+        name?: string;
+        email?: string;
+        role?: 'WORKER' | 'MANAGER';
+        isActive?: boolean;
+        twoFactorEnabled?: boolean;
+    }): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(workerData),
+        });
+    }
+
+    async deleteWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async reactivateWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}/reactivate`, {
+            method: 'POST',
+        });
+    }
+
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
         try {
             const url = `${API_BASE_URL}/resumes`;
