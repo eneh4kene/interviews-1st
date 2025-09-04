@@ -26,20 +26,34 @@ const pgPool = new Pool({
 // Redis client - REPLIT FIX
 let redisClient: any = null;
 
-if (process.env.REDIS_URL) {
-    // Use external Redis if URL provided
-    redisClient = createClient({
-        url: process.env.REDIS_URL,
-    });
-    redisClient.connect().catch(console.error);
+if (process.env.REDIS_URL && process.env.REDIS_URL !== 'redis://localhost:6379') {
+    // Use external Redis if URL provided and not localhost
+    try {
+        redisClient = createClient({
+            url: process.env.REDIS_URL,
+        });
+        redisClient.connect().catch(console.error);
+    } catch (error) {
+        console.log('⚠️ Redis connection failed, falling back to mock Redis');
+        redisClient = createMockRedis();
+    }
 } else {
-    // Mock Redis for Replit
-    console.log('⚠️ Using mock Redis for Replit');
+    // Mock Redis for local development
+    console.log('⚠️ Using mock Redis (no external Redis available)');
+    redisClient = createMockRedis();
+}
+
+function createMockRedis() {
     const mockRedis = new Map<string, { value: any; expiresAt?: number }>();
 
-    redisClient = {
+    return {
         set: async (key: string, value: string, expireSeconds?: number) => {
             const expiresAt = expireSeconds ? Date.now() + (expireSeconds * 1000) : undefined;
+            mockRedis.set(key, { value, expiresAt });
+            return 'OK';
+        },
+        setEx: async (key: string, expireSeconds: number, value: string) => {
+            const expiresAt = Date.now() + (expireSeconds * 1000);
             mockRedis.set(key, { value, expiresAt });
             return 'OK';
         },
@@ -71,14 +85,16 @@ if (process.env.REDIS_URL) {
     };
 }
 
-// Handle Redis connection events
-redisClient.on?.('error', (err: any) => {
-    console.error('Redis Client Error:', err);
-});
+// Handle Redis connection events only for real Redis clients
+if (process.env.REDIS_URL && process.env.REDIS_URL !== 'redis://localhost:6379') {
+    redisClient.on?.('error', (err: any) => {
+        console.error('Redis Client Error:', err);
+    });
 
-redisClient.on?.('connect', () => {
-    console.log('✅ Connected to Redis');
-});
+    redisClient.on?.('connect', () => {
+        console.log('✅ Connected to Redis');
+    });
+}
 
 // Handle PostgreSQL connection events
 pgPool.on('connect', (client) => {
