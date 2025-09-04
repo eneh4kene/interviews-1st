@@ -171,12 +171,16 @@ export default function Home() {
                   Browse Jobs
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
-                Sign In
-              </Button>
-              <Button size="sm" className="bg-primary hover:bg-primary-600 text-white">
-                Get Started
-              </Button>
+              <Link href="/login">
+                <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/signup/client">
+                <Button size="sm" className="bg-primary hover:bg-primary-600 text-white">
+                  Get Started
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -254,20 +258,21 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 1.0 }}
               >
-                <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary-600 active:bg-primary-700 text-white shadow-brand transition-[transform,box-shadow] duration-normal ease-brand hover:shadow-lg hover:-translate-y-0.5 text-lg px-8 py-4"
-                  onClick={() => scrollToSection('signup')}
-                >
-                  Get Started
-                  <motion.div
-                    className="ml-2"
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.2 }}
+                <Link href="/signup/client">
+                  <Button 
+                    size="lg" 
+                    className="bg-primary hover:bg-primary-600 active:bg-primary-700 text-white shadow-brand transition-[transform,box-shadow] duration-normal ease-brand hover:shadow-lg hover:-translate-y-0.5 text-lg px-8 py-4"
                   >
-                    <ArrowRight className="h-5 w-5" />
-                  </motion.div>
-                </Button>
+                    Get Started
+                    <motion.div
+                      className="ml-2"
+                      whileHover={{ x: 4 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ArrowRight className="h-5 w-5" />
+                    </motion.div>
+                  </Button>
+                </Link>
                 <Button 
                   variant="outline" 
                   size="lg" 
@@ -780,20 +785,21 @@ export default function Home() {
               Create your free account and let us get to work.
             </p>
             
-            <Button 
-              size="lg" 
-              className="bg-white text-primary hover:bg-gray-100 shadow-brand transition-[transform,box-shadow] duration-normal ease-brand hover:shadow-lg hover:-translate-y-0.5 text-lg px-8 py-4 mb-6"
-              onClick={() => scrollToSection('signup')}
-            >
-              Get Started for Free
-              <motion.div
-                className="ml-2"
-                whileHover={{ x: 4 }}
-                transition={{ duration: 0.2 }}
+            <Link href="/signup/client">
+              <Button 
+                size="lg" 
+                className="bg-white text-primary hover:bg-gray-100 shadow-brand transition-[transform,box-shadow] duration-normal ease-brand hover:shadow-lg hover:-translate-y-0.5 text-lg px-8 py-4 mb-6"
               >
-                <ArrowRight className="h-5 w-5" />
-              </motion.div>
-            </Button>
+                Get Started for Free
+                <motion.div
+                  className="ml-2"
+                  whileHover={{ x: 4 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </motion.div>
+              </Button>
+            </Link>
             
             <p className="text-blue-200 text-sm">
               Trusted by job seekers across the UK

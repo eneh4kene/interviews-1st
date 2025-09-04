@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
-import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase, LogOut } from "lucide-react";
 import Logo from '../../components/Logo';
 import ClientForm from '../../components/ClientForm';
 import { apiService } from '../../lib/api';
@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showClientForm, setShowClientForm] = useState(false);
@@ -33,14 +34,28 @@ export default function Dashboard() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem('user');
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (user && (user.role === 'WORKER' || user.role === 'MANAGER')) {
-          setWorkerId(user.id);
-        }
+      const token = localStorage.getItem('accessToken');
+      
+      if (!stored || !token) {
+        // No user data or token found, redirect to login
+        router.push('/login');
+        return;
       }
-    } catch {}
-  }, []);
+      
+      const user = JSON.parse(stored);
+      if (user && (user.role === 'WORKER' || user.role === 'MANAGER')) {
+        setWorkerId(user.id);
+        setIsAuthenticated(true);
+      } else {
+        // User doesn't have the right role, redirect to login
+        router.push('/login');
+      }
+    } catch (error) {
+      // Invalid user data, redirect to login
+      console.error('Error parsing user data:', error);
+      router.push('/login');
+    }
+  }, [router]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -161,6 +176,15 @@ export default function Dashboard() {
     router.push('/jobs');
   };
 
+  const handleLogout = () => {
+    // Clear user data from localStorage
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    
+    // Redirect to login page
+    router.push('/login');
+  };
+
   const handleClientFormClose = () => {
     setShowClientForm(false);
   };
@@ -251,6 +275,18 @@ export default function Dashboard() {
     );
   }
 
+  // Don't render dashboard content if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -286,6 +322,14 @@ export default function Dashboard() {
               <Button className="flex items-center gap-2" onClick={handleAddNewClient}>
                 <Plus className="h-4 w-4" />
                 Add New Client
+              </Button>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50" 
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
               </Button>
             </div>
           </div>

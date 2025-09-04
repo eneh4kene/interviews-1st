@@ -37,6 +37,16 @@ const magicLinkSchema = z.object({
     interviewId: z.string(),
 });
 
+const clientRegistrationSchema = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    phone: z.string().optional(),
+    location: z.string().min(1),
+    linkedinUrl: z.string().url().optional().or(z.literal('')),
+    company: z.string().optional(),
+    position: z.string().optional(),
+});
+
 // Helper functions
 // JWT functions are now handled in utils/jwt.ts
 const generateMagicLinkToken = (email: string, interviewId: string): string => {
@@ -308,6 +318,80 @@ router.get('/me', async (req, res) => {
             error: 'Invalid token',
         };
         res.status(401).json(response);
+    }
+});
+
+// Client registration endpoint
+router.post('/register-client', validateRequest({ body: clientRegistrationSchema }), async (req, res) => {
+    try {
+        const { name, email, phone, location, linkedinUrl, company, position } = req.body;
+
+        // Check if client already exists
+        const existingClient = await db.query(
+            'SELECT id FROM clients WHERE email = $1',
+            [email]
+        );
+
+        if (existingClient.rows.length > 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'A client with this email already exists',
+            };
+            return res.status(409).json(response);
+        }
+
+        // For now, we'll auto-assign to the first available worker
+        // In a real app, you might have a queue system or round-robin assignment
+        const availableWorkers = await db.query(
+            'SELECT id FROM users WHERE role IN ($1, $2) AND is_active = true ORDER BY created_at ASC LIMIT 1',
+            ['WORKER', 'MANAGER']
+        );
+
+        if (availableWorkers.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'No available workers to assign this client',
+            };
+            return res.status(503).json(response);
+        }
+
+        const workerId = availableWorkers.rows[0].id;
+
+        // Create the client
+        const result = await db.query(`
+            INSERT INTO clients (worker_id, name, email, phone, linkedin_url, status, payment_status, total_interviews, total_paid, is_new)
+            VALUES ($1, $2, $3, $4, $5, 'active', 'pending', 0, 0, true)
+            RETURNING 
+                id,
+                worker_id as "workerId",
+                name,
+                email,
+                phone,
+                linkedin_url as "linkedinUrl",
+                status,
+                payment_status as "paymentStatus",
+                total_interviews as "totalInterviews",
+                total_paid as "totalPaid",
+                is_new as "isNew",
+                assigned_at as "assignedAt",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [workerId, name, email, phone || null, linkedinUrl || null]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0],
+            message: 'Client registered successfully. You will be contacted by your assigned career coach soon.',
+        };
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Client registration error:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to register client',
+        };
+        res.status(500).json(response);
     }
 });
 
