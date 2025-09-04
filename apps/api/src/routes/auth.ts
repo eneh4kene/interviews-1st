@@ -1,5 +1,8 @@
 import express from 'express';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { validateRequest } from '../utils/validation';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair, verifyRefreshToken, revokeRefreshToken, verifyToken } from '../utils/jwt';
@@ -17,6 +20,77 @@ import {
 } from '@interview-me/types';
 
 const router = express.Router();
+
+// Configure multer for resume uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, '../../uploads/resumes');
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        // Generate unique filename
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `resume-${uniqueSuffix}${ext}`);
+    }
+});
+
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Allow only PDF, DOC, DOCX files
+        const allowedMimeTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ];
+
+        const allowedExtensions = ['.pdf', '.doc', '.docx'];
+        const fileExtension = path.extname(file.originalname).toLowerCase();
+
+        // Check both MIME type and file extension
+        const isValidMimeType = allowedMimeTypes.includes(file.mimetype);
+        const isValidExtension = allowedExtensions.includes(fileExtension);
+
+        if (isValidMimeType || isValidExtension) {
+            cb(null, true);
+        } else {
+            cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'));
+        }
+    }
+});
+
+// Error handling middleware for multer
+const handleMulterError = (error: any, req: any, res: any, next: any) => {
+    if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                error: 'File too large. Maximum size is 5MB.',
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            error: 'File upload error: ' + error.message,
+        });
+    }
+
+    if (error instanceof Error && error.message.includes('Invalid file type')) {
+        return res.status(400).json({
+            success: false,
+            error: error.message,
+        });
+    }
+
+    next(error);
+};
 
 // No mock users or passwords; all authentication uses the Neon database
 
@@ -334,9 +408,21 @@ router.get('/me', async (req, res) => {
 });
 
 // Client registration endpoint
-router.post('/register-client', validateRequest({ body: clientRegistrationSchema }), async (req, res) => {
+router.post('/register-client', upload.single('resume'), handleMulterError, async (req: any, res: any) => {
     try {
-        const { name, email, phone, location, linkedinUrl, company, position, jobPreferences = [] } = req.body;
+        const { name, email, phone, location, linkedinUrl, company, position, jobPreferences: jobPreferencesStr } = req.body;
+        const resumeFile = req.file;
+        
+        // Parse job preferences from JSON string
+        let jobPreferences = [];
+        if (jobPreferencesStr) {
+            try {
+                jobPreferences = JSON.parse(jobPreferencesStr);
+            } catch (error) {
+                console.error('Error parsing job preferences:', error);
+                jobPreferences = [];
+            }
+        }
 
         // Check if client already exists
         const existingClient = await db.query(
@@ -398,6 +484,18 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
 
         const clientId = result.rows[0].id;
 
+        // Create resume if provided
+        if (resumeFile) {
+            await db.query(`
+                INSERT INTO resumes (client_id, name, file_url, is_default)
+                VALUES ($1, $2, $3, true)
+            `, [
+                clientId,
+                resumeFile.originalname,
+                resumeFile.filename
+            ]);
+        }
+
         // Create job preferences if provided
         if (jobPreferences && jobPreferences.length > 0) {
             for (const preference of jobPreferences) {
@@ -432,6 +530,61 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
         const response: ApiResponse = {
             success: false,
             error: 'Failed to register client',
+        };
+        res.status(500).json(response);
+    }
+});
+
+// Get client resume for n8n workflow
+router.get('/client/:clientId/resume', async (req, res) => {
+    try {
+        const { clientId } = req.params;
+
+        // Get client's default resume
+        const result = await db.query(`
+            SELECT 
+                r.id,
+                r.name,
+                r.file_url,
+                r.is_default,
+                c.name as client_name,
+                c.email as client_email
+            FROM resumes r
+            JOIN clients c ON r.client_id = c.id
+            WHERE r.client_id = $1 AND r.is_default = true
+            ORDER BY r.created_at DESC
+            LIMIT 1
+        `, [clientId]);
+
+        if (result.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'No resume found for this client',
+            };
+            return res.status(404).json(response);
+        }
+
+        const resume = result.rows[0];
+        
+        // Construct the file URL
+        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/resumes/${resume.file_url}`;
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                ...resume,
+                fileUrl,
+                downloadUrl: fileUrl
+            },
+            message: 'Resume retrieved successfully',
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Get client resume error:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to retrieve client resume',
         };
         res.status(500).json(response);
     }

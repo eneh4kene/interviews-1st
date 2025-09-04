@@ -141,6 +141,9 @@ app.use('/api/job-preferences', jobPreferencesRouter);
 app.use('/api/applications', applicationsRouter);
 app.use('/api/jobs', jobsRouter);
 
+// Static file serving for uploaded resumes
+app.use('/uploads/resumes', express.static('uploads/resumes'));
+
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error(err.stack);

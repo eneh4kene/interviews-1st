@@ -6,7 +6,7 @@ import { Button } from '@interview-me/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@interview-me/ui';
 import { Input } from '@interview-me/ui';
 import { Label } from '@interview-me/ui';
-import { User, Mail, Phone, MapPin, Linkedin, Building, Briefcase, CheckCircle, ArrowLeft, Plus, X, Target } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Linkedin, Building, Briefcase, CheckCircle, ArrowLeft, Plus, X, Target, Upload, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@interview-me/ui';
 import Logo from '../../../components/Logo';
 import Link from 'next/link';
@@ -31,6 +31,7 @@ interface ClientRegistrationData {
   company: string;
   position: string;
   jobPreferences: JobPreference[];
+  resumeFile: File | null;
 }
 
 export default function ClientSignupPage() {
@@ -43,7 +44,8 @@ export default function ClientSignupPage() {
     linkedinUrl: '',
     company: '',
     position: '',
-    jobPreferences: []
+    jobPreferences: [],
+    resumeFile: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,18 +93,43 @@ export default function ClientSignupPage() {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormData(prev => ({
+      ...prev,
+      resumeFile: file
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('location', formData.location);
+      formDataToSend.append('linkedinUrl', formData.linkedinUrl);
+      formDataToSend.append('company', formData.company);
+      formDataToSend.append('position', formData.position);
+      
+      // Add job preferences as JSON string
+      formDataToSend.append('jobPreferences', JSON.stringify(formData.jobPreferences));
+      
+      // Add resume file if selected
+      if (formData.resumeFile) {
+        formDataToSend.append('resume', formData.resumeFile);
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register-client`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formDataToSend, // Don't set Content-Type header, let browser set it with boundary
       });
 
       const result = await response.json();
@@ -270,6 +297,39 @@ export default function ClientSignupPage() {
                       onChange={(e) => handleInputChange('position', e.target.value)}
                       placeholder="Enter your current position"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Resume Upload Section */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Resume Upload
+                </h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="resume">Resume (PDF, DOC, DOCX) *</Label>
+                    <div className="mt-2">
+                      <input
+                        id="resume"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer border border-gray-300 rounded-md p-2"
+                        required
+                      />
+                    </div>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Upload your resume in PDF, DOC, or DOCX format (max 5MB)
+                    </p>
+                    {formData.resumeFile && (
+                      <div className="mt-2 flex items-center text-sm text-green-600">
+                        <FileText className="h-4 w-4 mr-2" />
+                        {formData.resumeFile.name} ({(formData.resumeFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
