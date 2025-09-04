@@ -52,11 +52,16 @@ class ApiService {
             const url = `${API_BASE_URL}${endpoint}`;
             console.log('🌐 Making API request to:', url);
 
+            // Get access token from localStorage
+            const token = localStorage.getItem('accessToken');
+            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Cache-Control': 'no-cache',
                     'Pragma': 'no-cache',
+                    ...authHeaders,
                     ...options.headers,
                 },
                 ...options,
@@ -67,6 +72,18 @@ class ApiService {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', errorText);
+                
+                // Handle 401 Unauthorized - redirect to login
+                if (response.status === 401) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('accessToken');
+                    window.location.href = '/login';
+                    return {
+                        success: false,
+                        error: 'Authentication required',
+                    };
+                }
+                
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
