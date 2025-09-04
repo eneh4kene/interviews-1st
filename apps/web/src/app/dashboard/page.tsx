@@ -20,6 +20,12 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showClientForm, setShowClientForm] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    paymentStatus: '',
+    interviewCount: '',
+    sortBy: 'assignedAt'
+  });
 
   // Determine workerId from logged-in user (stored at login)
   const [workerId, setWorkerId] = useState<string | null>(null);
@@ -82,13 +88,49 @@ export default function Dashboard() {
       if (statusFilter === "new") {
         // Filter for clients assigned within the last 72 hours
         const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
-        matchesStatus = client.assignedAt > seventyTwoHoursAgo;
+        matchesStatus = client.assignedAt && client.assignedAt > seventyTwoHoursAgo;
       } else {
         matchesStatus = client.status === statusFilter;
       }
     }
     
-    return matchesSearch && matchesStatus;
+    // Apply additional filters
+    let matchesPaymentStatus = true;
+    if (filters.paymentStatus) {
+      matchesPaymentStatus = client.paymentStatus === filters.paymentStatus;
+    }
+    
+    let matchesInterviewCount = true;
+    if (filters.interviewCount) {
+      const count = client.totalInterviews || 0;
+      switch (filters.interviewCount) {
+        case '0':
+          matchesInterviewCount = count === 0;
+          break;
+        case '1-5':
+          matchesInterviewCount = count >= 1 && count <= 5;
+          break;
+        case '5+':
+          matchesInterviewCount = count >= 5;
+          break;
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesPaymentStatus && matchesInterviewCount;
+  }).sort((a, b) => {
+    // Apply sorting
+    switch (filters.sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'totalInterviews':
+        return (b.totalInterviews || 0) - (a.totalInterviews || 0);
+      case 'totalPaid':
+        return (b.totalPaid || 0) - (a.totalPaid || 0);
+      case 'assignedAt':
+      default:
+        if (!a.assignedAt || !b.assignedAt) return 0;
+        return new Date(b.assignedAt).getTime() - new Date(a.assignedAt).getTime();
+    }
   });
 
   const getStatusColor = (status: string) => {
@@ -166,7 +208,8 @@ export default function Dashboard() {
   };
 
   const handleMoreFilters = () => {
-    alert('More Filters functionality would open advanced filter options');
+    // Toggle additional filter options
+    setShowFilters(!showFilters);
   };
 
   const handleViewProfile = (client: Client) => {
@@ -430,10 +473,69 @@ export default function Dashboard() {
               
               <Button variant="outline" onClick={handleMoreFilters}>
                 <Filter className="h-4 w-4 mr-2" />
-                More Filters
+                {showFilters ? 'Hide Filters' : 'More Filters'}
               </Button>
             </div>
           </div>
+          
+          {/* Additional Filter Options */}
+          {showFilters && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => setFilters({ ...filters, paymentStatus: e.target.value })}
+                    value={filters.paymentStatus}
+                  >
+                    <option value="">All payment statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Total Interviews</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => setFilters({ ...filters, interviewCount: e.target.value })}
+                    value={filters.interviewCount}
+                  >
+                    <option value="">Any number</option>
+                    <option value="0">0 interviews</option>
+                    <option value="1-5">1-5 interviews</option>
+                    <option value="5+">5+ interviews</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                    value={filters.sortBy}
+                  >
+                    <option value="assignedAt">Date Assigned</option>
+                    <option value="name">Name</option>
+                    <option value="totalInterviews">Total Interviews</option>
+                    <option value="totalPaid">Total Paid</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setFilters({ paymentStatus: '', interviewCount: '', sortBy: 'assignedAt' })}
+                  className="mr-2"
+                >
+                  Clear Filters
+                </Button>
+                <Button onClick={() => setShowFilters(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Clients Grid */}
