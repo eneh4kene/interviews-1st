@@ -6,9 +6,21 @@ import { Button } from '@interview-me/ui';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@interview-me/ui';
 import { Input } from '@interview-me/ui';
 import { Label } from '@interview-me/ui';
-import { User, Mail, Phone, MapPin, Linkedin, Building, Briefcase, CheckCircle, ArrowLeft } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Linkedin, Building, Briefcase, CheckCircle, ArrowLeft, Plus, X, Target } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@interview-me/ui';
 import Logo from '../../../components/Logo';
 import Link from 'next/link';
+
+interface JobPreference {
+  title: string;
+  company: string;
+  location: string;
+  workType: 'remote' | 'hybrid' | 'onsite';
+  visaSponsorship: boolean;
+  salaryMin?: number;
+  salaryMax?: number;
+  currency: string;
+}
 
 interface ClientRegistrationData {
   name: string;
@@ -18,6 +30,7 @@ interface ClientRegistrationData {
   linkedinUrl: string;
   company: string;
   position: string;
+  jobPreferences: JobPreference[];
 }
 
 export default function ClientSignupPage() {
@@ -29,7 +42,8 @@ export default function ClientSignupPage() {
     location: '',
     linkedinUrl: '',
     company: '',
-    position: ''
+    position: '',
+    jobPreferences: []
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +53,41 @@ export default function ClientSignupPage() {
     setFormData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const addJobPreference = () => {
+    if (formData.jobPreferences.length < 5) {
+      const newPreference: JobPreference = {
+        title: '',
+        company: '',
+        location: '',
+        workType: 'hybrid',
+        visaSponsorship: false,
+        salaryMin: undefined,
+        salaryMax: undefined,
+        currency: 'GBP'
+      };
+      setFormData(prev => ({
+        ...prev,
+        jobPreferences: [...prev.jobPreferences, newPreference]
+      }));
+    }
+  };
+
+  const removeJobPreference = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      jobPreferences: prev.jobPreferences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateJobPreference = (index: number, field: keyof JobPreference, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      jobPreferences: prev.jobPreferences.map((pref, i) => 
+        i === index ? { ...pref, [field]: value } : pref
+      )
     }));
   };
 
@@ -223,6 +272,141 @@ export default function ClientSignupPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Job Preferences Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <Target className="h-5 w-5 mr-2" />
+                    Job Preferences (Optional)
+                  </h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={addJobPreference}
+                    disabled={formData.jobPreferences.length >= 5}
+                    className="flex items-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Preference ({formData.jobPreferences.length}/5)
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-gray-600">
+                  Tell us about the types of jobs you're looking for. This helps us find better matches for you.
+                </p>
+
+                {formData.jobPreferences.map((preference, index) => (
+                  <Card key={index} className="border border-gray-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-medium text-gray-900">Job Preference {index + 1}</h4>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeJobPreference(index)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor={`pref-title-${index}`}>Job Title *</Label>
+                          <Input
+                            id={`pref-title-${index}`}
+                            type="text"
+                            value={preference.title}
+                            onChange={(e) => updateJobPreference(index, 'title', e.target.value)}
+                            placeholder="e.g., Software Engineer"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`pref-company-${index}`}>Preferred Company</Label>
+                          <Input
+                            id={`pref-company-${index}`}
+                            type="text"
+                            value={preference.company}
+                            onChange={(e) => updateJobPreference(index, 'company', e.target.value)}
+                            placeholder="e.g., Google, Microsoft"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`pref-location-${index}`}>Location *</Label>
+                          <Input
+                            id={`pref-location-${index}`}
+                            type="text"
+                            value={preference.location}
+                            onChange={(e) => updateJobPreference(index, 'location', e.target.value)}
+                            placeholder="e.g., London, UK"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`pref-worktype-${index}`}>Work Type *</Label>
+                          <Select
+                            value={preference.workType}
+                            onValueChange={(value) => updateJobPreference(index, 'workType', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select work type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="remote">Remote</SelectItem>
+                              <SelectItem value="hybrid">Hybrid</SelectItem>
+                              <SelectItem value="onsite">On-site</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`pref-salary-min-${index}`}>Min Salary (£)</Label>
+                          <Input
+                            id={`pref-salary-min-${index}`}
+                            type="number"
+                            value={preference.salaryMin || ''}
+                            onChange={(e) => updateJobPreference(index, 'salaryMin', e.target.value ? parseInt(e.target.value) : undefined)}
+                            placeholder="e.g., 50000"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`pref-salary-max-${index}`}>Max Salary (£)</Label>
+                          <Input
+                            id={`pref-salary-max-${index}`}
+                            type="number"
+                            value={preference.salaryMax || ''}
+                            onChange={(e) => updateJobPreference(index, 'salaryMax', e.target.value ? parseInt(e.target.value) : undefined)}
+                            placeholder="e.g., 80000"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={preference.visaSponsorship}
+                            onChange={(e) => updateJobPreference(index, 'visaSponsorship', e.target.checked)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">Requires visa sponsorship</span>
+                        </label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                {formData.jobPreferences.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No job preferences added yet.</p>
+                    <p className="text-sm">Click "Add Preference" to get started.</p>
+                  </div>
+                )}
               </div>
 
               {/* Terms and Conditions */}

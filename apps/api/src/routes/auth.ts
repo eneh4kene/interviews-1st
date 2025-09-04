@@ -37,6 +37,17 @@ const magicLinkSchema = z.object({
     interviewId: z.string(),
 });
 
+const jobPreferenceSchema = z.object({
+    title: z.string().min(1, 'Job title is required'),
+    company: z.string().optional(),
+    location: z.string().min(1, 'Location is required'),
+    workType: z.enum(['remote', 'hybrid', 'onsite']),
+    visaSponsorship: z.boolean().default(false),
+    salaryMin: z.number().optional(),
+    salaryMax: z.number().optional(),
+    currency: z.string().default('GBP'),
+});
+
 const clientRegistrationSchema = z.object({
     name: z.string().min(1),
     email: z.string().email(),
@@ -45,6 +56,7 @@ const clientRegistrationSchema = z.object({
     linkedinUrl: z.string().url().optional().or(z.literal('')),
     company: z.string().optional(),
     position: z.string().optional(),
+    jobPreferences: z.array(jobPreferenceSchema).max(5, 'Maximum 5 job preferences allowed').optional(),
 });
 
 // Helper functions
@@ -324,7 +336,7 @@ router.get('/me', async (req, res) => {
 // Client registration endpoint
 router.post('/register-client', validateRequest({ body: clientRegistrationSchema }), async (req, res) => {
     try {
-        const { name, email, phone, location, linkedinUrl, company, position } = req.body;
+        const { name, email, phone, location, linkedinUrl, company, position, jobPreferences = [] } = req.body;
 
         // Check if client already exists
         const existingClient = await db.query(
@@ -377,6 +389,30 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
                 created_at as "createdAt",
                 updated_at as "updatedAt"
         `, [workerId, name, email, phone || null, linkedinUrl || null]);
+
+        const clientId = result.rows[0].id;
+
+        // Create job preferences if provided
+        if (jobPreferences && jobPreferences.length > 0) {
+            for (const preference of jobPreferences) {
+                await db.query(`
+                    INSERT INTO job_preferences (
+                        client_id, title, company, location, work_type, 
+                        visa_sponsorship, salary_min, salary_max, currency, status
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
+                `, [
+                    clientId,
+                    preference.title,
+                    preference.company || null,
+                    preference.location,
+                    preference.workType,
+                    preference.visaSponsorship,
+                    preference.salaryMin || null,
+                    preference.salaryMax || null,
+                    preference.currency
+                ]);
+            }
+        }
 
         const response: ApiResponse = {
             success: true,
