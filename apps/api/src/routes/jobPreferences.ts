@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../utils/validation';
 import { ApiResponse, JobPreference } from '@interview-me/types';
+import { db } from '../utils/database';
 
 const router = express.Router();
 
@@ -95,7 +96,35 @@ router.get('/', validateRequest(getJobPreferencesSchema), async (req, res) => {
     try {
         const { clientId } = req.query;
 
-        const clientJobPreferences = mockJobPreferences.filter(preference => preference.clientId === clientId);
+        const result = await db.query(`
+            SELECT 
+                id,
+                client_id as "clientId",
+                title,
+                company,
+                location,
+                work_type as "workType",
+                visa_sponsorship as "visaSponsorship",
+                salary_min as "salaryMin",
+                salary_max as "salaryMax",
+                salary_currency as "currency",
+                status,
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+            FROM job_preferences 
+            WHERE client_id = $1
+            ORDER BY created_at DESC
+        `, [clientId]);
+
+        // Transform the data to match the expected format
+        const clientJobPreferences = result.rows.map(row => ({
+            ...row,
+            salaryRange: row.salaryMin && row.salaryMax ? {
+                min: row.salaryMin,
+                max: row.salaryMax,
+                currency: row.currency
+            } : undefined
+        }));
 
         const response: ApiResponse = {
             success: true,
