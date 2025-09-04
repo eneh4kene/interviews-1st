@@ -404,7 +404,7 @@ router.post('/register-client', validateRequest({ body: clientRegistrationSchema
                 await db.query(`
                     INSERT INTO job_preferences (
                         client_id, title, company, location, work_type, 
-                        visa_sponsorship, salary_min, salary_max, currency, status
+                        visa_sponsorship, salary_min, salary_max, salary_currency, status
                     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')
                 `, [
                     clientId,
