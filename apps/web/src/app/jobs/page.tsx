@@ -291,7 +291,7 @@ export default function JobsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="All job types" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       <SelectItem value="all">All job types</SelectItem>
                       <SelectItem value="full-time">Full-time</SelectItem>
                       <SelectItem value="part-time">Part-time</SelectItem>
@@ -308,7 +308,7 @@ export default function JobsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="All locations" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       <SelectItem value="all">All locations</SelectItem>
                       <SelectItem value="remote">Remote</SelectItem>
                       <SelectItem value="onsite">On-site</SelectItem>
@@ -341,7 +341,7 @@ export default function JobsPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg">
                     <SelectItem value="all">All sources</SelectItem>
                     <SelectItem value="live">Live aggregators</SelectItem>
                     <SelectItem value="stored">Stored jobs</SelectItem>
