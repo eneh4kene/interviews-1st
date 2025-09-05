@@ -199,28 +199,6 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -282,157 +260,166 @@ export default function AdminDashboard() {
 
         {/* Main Content */}
         <div className="flex-1 p-6">
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-              <div className="flex">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Error</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
-              </div>
+          {(!isAuthenticated || loading) ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">{!isAuthenticated ? 'Checking authentication...' : 'Loading dashboard...'}</p>
             </div>
-          )}
-
-          {/* Overview Cards */}
-          {overview && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {/* Total Users */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{overview.users.total_users}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {overview.users.active_users} active users
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Clients */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
-                  <UserCheck className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{overview.clients.total_clients}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {overview.clients.active_clients} active
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Revenue */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(overview.revenue.total_revenue)}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatCurrency(overview.revenue.revenue_this_month)} this month
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Total Interviews */}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Interviews</CardTitle>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{overview.interviews.total_interviews}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {overview.interviews.accepted_interviews} accepted
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* System Health */}
-            {health && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    System Health
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Database</span>
-                      <div className="flex items-center gap-2">
-                        {getHealthStatus(health.database)}
-                        <span className="text-sm capitalize">{health.database}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Redis</span>
-                      <div className="flex items-center gap-2">
-                        {getHealthStatus(health.redis)}
-                        <span className="text-sm capitalize">{health.redis}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">API</span>
-                      <div className="flex items-center gap-2">
-                        {getHealthStatus(health.api)}
-                        <span className="text-sm capitalize">{health.api}</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-medium">Overall</span>
-                      <div className="flex items-center gap-2">
-                        {getHealthStatus(health.overall)}
-                        <span className="text-sm capitalize font-medium">{health.overall}</span>
-                      </div>
+          ) : (
+            <>
+              {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="flex">
+                    <AlertCircle className="h-5 w-5 text-red-400" />
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">Error</h3>
+                      <p className="mt-1 text-sm text-red-700">{error}</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              )}
 
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Recent Activity
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {activities.length > 0 ? (
-                    activities.map((activity, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        {getActivityIcon(activity.type)}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            {activity.type === 'user_registration' && `${activity.name} registered as ${activity.role}`}
-                            {activity.type === 'client_registration' && `${activity.name} registered as client`}
-                            {activity.type === 'interview_scheduled' && `Interview scheduled for ${activity.client_name}`}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {formatDate(activity.timestamp)}
-                          </p>
+              {/* Overview Cards */}
+              {overview && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {/* Total Users */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{overview.users.total_users}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {overview.users.active_users} active users
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Total Clients */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+                      <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{overview.clients.total_clients}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {overview.clients.active_clients} active
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Total Revenue */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{formatCurrency(overview.revenue.total_revenue)}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCurrency(overview.revenue.revenue_this_month)} this month
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Total Interviews */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Interviews</CardTitle>
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{overview.interviews.total_interviews}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {overview.interviews.accepted_interviews} accepted
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* System Health */}
+                {health && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5" />
+                        System Health
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Database</span>
+                          <div className="flex items-center gap-2">
+                            {getHealthStatus(health.database)}
+                            <span className="text-sm capitalize">{health.database}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Redis</span>
+                          <div className="flex items-center gap-2">
+                            {getHealthStatus(health.redis)}
+                            <span className="text-sm capitalize">{health.redis}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">API</span>
+                          <div className="flex items-center gap-2">
+                            {getHealthStatus(health.api)}
+                            <span className="text-sm capitalize">{health.api}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between border-t pt-2">
+                          <span className="text-sm font-medium">Overall</span>
+                          <div className="flex items-center gap-2">
+                            {getHealthStatus(health.overall)}
+                            <span className="text-sm capitalize font-medium">{health.overall}</span>
+                          </div>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">No recent activity</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {activities.length > 0 ? (
+                        activities.map((activity, index) => (
+                          <div key={index} className="flex items-start gap-3">
+                            {getActivityIcon(activity.type)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900">
+                                {activity.type === 'user_registration' && `${activity.name} registered as ${activity.role}`}
+                                {activity.type === 'client_registration' && `${activity.name} registered as client`}
+                                {activity.type === 'interview_scheduled' && `Interview scheduled for ${activity.client_name}`}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {formatDate(activity.timestamp)}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">No recent activity</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
