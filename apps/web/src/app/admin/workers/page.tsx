@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
@@ -116,16 +116,7 @@ export default function WorkerManagement() {
     fetchWorkers();
   }, [isAuthenticated, currentPage, searchTerm, statusFilter, refreshTrigger]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(e.target.value);
-  };
-
-  // Debounced search effect
+  // Separate effect for search input changes to avoid re-renders
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearchTerm(searchInput);
@@ -135,12 +126,21 @@ export default function WorkerManagement() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const handleStatusFilter = (status: string) => {
-    setStatusFilter(status);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
     setCurrentPage(1);
   };
 
-  const handleDeleteWorker = async (worker: Worker) => {
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  }, []);
+
+  const handleStatusFilter = useCallback((status: string) => {
+    setStatusFilter(status);
+    setCurrentPage(1);
+  }, []);
+
+  const handleDeleteWorker = useCallback(async (worker: Worker) => {
     if (!confirm(`Are you sure you want to deactivate ${worker.name}?`)) {
       return;
     }
@@ -148,12 +148,7 @@ export default function WorkerManagement() {
     try {
       const response = await apiService.deleteWorker(worker.id);
       if (response.success) {
-        // Refresh the workers list
-        const refreshResponse = await apiService.getWorkers(currentPage, 10, searchTerm, statusFilter);
-        if (refreshResponse.success) {
-          setWorkers(refreshResponse.data.workers);
-          setPagination(refreshResponse.data.pagination);
-        }
+        setRefreshTrigger(prev => prev + 1);
       } else {
         alert(response.error || 'Failed to deactivate worker');
       }
@@ -161,9 +156,9 @@ export default function WorkerManagement() {
       console.error('Error deleting worker:', err);
       alert('Failed to deactivate worker');
     }
-  };
+  }, []);
 
-  const handleReactivateWorker = async (worker: Worker) => {
+  const handleReactivateWorker = useCallback(async (worker: Worker) => {
     try {
       const response = await apiService.reactivateWorker(worker.id);
       if (response.success) {
@@ -175,13 +170,13 @@ export default function WorkerManagement() {
       console.error('Error reactivating worker:', err);
       alert('Failed to reactivate worker');
     }
-  };
+  }, []);
 
-  const handleModalSuccess = () => {
+  const handleModalSuccess = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit',
       month: 'short',
@@ -189,24 +184,24 @@ export default function WorkerManagement() {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
+  }, []);
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = useCallback((amount: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
       currency: 'GBP',
     }).format(amount);
-  };
+  }, []);
 
-  const getStatusIcon = (isActive: boolean) => {
+  const getStatusIcon = useCallback((isActive: boolean) => {
     return isActive ? (
       <CheckCircle className="h-4 w-4 text-green-500" />
     ) : (
       <UserX className="h-4 w-4 text-red-500" />
     );
-  };
+  }, []);
 
-  const getLastLoginIcon = (lastLoginAt: string | null) => {
+  const getLastLoginIcon = useCallback((lastLoginAt: string | null) => {
     if (!lastLoginAt) return <Clock className="h-4 w-4 text-gray-400" />;
     
     const lastLogin = new Date(lastLoginAt);
@@ -216,7 +211,7 @@ export default function WorkerManagement() {
     if (daysDiff <= 7) return <CheckCircle className="h-4 w-4 text-green-500" />;
     if (daysDiff <= 30) return <Clock className="h-4 w-4 text-yellow-500" />;
     return <AlertCircle className="h-4 w-4 text-red-500" />;
-  };
+  }, []);
 
   if (!isAuthenticated) {
     return (
