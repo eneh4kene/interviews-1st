@@ -52,11 +52,16 @@ class ApiService {
             const url = `${API_BASE_URL}${endpoint}`;
             console.log('🌐 Making API request to:', url);
 
+            // Get access token from localStorage
+            const token = localStorage.getItem('accessToken');
+            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Cache-Control': 'no-cache',
                     'Pragma': 'no-cache',
+                    ...authHeaders,
                     ...options.headers,
                 },
                 ...options,
@@ -67,6 +72,18 @@ class ApiService {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', errorText);
+                
+                // Handle 401 Unauthorized - redirect to login
+                if (response.status === 401) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('accessToken');
+                    window.location.href = '/login';
+                    return {
+                        success: false,
+                        error: 'Authentication required',
+                    };
+                }
+                
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
@@ -184,6 +201,77 @@ class ApiService {
 
     async getResume(id: string): Promise<ApiResponse<any>> {
         return this.request(`/resumes/${id}`);
+    }
+
+    // Admin API methods
+    async getAdminOverview(): Promise<ApiResponse<any>> {
+        return this.request('/admin/overview');
+    }
+
+    async getAdminActivity(limit: number = 20): Promise<ApiResponse<any[]>> {
+        return this.request(`/admin/activity?limit=${limit}`);
+    }
+
+    async getAdminHealth(): Promise<ApiResponse<any>> {
+        return this.request('/admin/health');
+    }
+
+    async getWorkerPerformance(): Promise<ApiResponse<any[]>> {
+        return this.request('/admin/workers/performance');
+    }
+
+    // Worker Management API methods
+    async getWorkers(page: number = 1, limit: number = 10, search: string = '', status: string = 'all'): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            search,
+            status
+        });
+        return this.request(`/admin/workers?${params}`);
+    }
+
+    async getWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`);
+    }
+
+    async createWorker(workerData: {
+        name: string;
+        email: string;
+        password: string;
+        role?: 'WORKER' | 'MANAGER';
+        isActive?: boolean;
+        twoFactorEnabled?: boolean;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/admin/workers', {
+            method: 'POST',
+            body: JSON.stringify(workerData),
+        });
+    }
+
+    async updateWorker(id: string, workerData: {
+        name?: string;
+        email?: string;
+        role?: 'WORKER' | 'MANAGER';
+        isActive?: boolean;
+        twoFactorEnabled?: boolean;
+    }): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(workerData),
+        });
+    }
+
+    async deleteWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async reactivateWorker(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/workers/${id}/reactivate`, {
+            method: 'POST',
+        });
     }
 
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
