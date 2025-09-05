@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useCallback, memo } from "react";
 import { Input } from "@interview-me/ui";
 import { Search } from "lucide-react";
 
@@ -10,38 +10,30 @@ interface SearchInputProps {
   className?: string;
 }
 
-export default function SearchInput({ onSearchChange, placeholder = "Search...", className = "" }: SearchInputProps) {
+const SearchInput = memo(function SearchInput({ onSearchChange, placeholder = "Search...", className = "" }: SearchInputProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const onSearchChangeRef = useRef(onSearchChange);
 
   // Keep the callback ref up to date
-  useEffect(() => {
-    onSearchChangeRef.current = onSearchChange;
-  }, [onSearchChange]);
+  onSearchChangeRef.current = onSearchChange;
 
-  // Debounced search
-  useEffect(() => {
+  // Handle input change with debouncing
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+
+    // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
+    // Set new timeout
     timeoutRef.current = setTimeout(() => {
-      onSearchChangeRef.current(inputValue);
+      onSearchChangeRef.current(value);
     }, 300);
-
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [inputValue]); // Remove onSearchChange from dependencies
-
-  // Handle input change
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
+  }, []);
 
   return (
     <div className={`relative ${className}`}>
@@ -56,4 +48,6 @@ export default function SearchInput({ onSearchChange, placeholder = "Search...",
       />
     </div>
   );
-}
+});
+
+export default SearchInput;
