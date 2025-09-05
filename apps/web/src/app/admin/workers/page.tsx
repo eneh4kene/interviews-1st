@@ -63,6 +63,7 @@ export default function WorkerManagement() {
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
 
   // Authentication check
   useEffect(() => {
@@ -119,6 +120,20 @@ export default function WorkerManagement() {
     e.preventDefault();
     setCurrentPage(1);
   };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchInput(e.target.value);
+  };
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const handleStatusFilter = (status: string) => {
     setStatusFilter(status);
@@ -272,18 +287,18 @@ export default function WorkerManagement() {
         {/* Search and Filters */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            <form onSubmit={handleSearch} className="flex-1">
+            <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Search workers by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchInput}
+                  onChange={handleSearchChange}
                   className="pl-10"
                 />
               </div>
-            </form>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant={statusFilter === 'all' ? 'default' : 'outline'}
