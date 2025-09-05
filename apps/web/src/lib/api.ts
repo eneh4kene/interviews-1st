@@ -54,7 +54,7 @@ class ApiService {
 
             // Get access token from localStorage
             const token = localStorage.getItem('accessToken');
-            const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const authHeaders: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
             const response = await fetch(url, {
                 headers: {
@@ -62,7 +62,7 @@ class ApiService {
                     'Cache-Control': 'no-cache',
                     'Pragma': 'no-cache',
                     ...authHeaders,
-                    ...options.headers,
+                    ...(options.headers as Record<string, string>),
                 },
                 ...options,
             });
@@ -384,6 +384,27 @@ class ApiService {
         return this.request(`/applications/${id}`, {
             method: 'DELETE',
         });
+    }
+
+    // Analytics API methods
+    async getAnalyticsOverview(period: string = '30d'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/analytics/overview?period=${period}`);
+    }
+
+    async getRevenueAnalytics(period: string = '30d', groupBy: string = 'day'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/analytics/revenue?period=${period}&groupBy=${groupBy}`);
+    }
+
+    async getEngagementAnalytics(period: string = '30d'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/analytics/engagement?period=${period}`);
+    }
+
+    async getWorkerAnalytics(period: string = '30d', sortBy: string = 'revenue'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/analytics/workers?period=${period}&sortBy=${sortBy}`);
+    }
+
+    async exportAnalytics(type: string = 'overview', format: string = 'json', period: string = '30d'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/analytics/export?type=${type}&format=${format}&period=${period}`);
     }
 }
 

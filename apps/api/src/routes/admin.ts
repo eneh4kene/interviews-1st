@@ -625,4 +625,415 @@ router.post('/workers/:id/reactivate', async (req, res) => {
     }
 });
 
+// ==================== ANALYTICS & REPORTING ====================
+
+// Get platform analytics overview
+router.get('/analytics/overview', async (req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        
+        // Calculate date range based on period
+        let dateFilter = '';
+        let dateParams: any[] = [];
+        
+        switch (period) {
+            case '7d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'7 days\'';
+                break;
+            case '30d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'30 days\'';
+                break;
+            case '90d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'90 days\'';
+                break;
+            case '1y':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'1 year\'';
+                break;
+        }
+
+        // Get user growth metrics
+        const userGrowth = await db.query(`
+            SELECT 
+                DATE_TRUNC('day', created_at) as date,
+                COUNT(*) as new_users,
+                COUNT(CASE WHEN role = 'CLIENT' THEN 1 END) as new_clients,
+                COUNT(CASE WHEN role IN ('WORKER', 'MANAGER') THEN 1 END) as new_workers
+            FROM users 
+            WHERE created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE_TRUNC('day', created_at)
+            ORDER BY date ASC
+        `);
+
+        // Get revenue metrics
+        const revenueMetrics = await db.query(`
+            SELECT 
+                COALESCE(SUM(total_paid), 0) as total_revenue,
+                COALESCE(SUM(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN total_paid ELSE 0 END), 0) as revenue_30d,
+                COALESCE(SUM(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN total_paid ELSE 0 END), 0) as revenue_7d,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_clients,
+                COUNT(CASE WHEN status = 'placed' THEN 1 END) as placed_clients
+            FROM clients
+        `);
+
+        // Get interview success metrics
+        const interviewMetrics = await db.query(`
+            SELECT 
+                COUNT(*) as total_interviews,
+                COUNT(CASE WHEN status = 'accepted' THEN 1 END) as accepted_interviews,
+                COUNT(CASE WHEN status = 'declined' THEN 1 END) as declined_interviews,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_interviews,
+                ROUND(
+                    COUNT(CASE WHEN status = 'accepted' THEN 1 END)::decimal / 
+                    NULLIF(COUNT(*), 0) * 100, 2
+                ) as success_rate
+            FROM interviews
+            WHERE created_at >= NOW() - INTERVAL '30 days'
+        `);
+
+        // Get worker performance metrics
+        const workerPerformance = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.role,
+                COUNT(DISTINCT c.id) as total_clients,
+                COUNT(DISTINCT CASE WHEN c.status = 'active' THEN c.id END) as active_clients,
+                COUNT(DISTINCT CASE WHEN c.status = 'placed' THEN c.id END) as placed_clients,
+                COALESCE(SUM(c.total_paid), 0) as total_revenue,
+                COUNT(DISTINCT i.id) as total_interviews,
+                COUNT(DISTINCT CASE WHEN i.status = 'accepted' THEN i.id END) as successful_interviews,
+                ROUND(
+                    COUNT(DISTINCT CASE WHEN i.status = 'accepted' THEN i.id END)::decimal / 
+                    NULLIF(COUNT(DISTINCT i.id), 0) * 100, 2
+                ) as success_rate
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id
+            LEFT JOIN interviews i ON c.id = i.client_id
+            WHERE u.role IN ('WORKER', 'MANAGER')
+            GROUP BY u.id, u.name, u.email, u.role
+            ORDER BY total_revenue DESC
+        `);
+
+        // Get platform health metrics
+        const platformHealth = await db.query(`
+            SELECT 
+                COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) as active_last_7d,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '30 days' THEN 1 END) as active_last_30d,
+                COUNT(CASE WHEN two_factor_enabled = true THEN 1 END) as users_with_2fa
+            FROM users
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                userGrowth: userGrowth.rows,
+                revenue: revenueMetrics.rows[0],
+                interviews: interviewMetrics.rows[0],
+                workerPerformance: workerPerformance.rows,
+                platformHealth: platformHealth.rows[0],
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching analytics overview:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch analytics overview',
+        });
+    }
+});
+
+// Get detailed revenue analytics
+router.get('/analytics/revenue', async (req, res) => {
+    try {
+        const { period = '30d', groupBy = 'day' } = req.query;
+        
+        let dateFilter = '';
+        let groupByClause = '';
+        
+        switch (period) {
+            case '7d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'7 days\'';
+                break;
+            case '30d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'30 days\'';
+                break;
+            case '90d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'90 days\'';
+                break;
+            case '1y':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'1 year\'';
+                break;
+        }
+
+        switch (groupBy) {
+            case 'day':
+                groupByClause = 'DATE_TRUNC(\'day\', created_at)';
+                break;
+            case 'week':
+                groupByClause = 'DATE_TRUNC(\'week\', created_at)';
+                break;
+            case 'month':
+                groupByClause = 'DATE_TRUNC(\'month\', created_at)';
+                break;
+        }
+
+        const revenueData = await db.query(`
+            SELECT 
+                ${groupByClause} as period,
+                SUM(total_paid) as revenue,
+                COUNT(*) as transactions,
+                AVG(total_paid) as avg_transaction_value,
+                COUNT(DISTINCT worker_id) as active_workers
+            FROM clients 
+            WHERE total_paid > 0 ${dateFilter}
+            GROUP BY ${groupByClause}
+            ORDER BY period ASC
+        `);
+
+        // Get revenue by worker
+        const revenueByWorker = await db.query(`
+            SELECT 
+                u.name as worker_name,
+                u.email,
+                COUNT(c.id) as client_count,
+                SUM(c.total_paid) as total_revenue,
+                AVG(c.total_paid) as avg_revenue_per_client
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id
+            WHERE u.role IN ('WORKER', 'MANAGER') 
+            AND c.total_paid > 0 ${dateFilter}
+            GROUP BY u.id, u.name, u.email
+            ORDER BY total_revenue DESC
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                groupBy,
+                revenueData: revenueData.rows,
+                revenueByWorker: revenueByWorker.rows,
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching revenue analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch revenue analytics',
+        });
+    }
+});
+
+// Get user engagement analytics
+router.get('/analytics/engagement', async (req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        
+        let dateFilter = '';
+        switch (period) {
+            case '7d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'7 days\'';
+                break;
+            case '30d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'30 days\'';
+                break;
+            case '90d':
+                dateFilter = 'AND created_at >= NOW() - INTERVAL \'90 days\'';
+                break;
+        }
+
+        // User activity metrics
+        const userActivity = await db.query(`
+            SELECT 
+                role,
+                COUNT(*) as total_users,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '1 day' THEN 1 END) as active_1d,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) as active_7d,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '30 days' THEN 1 END) as active_30d,
+                COUNT(CASE WHEN last_login_at IS NULL THEN 1 END) as never_logged_in
+            FROM users
+            GROUP BY role
+        `);
+
+        // Client journey metrics
+        const clientJourney = await db.query(`
+            SELECT 
+                status,
+                COUNT(*) as count,
+                AVG(EXTRACT(EPOCH FROM (updated_at - created_at))/86400) as avg_days_to_status
+            FROM clients
+            GROUP BY status
+        `);
+
+        // Interview engagement
+        const interviewEngagement = await db.query(`
+            SELECT 
+                DATE_TRUNC('day', created_at) as date,
+                COUNT(*) as total_interviews,
+                COUNT(CASE WHEN status = 'accepted' THEN 1 END) as accepted,
+                COUNT(CASE WHEN status = 'declined' THEN 1 END) as declined,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+            FROM interviews
+            WHERE created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE_TRUNC('day', created_at)
+            ORDER BY date ASC
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                userActivity: userActivity.rows,
+                clientJourney: clientJourney.rows,
+                interviewEngagement: interviewEngagement.rows,
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching engagement analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch engagement analytics',
+        });
+    }
+});
+
+// Get worker performance analytics
+router.get('/analytics/workers', async (req, res) => {
+    try {
+        const { period = '30d', sortBy = 'revenue' } = req.query;
+        
+        let dateFilter = '';
+        switch (period) {
+            case '7d':
+                dateFilter = 'AND c.created_at >= NOW() - INTERVAL \'7 days\'';
+                break;
+            case '30d':
+                dateFilter = 'AND c.created_at >= NOW() - INTERVAL \'30 days\'';
+                break;
+            case '90d':
+                dateFilter = 'AND c.created_at >= NOW() - INTERVAL \'90 days\'';
+                break;
+        }
+
+        let orderBy = 'total_revenue DESC';
+        switch (sortBy) {
+            case 'clients':
+                orderBy = 'total_clients DESC';
+                break;
+            case 'success_rate':
+                orderBy = 'success_rate DESC';
+                break;
+            case 'interviews':
+                orderBy = 'total_interviews DESC';
+                break;
+        }
+
+        const workerAnalytics = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                u.email,
+                u.role,
+                u.is_active,
+                u.last_login_at,
+                COUNT(DISTINCT c.id) as total_clients,
+                COUNT(DISTINCT CASE WHEN c.status = 'active' THEN c.id END) as active_clients,
+                COUNT(DISTINCT CASE WHEN c.status = 'placed' THEN c.id END) as placed_clients,
+                COALESCE(SUM(c.total_paid), 0) as total_revenue,
+                COUNT(DISTINCT i.id) as total_interviews,
+                COUNT(DISTINCT CASE WHEN i.status = 'accepted' THEN i.id END) as successful_interviews,
+                ROUND(
+                    COUNT(DISTINCT CASE WHEN i.status = 'accepted' THEN i.id END)::decimal / 
+                    NULLIF(COUNT(DISTINCT i.id), 0) * 100, 2
+                ) as success_rate,
+                ROUND(
+                    COUNT(DISTINCT CASE WHEN c.status = 'placed' THEN c.id END)::decimal / 
+                    NULLIF(COUNT(DISTINCT c.id), 0) * 100, 2
+                ) as placement_rate
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id ${dateFilter}
+            LEFT JOIN interviews i ON c.id = i.client_id
+            WHERE u.role IN ('WORKER', 'MANAGER')
+            GROUP BY u.id, u.name, u.email, u.role, u.is_active, u.last_login_at
+            ORDER BY ${orderBy}
+        `);
+
+        // Get worker performance trends
+        const performanceTrends = await db.query(`
+            SELECT 
+                u.id,
+                u.name,
+                DATE_TRUNC('week', c.created_at) as week,
+                COUNT(DISTINCT c.id) as clients_this_week,
+                COALESCE(SUM(c.total_paid), 0) as revenue_this_week
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id
+            WHERE u.role IN ('WORKER', 'MANAGER')
+            AND c.created_at >= NOW() - INTERVAL '12 weeks'
+            GROUP BY u.id, u.name, DATE_TRUNC('week', c.created_at)
+            ORDER BY u.name, week ASC
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                sortBy,
+                workerAnalytics: workerAnalytics.rows,
+                performanceTrends: performanceTrends.rows,
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching worker analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch worker analytics',
+        });
+    }
+});
+
+// Export analytics data
+router.get('/analytics/export', async (req, res) => {
+    try {
+        const { type = 'overview', format = 'json', period = '30d' } = req.query;
+        
+        // This would typically generate CSV or Excel files
+        // For now, we'll return JSON data that can be converted client-side
+        
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                type,
+                format,
+                period,
+                message: 'Export functionality will be implemented with file generation',
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error exporting analytics:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to export analytics data',
+        });
+    }
+});
+
 export default router;
