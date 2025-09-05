@@ -21,7 +21,8 @@ import {
   CheckCircle,
   ArrowUp,
   ArrowDown,
-  Minus
+  Minus,
+  ChevronLeft
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
@@ -205,6 +206,14 @@ export default function AnalyticsDashboard() {
               <h1 className="ml-4 text-xl font-semibold text-gray-900">Platform Analytics</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                onClick={() => router.push('/admin/dashboard')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
               <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <SelectTrigger className="w-32">
                   <SelectValue />

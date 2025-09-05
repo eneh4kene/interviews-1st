@@ -301,10 +301,6 @@ export default function WorkerManagement() {
                     Inactive
                   </Button>
                 </div>
-                <Button onClick={() => setShowCreateModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Worker
-                </Button>
               </div>
             </div>
 
