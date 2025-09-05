@@ -13,26 +13,35 @@ interface SearchInputProps {
 export default function SearchInput({ onSearchChange, placeholder = "Search...", className = "" }: SearchInputProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const onSearchChangeRef = useRef(onSearchChange);
+
+  // Keep the callback ref up to date
+  useEffect(() => {
+    onSearchChangeRef.current = onSearchChange;
+  }, [onSearchChange]);
 
   // Debounced search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearchChange(inputValue);
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      onSearchChangeRef.current(inputValue);
     }, 300);
 
-    return () => clearTimeout(timer);
-  }, [inputValue, onSearchChange]);
-
-  // Restore focus after any re-renders
-  useEffect(() => {
-    if (inputRef.current && document.activeElement !== inputRef.current) {
-      const cursorPosition = inputRef.current.selectionStart;
-      inputRef.current.focus();
-      if (cursorPosition !== null) {
-        inputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    }
-  });
+    };
+  }, [inputValue]); // Remove onSearchChange from dependencies
+
+  // Handle input change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputValue(e.target.value);
+  };
 
   return (
     <div className={`relative ${className}`}>
@@ -42,7 +51,7 @@ export default function SearchInput({ onSearchChange, placeholder = "Search...",
         type="text"
         placeholder={placeholder}
         value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
+        onChange={handleChange}
         className="pl-10"
       />
     </div>
