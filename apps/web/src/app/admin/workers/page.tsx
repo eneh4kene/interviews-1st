@@ -118,7 +118,7 @@ export default function WorkerManagement() {
         setError(err instanceof Error ? err.message : 'Failed to load workers');
       } finally {
         setLoading(false);
-      }
+      } 
     };
 
     fetchWorkers();
@@ -213,16 +213,7 @@ export default function WorkerManagement() {
     return <AlertCircle className="h-4 w-4 text-red-500" />;
   }, []);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
+  // Remove full-page authentication loading - show header and sidebar
 
   // Remove the full-page loading block - keep search bar visible
 
@@ -258,53 +249,66 @@ export default function WorkerManagement() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <AlertCircle className="h-5 w-5 text-red-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <p className="mt-1 text-sm text-red-700">{error}</p>
+        {!isAuthenticated ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Checking authentication...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Error</h3>
+                    <p className="mt-1 text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Search and Filters */}
+            <div className="mb-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <SearchInput
+                    value={searchInput}
+                    onChange={handleSearchChange}
+                    placeholder="Search workers by name or email..."
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={statusFilter === 'all' ? 'default' : 'outline'}
+                    onClick={() => handleStatusFilter('all')}
+                    size="sm"
+                  >
+                    All
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'active' ? 'default' : 'outline'}
+                    onClick={() => handleStatusFilter('active')}
+                    size="sm"
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'inactive' ? 'default' : 'outline'}
+                    onClick={() => handleStatusFilter('inactive')}
+                    size="sm"
+                  >
+                    Inactive
+                  </Button>
+                </div>
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Worker
+                </Button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Search and Filters */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <SearchInput
-                value={searchInput}
-                onChange={handleSearchChange}
-                placeholder="Search workers by name or email..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === 'all' ? 'default' : 'outline'}
-                onClick={() => handleStatusFilter('all')}
-                size="sm"
-              >
-                All
-              </Button>
-              <Button
-                variant={statusFilter === 'active' ? 'default' : 'outline'}
-                onClick={() => handleStatusFilter('active')}
-                size="sm"
-              >
-                Active
-              </Button>
-              <Button
-                variant={statusFilter === 'inactive' ? 'default' : 'outline'}
-                onClick={() => handleStatusFilter('inactive')}
-                size="sm"
-              >
-                Inactive
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Workers List */}
         <div className="grid gap-6">
@@ -457,6 +461,8 @@ export default function WorkerManagement() {
               </Button>
             </div>
           </div>
+        )}
+          </>
         )}
 
         {/* Worker Modal */}
