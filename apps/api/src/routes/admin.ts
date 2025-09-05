@@ -1490,4 +1490,577 @@ router.post('/clients/bulk-assign', async (req, res) => {
     }
 });
 
+// ==================== INTERVIEW MANAGEMENT ====================
+
+// Get all interviews with pagination, search, and filtering
+router.get('/interviews', async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 10, 
+            search = '', 
+            status = 'all', 
+            clientId = 'all',
+            workerId = 'all',
+            sortBy = 'scheduled_date',
+            sortOrder = 'desc',
+            dateFrom = '',
+            dateTo = ''
+        } = req.query;
+
+        const offset = (Number(page) - 1) * Number(limit);
+        
+        let whereConditions = [];
+        let params: any[] = [];
+        let paramCount = 0;
+
+        // Search filter
+        if (search) {
+            paramCount++;
+            whereConditions.push(`(i.title ILIKE $${paramCount} OR c.name ILIKE $${paramCount} OR c.company_name ILIKE $${paramCount})`);
+            params.push(`%${search}%`);
+        }
+
+        // Status filter
+        if (status !== 'all') {
+            paramCount++;
+            whereConditions.push(`i.status = $${paramCount}`);
+            params.push(status);
+        }
+
+        // Client filter
+        if (clientId !== 'all') {
+            paramCount++;
+            whereConditions.push(`i.client_id = $${paramCount}`);
+            params.push(clientId);
+        }
+
+        // Worker filter
+        if (workerId !== 'all') {
+            paramCount++;
+            whereConditions.push(`c.worker_id = $${paramCount}`);
+            params.push(workerId);
+        }
+
+        // Date range filter
+        if (dateFrom) {
+            paramCount++;
+            whereConditions.push(`i.scheduled_date >= $${paramCount}`);
+            params.push(dateFrom);
+        }
+        if (dateTo) {
+            paramCount++;
+            whereConditions.push(`i.scheduled_date <= $${paramCount}`);
+            params.push(dateTo);
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        // Main query
+        paramCount++;
+        const interviewsQuery = `
+            SELECT 
+                i.id,
+                i.client_id,
+                i.title,
+                i.company_name,
+                i.job_title,
+                i.scheduled_date,
+                i.interview_type,
+                i.status,
+                i.payment_status,
+                i.payment_amount,
+                i.payment_currency,
+                i.client_response_date,
+                i.client_response_notes,
+                i.worker_notes,
+                i.feedback_score,
+                i.feedback_notes,
+                i.created_at,
+                i.updated_at,
+                c.name as client_name,
+                c.email as client_email,
+                c.phone as client_phone,
+                u.name as worker_name,
+                u.email as worker_email
+            FROM interviews i
+            LEFT JOIN clients c ON i.client_id = c.id
+            LEFT JOIN users u ON c.worker_id = u.id
+            ${whereClause}
+            ORDER BY i.${sortBy} ${sortOrder.toUpperCase()}
+            LIMIT $${paramCount} OFFSET $${paramCount + 1}
+        `;
+
+        params.push(Number(limit), offset);
+
+        const interviewsResult = await db.query(interviewsQuery, params);
+
+        // Count query
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM interviews i
+            LEFT JOIN clients c ON i.client_id = c.id
+            ${whereClause}
+        `;
+
+        const countResult = await db.query(countQuery, params.slice(0, -2));
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                interviews: interviewsResult.rows,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total: Number(countResult.rows[0].total),
+                    pages: Math.ceil(Number(countResult.rows[0].total) / Number(limit))
+                }
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching interviews:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch interviews' });
+    }
+});
+
+// Get interview by ID with full details
+router.get('/interviews/:id', async (req, res) => {
+    try {
+        const interviewId = req.params.id;
+
+        const result = await db.query(`
+            SELECT 
+                i.id,
+                i.client_id,
+                i.title,
+                i.company_name,
+                i.job_title,
+                i.scheduled_date,
+                i.interview_type,
+                i.status,
+                i.payment_status,
+                i.payment_amount,
+                i.payment_currency,
+                i.client_response_date,
+                i.client_response_notes,
+                i.worker_notes,
+                i.feedback_score,
+                i.feedback_notes,
+                i.created_at,
+                i.updated_at,
+                c.name as client_name,
+                c.email as client_email,
+                c.phone as client_phone,
+                u.name as worker_name,
+                u.email as worker_email
+            FROM interviews i
+            LEFT JOIN clients c ON i.client_id = c.id
+            LEFT JOIN users u ON c.worker_id = u.id
+            WHERE i.id = $1
+        `, [interviewId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Interview not found' });
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching interview:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch interview' });
+    }
+});
+
+// Create new interview
+router.post('/interviews', async (req, res) => {
+    try {
+        const { 
+            clientId, 
+            title, 
+            companyName, 
+            jobTitle, 
+            scheduledDate, 
+            interviewType = 'video',
+            status = 'scheduled',
+            paymentAmount = 0,
+            paymentCurrency = 'USD'
+        } = req.body;
+
+        if (!clientId || !title || !companyName || !jobTitle || !scheduledDate) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Client ID, title, company name, job title, and scheduled date are required' 
+            });
+        }
+
+        // Verify client exists
+        const clientCheck = await db.query(
+            'SELECT id, name FROM clients WHERE id = $1',
+            [clientId]
+        );
+
+        if (clientCheck.rows.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid client ID' 
+            });
+        }
+
+        const result = await db.query(`
+            INSERT INTO interviews (
+                client_id, title, company_name, job_title, scheduled_date, 
+                interview_type, status, payment_status, payment_amount, payment_currency
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
+            RETURNING 
+                id,
+                client_id,
+                title,
+                company_name,
+                job_title,
+                scheduled_date,
+                interview_type,
+                status,
+                payment_status,
+                payment_amount,
+                payment_currency,
+                created_at,
+                updated_at
+        `, [clientId, title, companyName, jobTitle, scheduledDate, interviewType, status, paymentAmount, paymentCurrency]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error creating interview:', error);
+        res.status(500).json({ success: false, error: 'Failed to create interview' });
+    }
+});
+
+// Update interview
+router.put('/interviews/:id', async (req, res) => {
+    try {
+        const interviewId = req.params.id;
+        const { 
+            title, 
+            companyName, 
+            jobTitle, 
+            scheduledDate, 
+            interviewType,
+            status,
+            paymentStatus,
+            paymentAmount,
+            paymentCurrency,
+            clientResponseNotes,
+            workerNotes,
+            feedbackScore,
+            feedbackNotes
+        } = req.body;
+
+        // Check if interview exists
+        const interviewCheck = await db.query('SELECT id FROM interviews WHERE id = $1', [interviewId]);
+        if (interviewCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Interview not found' });
+        }
+
+        const updateFields = [];
+        const params = [];
+        let paramCount = 0;
+
+        if (title !== undefined) {
+            paramCount++;
+            updateFields.push(`title = $${paramCount}`);
+            params.push(title);
+        }
+        if (companyName !== undefined) {
+            paramCount++;
+            updateFields.push(`company_name = $${paramCount}`);
+            params.push(companyName);
+        }
+        if (jobTitle !== undefined) {
+            paramCount++;
+            updateFields.push(`job_title = $${paramCount}`);
+            params.push(jobTitle);
+        }
+        if (scheduledDate !== undefined) {
+            paramCount++;
+            updateFields.push(`scheduled_date = $${paramCount}`);
+            params.push(scheduledDate);
+        }
+        if (interviewType !== undefined) {
+            paramCount++;
+            updateFields.push(`interview_type = $${paramCount}`);
+            params.push(interviewType);
+        }
+        if (status !== undefined) {
+            paramCount++;
+            updateFields.push(`status = $${paramCount}`);
+            params.push(status);
+        }
+        if (paymentStatus !== undefined) {
+            paramCount++;
+            updateFields.push(`payment_status = $${paramCount}`);
+            params.push(paymentStatus);
+        }
+        if (paymentAmount !== undefined) {
+            paramCount++;
+            updateFields.push(`payment_amount = $${paramCount}`);
+            params.push(paymentAmount);
+        }
+        if (paymentCurrency !== undefined) {
+            paramCount++;
+            updateFields.push(`payment_currency = $${paramCount}`);
+            params.push(paymentCurrency);
+        }
+        if (clientResponseNotes !== undefined) {
+            paramCount++;
+            updateFields.push(`client_response_notes = $${paramCount}`);
+            params.push(clientResponseNotes);
+        }
+        if (workerNotes !== undefined) {
+            paramCount++;
+            updateFields.push(`worker_notes = $${paramCount}`);
+            params.push(workerNotes);
+        }
+        if (feedbackScore !== undefined) {
+            paramCount++;
+            updateFields.push(`feedback_score = $${paramCount}`);
+            params.push(feedbackScore);
+        }
+        if (feedbackNotes !== undefined) {
+            paramCount++;
+            updateFields.push(`feedback_notes = $${paramCount}`);
+            params.push(feedbackNotes);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({ success: false, error: 'No fields to update' });
+        }
+
+        paramCount++;
+        updateFields.push(`updated_at = NOW()`);
+        params.push(interviewId);
+
+        const result = await db.query(`
+            UPDATE interviews 
+            SET ${updateFields.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING 
+                id,
+                client_id,
+                title,
+                company_name,
+                job_title,
+                scheduled_date,
+                interview_type,
+                status,
+                payment_status,
+                payment_amount,
+                payment_currency,
+                client_response_notes,
+                worker_notes,
+                feedback_score,
+                feedback_notes,
+                created_at,
+                updated_at
+        `, params);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error updating interview:', error);
+        res.status(500).json({ success: false, error: 'Failed to update interview' });
+    }
+});
+
+// Delete interview
+router.delete('/interviews/:id', async (req, res) => {
+    try {
+        const interviewId = req.params.id;
+
+        // Check if interview exists
+        const interviewCheck = await db.query('SELECT id FROM interviews WHERE id = $1', [interviewId]);
+        if (interviewCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Interview not found' });
+        }
+
+        await db.query('DELETE FROM interviews WHERE id = $1', [interviewId]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: { message: 'Interview deleted successfully' }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error deleting interview:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete interview' });
+    }
+});
+
+// Get interview statistics
+router.get('/interviews/stats', async (req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        
+        let dateFilter = '';
+        if (period === '7d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '7 days'";
+        } else if (period === '30d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '30 days'";
+        } else if (period === '90d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '90 days'";
+        }
+
+        const stats = await db.query(`
+            SELECT 
+                COUNT(*) as total_interviews,
+                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_interviews,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_interviews,
+                COUNT(CASE WHEN status = 'client_accepted' THEN 1 END) as accepted_interviews,
+                COUNT(CASE WHEN status = 'client_declined' THEN 1 END) as declined_interviews,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_interviews,
+                COUNT(CASE WHEN payment_status = 'paid' THEN 1 END) as paid_interviews,
+                COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
+                COALESCE(SUM(payment_amount), 0) as total_revenue,
+                COALESCE(AVG(payment_amount), 0) as avg_payment_amount,
+                COALESCE(AVG(feedback_score), 0) as avg_feedback_score,
+                ROUND(
+                    COUNT(CASE WHEN status = 'client_accepted' THEN 1 END)::decimal / 
+                    NULLIF(COUNT(CASE WHEN status IN ('client_accepted', 'client_declined') THEN 1 END), 0) * 100, 2
+                ) as acceptance_rate
+            FROM interviews
+            WHERE 1=1 ${dateFilter}
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                ...stats.rows[0],
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching interview stats:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch interview statistics' });
+    }
+});
+
+// Update interview status
+router.patch('/interviews/:id/status', async (req, res) => {
+    try {
+        const interviewId = req.params.id;
+        const { status, notes } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Status is required' 
+            });
+        }
+
+        // Check if interview exists
+        const interviewCheck = await db.query('SELECT id FROM interviews WHERE id = $1', [interviewId]);
+        if (interviewCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Interview not found' });
+        }
+
+        const updateFields = [`status = $1`, `updated_at = NOW()`];
+        const params = [status];
+
+        if (notes) {
+            updateFields.push(`worker_notes = $2`);
+            params.push(notes);
+        }
+
+        if (status === 'client_accepted' || status === 'client_declined') {
+            updateFields.push(`client_response_date = NOW()`);
+            if (notes) {
+                updateFields.push(`client_response_notes = $2`);
+            }
+        }
+
+        const result = await db.query(`
+            UPDATE interviews 
+            SET ${updateFields.join(', ')}
+            WHERE id = $${params.length + 1}
+            RETURNING 
+                id,
+                status,
+                client_response_date,
+                client_response_notes,
+                worker_notes,
+                updated_at
+        `, [...params, interviewId]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error updating interview status:', error);
+        res.status(500).json({ success: false, error: 'Failed to update interview status' });
+    }
+});
+
+// Add interview feedback
+router.post('/interviews/:id/feedback', async (req, res) => {
+    try {
+        const interviewId = req.params.id;
+        const { feedbackScore, feedbackNotes } = req.body;
+
+        if (!feedbackScore || feedbackScore < 1 || feedbackScore > 5) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Feedback score must be between 1 and 5' 
+            });
+        }
+
+        // Check if interview exists
+        const interviewCheck = await db.query('SELECT id FROM interviews WHERE id = $1', [interviewId]);
+        if (interviewCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Interview not found' });
+        }
+
+        const result = await db.query(`
+            UPDATE interviews 
+            SET feedback_score = $1, feedback_notes = $2, updated_at = NOW()
+            WHERE id = $3
+            RETURNING 
+                id,
+                feedback_score,
+                feedback_notes,
+                updated_at
+        `, [feedbackScore, feedbackNotes, interviewId]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error adding interview feedback:', error);
+        res.status(500).json({ success: false, error: 'Failed to add interview feedback' });
+    }
+});
+
 export default router;

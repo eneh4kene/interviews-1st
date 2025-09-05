@@ -470,6 +470,89 @@ class ApiService {
             body: JSON.stringify({ clientIds, workerId }),
         });
     }
+
+    // Interview Management API methods
+    async getInterviews(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', clientId: string = 'all', workerId: string = 'all', sortBy: string = 'scheduled_date', sortOrder: string = 'desc', dateFrom: string = '', dateTo: string = ''): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            search,
+            status,
+            clientId,
+            workerId,
+            sortBy,
+            sortOrder,
+            dateFrom,
+            dateTo
+        });
+        return this.request(`/admin/interviews?${params}`);
+    }
+
+    async getInterview(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/${id}`);
+    }
+
+    async createInterview(interviewData: {
+        clientId: string;
+        title: string;
+        companyName: string;
+        jobTitle: string;
+        scheduledDate: string;
+        interviewType?: string;
+        status?: string;
+        paymentAmount?: number;
+        paymentCurrency?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/admin/interviews', {
+            method: 'POST',
+            body: JSON.stringify(interviewData),
+        });
+    }
+
+    async updateInterview(id: string, interviewData: {
+        title?: string;
+        companyName?: string;
+        jobTitle?: string;
+        scheduledDate?: string;
+        interviewType?: string;
+        status?: string;
+        paymentStatus?: string;
+        paymentAmount?: number;
+        paymentCurrency?: string;
+        clientResponseNotes?: string;
+        workerNotes?: string;
+        feedbackScore?: number;
+        feedbackNotes?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(interviewData),
+        });
+    }
+
+    async deleteInterview(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getInterviewStats(period: string = '30d'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/stats?period=${period}`);
+    }
+
+    async updateInterviewStatus(id: string, status: string, notes?: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/${id}/status`, {
+            method: 'PATCH',
+            body: JSON.stringify({ status, notes }),
+        });
+    }
+
+    async addInterviewFeedback(id: string, feedbackScore: number, feedbackNotes?: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/interviews/${id}/feedback`, {
+            method: 'POST',
+            body: JSON.stringify({ feedbackScore, feedbackNotes }),
+        });
+    }
 }
 
 export const apiService = new ApiService(); 

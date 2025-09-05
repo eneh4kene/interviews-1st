@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@inte
 import { 
   Users, 
   UserCheck, 
+  Calendar,
   DollarSign, 
   TrendingUp, 
   Activity, 
@@ -18,8 +19,7 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
-  Calendar
+  X
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
@@ -245,6 +245,10 @@ export default function AdminDashboard() {
               <a href="/admin/clients" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <UserCheck className="h-5 w-5 mr-3" />
                 Client Management
+              </a>
+              <a href="/admin/interviews" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                <Calendar className="h-5 w-5 mr-3" />
+                Interview Management
               </a>
               <a href="/admin/analytics" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <BarChart3 className="h-5 w-5 mr-3" />
