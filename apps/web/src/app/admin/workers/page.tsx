@@ -9,13 +9,10 @@ import { Label } from "@interview-me/ui";
 import { 
   Users, 
   Plus, 
-  Search, 
-  Filter, 
   Edit, 
   Trash2, 
   UserCheck, 
   UserX,
-  MoreVertical,
   ChevronLeft,
   ChevronRight,
   AlertCircle,
@@ -25,6 +22,7 @@ import {
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
 import WorkerModal from '../../../components/WorkerModal';
+import SearchInput from '../../../components/SearchInput';
 
 interface Worker {
   id: string;
@@ -63,7 +61,6 @@ export default function WorkerManagement() {
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
 
   // Authentication check
   useEffect(() => {
@@ -116,24 +113,17 @@ export default function WorkerManagement() {
     fetchWorkers();
   }, [isAuthenticated, currentPage, searchTerm, statusFilter, refreshTrigger]);
 
-  // Separate effect for search input changes to avoid re-renders
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchTerm(searchInput);
-      setCurrentPage(1);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchInput]);
+  // Handle search changes from SearchInput component
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setCurrentPage(1);
   };
 
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(e.target.value);
-  }, []);
 
   const handleStatusFilter = useCallback((status: string) => {
     setStatusFilter(status);
@@ -283,16 +273,10 @@ export default function WorkerManagement() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search workers by name or email..."
-                  value={searchInput}
-                  onChange={handleSearchChange}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput
+                onSearchChange={handleSearchChange}
+                placeholder="Search workers by name or email..."
+              />
             </div>
             <div className="flex gap-2">
               <Button
