@@ -61,6 +61,7 @@ export default function WorkerManagement() {
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
 
   // Authentication check
   useEffect(() => {
@@ -85,7 +86,17 @@ export default function WorkerManagement() {
     }
   }, [router]);
 
-  // Fetch workers
+  // Debounced search - only update searchTerm after user stops typing
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [searchInput]);
+
+  // Fetch workers - only when searchTerm, page, status, or refresh changes
   useEffect(() => {
     const fetchWorkers = async () => {
       if (!isAuthenticated) return;
@@ -113,10 +124,9 @@ export default function WorkerManagement() {
     fetchWorkers();
   }, [isAuthenticated, currentPage, searchTerm, statusFilter, refreshTrigger]);
 
-  // Handle search changes from SearchInput component
+  // Handle search input changes - only updates local state
   const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
+    setSearchInput(value);
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -274,7 +284,8 @@ export default function WorkerManagement() {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <SearchInput
-                onSearchChange={handleSearchChange}
+                value={searchInput}
+                onChange={handleSearchChange}
                 placeholder="Search workers by name or email..."
               />
             </div>
