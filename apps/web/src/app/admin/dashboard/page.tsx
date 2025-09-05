@@ -242,13 +242,13 @@ export default function AdminDashboard() {
                 <Users className="h-5 w-5 mr-3" />
                 Worker Management
               </a>
+              <a href="/admin/clients" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                <UserCheck className="h-5 w-5 mr-3" />
+                Client Management
+              </a>
               <a href="/admin/analytics" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <BarChart3 className="h-5 w-5 mr-3" />
                 Analytics & Reports
-              </a>
-              <a href="#" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
-                <UserCheck className="h-5 w-5 mr-3" />
-                Client Management
               </a>
               <a href="#" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <Settings className="h-5 w-5 mr-3" />

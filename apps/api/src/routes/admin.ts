@@ -1036,4 +1036,458 @@ router.get('/analytics/export', async (req, res) => {
     }
 });
 
+// ==================== CLIENT MANAGEMENT ====================
+
+// Get all clients with pagination, search, and filtering
+router.get('/clients', async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 10, 
+            search = '', 
+            status = 'all', 
+            workerId = 'all',
+            sortBy = 'created_at',
+            sortOrder = 'desc'
+        } = req.query;
+
+        const offset = (Number(page) - 1) * Number(limit);
+        
+        let whereConditions = [];
+        let params: any[] = [];
+        let paramCount = 0;
+
+        // Search filter
+        if (search) {
+            paramCount++;
+            whereConditions.push(`(c.name ILIKE $${paramCount} OR c.email ILIKE $${paramCount})`);
+            params.push(`%${search}%`);
+        }
+
+        // Status filter
+        if (status !== 'all') {
+            paramCount++;
+            if (status === 'new') {
+                whereConditions.push(`c.assigned_at > NOW() - INTERVAL '72 hours'`);
+            } else {
+                whereConditions.push(`c.status = $${paramCount}`);
+                params.push(status);
+            }
+        }
+
+        // Worker filter
+        if (workerId !== 'all') {
+            paramCount++;
+            whereConditions.push(`c.worker_id = $${paramCount}`);
+            params.push(workerId);
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        // Main query
+        paramCount++;
+        const clientsQuery = `
+            SELECT 
+                c.id,
+                c.worker_id,
+                c.name,
+                c.email,
+                c.phone,
+                c.linkedin_url,
+                c.status,
+                c.payment_status,
+                c.total_interviews,
+                c.total_paid,
+                c.is_new,
+                c.assigned_at,
+                c.created_at,
+                c.updated_at,
+                u.name as worker_name,
+                u.email as worker_email
+            FROM clients c
+            LEFT JOIN users u ON c.worker_id = u.id
+            ${whereClause}
+            ORDER BY c.${sortBy} ${sortOrder.toUpperCase()}
+            LIMIT $${paramCount} OFFSET $${paramCount + 1}
+        `;
+
+        params.push(Number(limit), offset);
+
+        const clientsResult = await db.query(clientsQuery, params);
+
+        // Count query
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM clients c
+            ${whereClause}
+        `;
+
+        const countResult = await db.query(countQuery, params.slice(0, -2));
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                clients: clientsResult.rows,
+                pagination: {
+                    page: Number(page),
+                    limit: Number(limit),
+                    total: Number(countResult.rows[0].total),
+                    pages: Math.ceil(Number(countResult.rows[0].total) / Number(limit))
+                }
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching clients:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch clients' });
+    }
+});
+
+// Get client by ID with full details
+router.get('/clients/:id', async (req, res) => {
+    try {
+        const clientId = req.params.id;
+
+        const result = await db.query(`
+            SELECT 
+                c.id,
+                c.worker_id,
+                c.name,
+                c.email,
+                c.phone,
+                c.linkedin_url,
+                c.status,
+                c.payment_status,
+                c.total_interviews,
+                c.total_paid,
+                c.is_new,
+                c.assigned_at,
+                c.created_at,
+                c.updated_at,
+                u.name as worker_name,
+                u.email as worker_email
+            FROM clients c
+            LEFT JOIN users u ON c.worker_id = u.id
+            WHERE c.id = $1
+        `, [clientId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Client not found' });
+        }
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching client:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch client' });
+    }
+});
+
+// Create new client
+router.post('/clients', async (req, res) => {
+    try {
+        const { workerId, name, email, phone, linkedinUrl, status = 'active' } = req.body;
+
+        if (!workerId || !name || !email) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Worker ID, name, and email are required' 
+            });
+        }
+
+        // Verify worker exists
+        const workerCheck = await db.query(
+            'SELECT id, name FROM users WHERE id = $1 AND role IN ($2, $3)',
+            [workerId, 'WORKER', 'MANAGER']
+        );
+
+        if (workerCheck.rows.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid worker ID' 
+            });
+        }
+
+        const result = await db.query(`
+            INSERT INTO clients (worker_id, name, email, phone, linkedin_url, status, payment_status, total_interviews, total_paid, is_new, assigned_at)
+            VALUES ($1, $2, $3, $4, $5, $6, 'pending', 0, 0, true, NOW())
+            RETURNING 
+                id,
+                worker_id,
+                name,
+                email,
+                phone,
+                linkedin_url,
+                status,
+                payment_status,
+                total_interviews,
+                total_paid,
+                is_new,
+                assigned_at,
+                created_at,
+                updated_at
+        `, [workerId, name, email, phone, linkedinUrl, status]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error creating client:', error);
+        res.status(500).json({ success: false, error: 'Failed to create client' });
+    }
+});
+
+// Update client
+router.put('/clients/:id', async (req, res) => {
+    try {
+        const clientId = req.params.id;
+        const { name, email, phone, linkedinUrl, status, paymentStatus, workerId } = req.body;
+
+        // Check if client exists
+        const clientCheck = await db.query('SELECT id FROM clients WHERE id = $1', [clientId]);
+        if (clientCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Client not found' });
+        }
+
+        // If reassigning worker, verify new worker exists
+        if (workerId) {
+            const workerCheck = await db.query(
+                'SELECT id FROM users WHERE id = $1 AND role IN ($2, $3)',
+                [workerId, 'WORKER', 'MANAGER']
+            );
+            if (workerCheck.rows.length === 0) {
+                return res.status(400).json({ success: false, error: 'Invalid worker ID' });
+            }
+        }
+
+        const updateFields = [];
+        const params = [];
+        let paramCount = 0;
+
+        if (name !== undefined) {
+            paramCount++;
+            updateFields.push(`name = $${paramCount}`);
+            params.push(name);
+        }
+        if (email !== undefined) {
+            paramCount++;
+            updateFields.push(`email = $${paramCount}`);
+            params.push(email);
+        }
+        if (phone !== undefined) {
+            paramCount++;
+            updateFields.push(`phone = $${paramCount}`);
+            params.push(phone);
+        }
+        if (linkedinUrl !== undefined) {
+            paramCount++;
+            updateFields.push(`linkedin_url = $${paramCount}`);
+            params.push(linkedinUrl);
+        }
+        if (status !== undefined) {
+            paramCount++;
+            updateFields.push(`status = $${paramCount}`);
+            params.push(status);
+        }
+        if (paymentStatus !== undefined) {
+            paramCount++;
+            updateFields.push(`payment_status = $${paramCount}`);
+            params.push(paymentStatus);
+        }
+        if (workerId !== undefined) {
+            paramCount++;
+            updateFields.push(`worker_id = $${paramCount}`);
+            updateFields.push(`assigned_at = NOW()`);
+            params.push(workerId);
+        }
+
+        if (updateFields.length === 0) {
+            return res.status(400).json({ success: false, error: 'No fields to update' });
+        }
+
+        paramCount++;
+        updateFields.push(`updated_at = NOW()`);
+        params.push(clientId);
+
+        const result = await db.query(`
+            UPDATE clients 
+            SET ${updateFields.join(', ')}
+            WHERE id = $${paramCount}
+            RETURNING 
+                id,
+                worker_id,
+                name,
+                email,
+                phone,
+                linkedin_url,
+                status,
+                payment_status,
+                total_interviews,
+                total_paid,
+                is_new,
+                assigned_at,
+                created_at,
+                updated_at
+        `, params);
+
+        const response: ApiResponse = {
+            success: true,
+            data: result.rows[0]
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error updating client:', error);
+        res.status(500).json({ success: false, error: 'Failed to update client' });
+    }
+});
+
+// Delete client
+router.delete('/clients/:id', async (req, res) => {
+    try {
+        const clientId = req.params.id;
+
+        // Check if client exists
+        const clientCheck = await db.query('SELECT id FROM clients WHERE id = $1', [clientId]);
+        if (clientCheck.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Client not found' });
+        }
+
+        // Check if client has active interviews
+        const interviewCheck = await db.query(
+            'SELECT COUNT(*) as count FROM interviews WHERE client_id = $1 AND status IN ($2, $3)',
+            [clientId, 'scheduled', 'in_progress']
+        );
+
+        if (Number(interviewCheck.rows[0].count) > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Cannot delete client with active interviews' 
+            });
+        }
+
+        await db.query('DELETE FROM clients WHERE id = $1', [clientId]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: { message: 'Client deleted successfully' }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete client' });
+    }
+});
+
+// Get client statistics
+router.get('/clients/stats', async (req, res) => {
+    try {
+        const { period = '30d' } = req.query;
+        
+        let dateFilter = '';
+        if (period === '7d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '7 days'";
+        } else if (period === '30d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '30 days'";
+        } else if (period === '90d') {
+            dateFilter = "AND created_at > NOW() - INTERVAL '90 days'";
+        }
+
+        const stats = await db.query(`
+            SELECT 
+                COUNT(*) as total_clients,
+                COUNT(CASE WHEN status = 'active' THEN 1 END) as active_clients,
+                COUNT(CASE WHEN status = 'placed' THEN 1 END) as placed_clients,
+                COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_clients,
+                COUNT(CASE WHEN is_new = true THEN 1 END) as new_clients,
+                COUNT(CASE WHEN payment_status = 'paid' THEN 1 END) as paid_clients,
+                COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
+                COALESCE(SUM(total_paid), 0) as total_revenue,
+                COALESCE(AVG(total_paid), 0) as avg_revenue_per_client,
+                COALESCE(SUM(total_interviews), 0) as total_interviews
+            FROM clients
+            WHERE 1=1 ${dateFilter}
+        `);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                period,
+                ...stats.rows[0],
+                generatedAt: new Date().toISOString()
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error fetching client stats:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch client statistics' });
+    }
+});
+
+// Bulk assign clients to workers
+router.post('/clients/bulk-assign', async (req, res) => {
+    try {
+        const { clientIds, workerId } = req.body;
+
+        if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Client IDs array is required' 
+            });
+        }
+
+        if (!workerId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Worker ID is required' 
+            });
+        }
+
+        // Verify worker exists
+        const workerCheck = await db.query(
+            'SELECT id, name FROM users WHERE id = $1 AND role IN ($2, $3)',
+            [workerId, 'WORKER', 'MANAGER']
+        );
+
+        if (workerCheck.rows.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid worker ID' 
+            });
+        }
+
+        // Update clients
+        const result = await db.query(`
+            UPDATE clients 
+            SET worker_id = $1, assigned_at = NOW(), updated_at = NOW()
+            WHERE id = ANY($2)
+            RETURNING id, name, worker_id, assigned_at
+        `, [workerId, clientIds]);
+
+        const response: ApiResponse = {
+            success: true,
+            data: {
+                assignedCount: result.rows.length,
+                clients: result.rows,
+                worker: workerCheck.rows[0]
+            }
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error bulk assigning clients:', error);
+        res.status(500).json({ success: false, error: 'Failed to bulk assign clients' });
+    }
+});
+
 export default router;

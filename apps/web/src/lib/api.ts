@@ -406,6 +406,70 @@ class ApiService {
     async exportAnalytics(type: string = 'overview', format: string = 'json', period: string = '30d'): Promise<ApiResponse<any>> {
         return this.request(`/admin/analytics/export?type=${type}&format=${format}&period=${period}`);
     }
+
+    // Client Management API methods
+    async getClients(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', workerId: string = 'all', sortBy: string = 'created_at', sortOrder: string = 'desc'): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            search,
+            status,
+            workerId,
+            sortBy,
+            sortOrder
+        });
+        return this.request(`/admin/clients?${params}`);
+    }
+
+    async getClient(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/clients/${id}`);
+    }
+
+    async createClient(clientData: {
+        workerId: string;
+        name: string;
+        email: string;
+        phone?: string;
+        linkedinUrl?: string;
+        status?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/admin/clients', {
+            method: 'POST',
+            body: JSON.stringify(clientData),
+        });
+    }
+
+    async updateClient(id: string, clientData: {
+        name?: string;
+        email?: string;
+        phone?: string;
+        linkedinUrl?: string;
+        status?: string;
+        paymentStatus?: string;
+        workerId?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request(`/admin/clients/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(clientData),
+        });
+    }
+
+    async deleteClient(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/admin/clients/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getClientStats(period: string = '30d'): Promise<ApiResponse<any>> {
+        return this.request(`/admin/clients/stats?period=${period}`);
+    }
+
+    async bulkAssignClients(clientIds: string[], workerId: string): Promise<ApiResponse<any>> {
+        return this.request('/admin/clients/bulk-assign', {
+            method: 'POST',
+            body: JSON.stringify({ clientIds, workerId }),
+        });
+    }
 }
 
 export const apiService = new ApiService(); 
