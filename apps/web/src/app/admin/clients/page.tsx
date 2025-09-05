@@ -494,10 +494,10 @@ export default function ClientManagement() {
                 
                 <div className="flex gap-2">
                   <Select value={statusFilter} onValueChange={handleStatusFilter}>
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-32 bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="placed">Placed</SelectItem>
@@ -507,10 +507,10 @@ export default function ClientManagement() {
                   </Select>
 
                   <Select value={workerFilter} onValueChange={handleWorkerFilter}>
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-40 bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       <SelectItem value="all">All Workers</SelectItem>
                       {workers.map((worker) => (
                         <SelectItem key={worker.id} value={worker.id}>
