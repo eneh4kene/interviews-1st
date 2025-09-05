@@ -224,16 +224,7 @@ export default function WorkerManagement() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading workers...</p>
-        </div>
-      </div>
-    );
-  }
+  // Remove the full-page loading block - keep search bar visible
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -317,7 +308,14 @@ export default function WorkerManagement() {
 
         {/* Workers List */}
         <div className="grid gap-6">
-          {workers.length === 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading workers...</p>
+              </CardContent>
+            </Card>
+          ) : workers.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
