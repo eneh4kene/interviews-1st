@@ -24,6 +24,8 @@ import { z } from 'zod';
 import { validateRequest } from './utils/validation';
 import { ApiResponse } from '@interview-me/types';
 import { checkDatabaseHealth } from './utils/database';
+import { requestLogging, errorLogging, logger as appLogger } from './middleware/logging';
+import { performanceMonitoring, getMetrics } from './middleware/metrics';
 import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
 import authRouter from './routes/auth';
@@ -88,6 +90,12 @@ app.use((req, res, next) => {
     res.setHeader('X-Request-ID', req.id);
     next();
 });
+
+// Structured logging middleware
+app.use(requestLogging);
+
+// Performance monitoring middleware
+app.use(performanceMonitoring);
 
 // Basic input sanitization
 app.use((req, res, next) => {
@@ -181,6 +189,97 @@ app.get('/health', async (req, res) => {
     res.json(response);
 });
 
+// Enhanced health check endpoints for production monitoring
+app.get('/health/ready', async (req, res) => {
+    // Readiness probe - checks if the app is ready to receive traffic
+    const dbHealth = await checkDatabaseHealth();
+    const isReady = dbHealth.status === 'healthy';
+    
+    res.status(isReady ? 200 : 503).json({
+        status: isReady ? 'ready' : 'not ready',
+        timestamp: new Date().toISOString(),
+        checks: {
+            database: dbHealth.status,
+            uptime: process.uptime()
+        }
+    });
+});
+
+app.get('/health/live', (req, res) => {
+    // Liveness probe - checks if the app is alive (not crashed)
+    res.status(200).json({
+        status: 'alive',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+app.get('/health/detailed', async (req, res) => {
+    // Detailed health check for monitoring systems
+    const startTime = Date.now();
+    
+    try {
+        // Check all systems
+        const checks = await Promise.allSettled([
+            checkDatabaseHealth(),
+            (async () => {
+                try {
+                    const { redis } = await import('./utils/database');
+                    // Simple Redis check without ping method
+                    await redis.get('health_check');
+                    return { status: 'healthy', message: 'Redis is responding' };
+                } catch (error) {
+                    return { status: 'unhealthy', message: 'Redis connection failed' };
+                }
+            })(),
+            (async () => {
+                // Check if we can write to database
+                const { db } = await import('./utils/database');
+                await db.query('SELECT 1');
+                return { status: 'healthy', message: 'Database write test successful' };
+            })()
+        ]);
+
+        const response = {
+            timestamp: new Date().toISOString(),
+            responseTime: Date.now() - startTime,
+            status: 'healthy',
+            checks: checks.map((check, index) => ({
+                name: ['database', 'redis', 'database_write'][index],
+                status: check.status === 'fulfilled' ? check.value.status : 'unhealthy',
+                message: check.status === 'fulfilled' ? (check.value as any).message : check.reason?.message || 'Unknown error'
+            })),
+            system: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                nodeVersion: process.version,
+                platform: process.platform
+            }
+        };
+
+        const allHealthy = checks.every(check => 
+            check.status === 'fulfilled' && check.value.status === 'healthy'
+        );
+        
+        res.status(allHealthy ? 200 : 503).json(response);
+    } catch (error) {
+        res.status(503).json({
+            timestamp: new Date().toISOString(),
+            status: 'unhealthy',
+            error: error instanceof Error ? error.message : 'Unknown error'
+        });
+    }
+});
+
+// Metrics endpoint for monitoring
+app.get('/metrics', (req, res) => {
+    const metrics = getMetrics();
+    res.json({
+        timestamp: new Date().toISOString(),
+        metrics
+    });
+});
+
 // Example protected route with validation
 const userSchema = z.object({
     body: z.object({
@@ -235,19 +334,8 @@ app.use('/api/admin', adminRouter);
 // Static file serving for uploaded resumes
 app.use('/uploads/resumes', express.static('uploads/resumes'));
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err.stack);
-
-    const response: ApiResponse = {
-        success: false,
-        error: process.env.NODE_ENV === 'production'
-            ? 'Internal server error'
-            : err.message,
-    };
-
-    res.status(500).json(response);
-});
+// Enhanced error handling middleware with logging
+app.use(errorLogging);
 
 // 404 handler
 app.use('*', (req, res) => {
