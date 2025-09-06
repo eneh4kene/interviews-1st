@@ -141,7 +141,7 @@ const generateMagicLinkToken = (email: string, interviewId: string): string => {
 };
 
 // Routes
-router.post('/login', validateRequest({ body: loginSchema }), async (req, res) => {
+router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body: loginSchema }), async (req, res) => {
     try {
         const { email, password } = req.body as LoginRequest;
 
@@ -263,7 +263,7 @@ router.post('/logout', (req, res) => {
     }
 });
 
-router.post('/refresh', validateRequest({ body: refreshTokenSchema }), async (req, res) => {
+router.post('/refresh', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: refreshTokenSchema }), async (req, res) => {
     try {
         const { refreshToken } = req.body as RefreshTokenRequest;
 
@@ -408,7 +408,7 @@ router.get('/me', async (req, res) => {
 });
 
 // Client registration endpoint
-router.post('/register-client', upload.single('resume'), handleMulterError, async (req: any, res: any) => {
+router.post('/register-client', authRateLimit(3, 60 * 60 * 1000), upload.single('resume'), handleMulterError, async (req: any, res: any) => {
     try {
         const { name, email, phone, location, linkedinUrl, company, position, jobPreferences: jobPreferencesStr } = req.body;
         const resumeFile = req.file;
