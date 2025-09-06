@@ -21,8 +21,9 @@
 1. Click "New Project"
 2. Select "Deploy from GitHub repo"
 3. Choose your `interview-me` repository
-4. Select the `apps/api` folder as the root directory
-5. Railway will auto-detect it's a Node.js app
+4. **Keep the root directory as the default** (don't change to `apps/api`)
+5. Railway will use the `railway.json` configuration file
+6. The build process will handle the monorepo structure automatically
 
 ### 1.3 Configure Environment Variables in Railway
 Set these in Railway dashboard → Variables:
