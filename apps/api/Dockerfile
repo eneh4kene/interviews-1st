@@ -30,8 +30,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build --workspace=apps/api
+# Build packages in correct order
+RUN npm run build --workspace=@interview-me/types
+RUN npm run build --workspace=@interview-me/ui
+RUN npm run build --workspace=@interview-me/api
 
 # Production image
 FROM base AS runner
