@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import multer from 'multer';
+// import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { validateRequest } from '../utils/validation';
@@ -22,76 +22,76 @@ import {
 
 const router = express.Router();
 
-// Configure multer for resume uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const uploadDir = path.join(__dirname, '../../uploads/resumes');
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        // Generate unique filename
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        cb(null, `resume-${uniqueSuffix}${ext}`);
-    }
-});
+// Configure multer for resume uploads (temporarily disabled)
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         const uploadDir = path.join(__dirname, '../../uploads/resumes');
+//         // Create directory if it doesn't exist
+//         if (!fs.existsSync(uploadDir)) {
+//             fs.mkdirSync(uploadDir, { recursive: true });
+//         }
+//         cb(null, uploadDir);
+//     },
+//     filename: (req, file, cb) => {
+//         // Generate unique filename
+//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//         const ext = path.extname(file.originalname);
+//         cb(null, `resume-${uniqueSuffix}${ext}`);
+//     }
+// });
 
-const upload = multer({
-    storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: (req, file, cb) => {
-        // Allow only PDF, DOC, DOCX files
-        const allowedMimeTypes = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ];
+// const upload = multer({
+//     storage,
+//     limits: {
+//         fileSize: 5 * 1024 * 1024, // 5MB limit
+//     },
+//     fileFilter: (req, file, cb) => {
+//         // Allow only PDF, DOC, DOCX files
+//         const allowedMimeTypes = [
+//             'application/pdf',
+//             'application/msword',
+//             'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+//         ];
 
-        const allowedExtensions = ['.pdf', '.doc', '.docx'];
-        const fileExtension = path.extname(file.originalname).toLowerCase();
+//         const allowedExtensions = ['.pdf', '.doc', '.docx'];
+//         const fileExtension = path.extname(file.originalname).toLowerCase();
 
-        // Check both MIME type and file extension
-        const isValidMimeType = allowedMimeTypes.includes(file.mimetype);
-        const isValidExtension = allowedExtensions.includes(fileExtension);
+//         // Check both MIME type and file extension
+//         const isValidMimeType = allowedMimeTypes.includes(file.mimetype);
+//         const isValidExtension = allowedExtensions.includes(fileExtension);
 
-        if (isValidMimeType || isValidExtension) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'));
-        }
-    }
-});
+//         if (isValidMimeType || isValidExtension) {
+//             cb(null, true);
+//         } else {
+//             cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'));
+//         }
+//     }
+// });
 
-// Error handling middleware for multer
-const handleMulterError = (error: any, req: any, res: any, next: any) => {
-    if (error instanceof multer.MulterError) {
-        if (error.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({
-                success: false,
-                error: 'File too large. Maximum size is 5MB.',
-            });
-        }
-        return res.status(400).json({
-            success: false,
-            error: 'File upload error: ' + error.message,
-        });
-    }
+// Error handling middleware for multer (temporarily disabled)
+// const handleMulterError = (error: any, req: any, res: any, next: any) => {
+//     if (error instanceof multer.MulterError) {
+//         if (error.code === 'LIMIT_FILE_SIZE') {
+//             return res.status(400).json({
+//                 success: false,
+//                 error: 'File too large. Maximum size is 5MB.',
+//             });
+//         }
+//         return res.status(400).json({
+//             success: false,
+//             error: 'File upload error: ' + error.message,
+//         });
+//     }
 
-    if (error instanceof Error && error.message.includes('Invalid file type')) {
-        return res.status(400).json({
-            success: false,
-            error: error.message,
-        });
-    }
+//     if (error instanceof Error && error.message.includes('Invalid file type')) {
+//         return res.status(400).json({
+//             success: false,
+//             error: error.message,
+//         });
+//     }
 
-    next(error);
-};
+//     next(error);
+// };
 
 // No mock users or passwords; all authentication uses the Neon database
 
@@ -496,7 +496,7 @@ router.post('/change-password', authRateLimit(5, 15 * 60 * 1000), validateReques
 });
 
 // Client registration endpoint
-router.post('/register-client', authRateLimit(3, 60 * 60 * 1000), upload.single('resume'), handleMulterError, async (req: any, res: any) => {
+router.post('/register-client', authRateLimit(3, 60 * 60 * 1000), /* upload.single('resume'), handleMulterError, */ async (req: any, res: any) => {
     try {
         const { name, email, phone, location, linkedinUrl, company, position, jobPreferences: jobPreferencesStr } = req.body;
         const resumeFile = req.file;
