@@ -117,6 +117,27 @@ class ApiService {
         return this.request('/auth/me');
     }
 
+    async changePassword(currentPassword: string, newPassword: string, confirmPassword: string): Promise<ApiResponse<any>> {
+        return this.request('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                currentPassword,
+                newPassword,
+                confirmPassword
+            }),
+        });
+    }
+
+    async resetUserPassword(userId: string, newPassword: string): Promise<ApiResponse<any>> {
+        return this.request('/admin/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId,
+                newPassword
+            }),
+        });
+    }
+
     // Clients
     async getClients(workerId?: string, status?: string): Promise<ApiResponse<any[]>> {
         const params = new URLSearchParams();

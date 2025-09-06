@@ -4,6 +4,7 @@ import { validateRequest } from '../utils/validation';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../utils/database';
 import { ApiResponse } from '@interview-me/types';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -2034,6 +2035,56 @@ router.post('/interviews/:id/feedback', async (req, res) => {
     } catch (error) {
         console.error('Error adding interview feedback:', error);
         res.status(500).json({ success: false, error: 'Failed to add interview feedback' });
+    }
+});
+
+// Password reset schema
+const resetPasswordSchema = z.object({
+    userId: z.string().min(1, 'User ID is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
+// Reset user password (admin only)
+router.post('/reset-password', authorize(['ADMIN']), validateRequest({ body: resetPasswordSchema }), async (req, res) => {
+    try {
+        const { userId, newPassword } = req.body;
+
+        // Check if user exists
+        const userCheck = await db.query(
+            'SELECT id, email, name, role FROM users WHERE id = $1',
+            [userId]
+        );
+
+        if (userCheck.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'User not found'
+            });
+        }
+
+        const user = userCheck.rows[0];
+
+        // Hash new password
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        // Update password in database
+        await db.query(
+            'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+            [passwordHash, userId]
+        );
+
+        const response: ApiResponse = {
+            success: true,
+            message: `Password reset successfully for ${user.name} (${user.email})`,
+        };
+
+        res.json(response);
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to reset password'
+        });
     }
 });
 

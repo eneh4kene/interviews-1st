@@ -17,11 +17,13 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Lock
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
 import WorkerModal from '../../../components/WorkerModal';
+import ResetPasswordModal from '../../../components/ResetPasswordModal';
 import SearchInput from '../../../components/SearchInput';
 
 interface Worker {
@@ -58,6 +60,8 @@ export default function WorkerManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [selectedWorkerForReset, setSelectedWorkerForReset] = useState<Worker | null>(null);
   const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -398,6 +402,18 @@ export default function WorkerManagement() {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedWorkerForReset(worker);
+                          setShowResetPasswordModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        title="Reset Password"
+                      >
+                        <Lock className="h-4 w-4" />
+                      </Button>
                       {worker.is_active ? (
                         <Button
                           variant="outline"
@@ -470,6 +486,20 @@ export default function WorkerManagement() {
           }}
           onSuccess={handleModalSuccess}
           worker={editingWorker}
+        />
+
+        {/* Reset Password Modal */}
+        <ResetPasswordModal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false);
+            setSelectedWorkerForReset(null);
+          }}
+          onSuccess={() => {
+            // Refresh the workers list
+            setRefreshTrigger(prev => prev + 1);
+          }}
+          user={selectedWorkerForReset}
         />
       </div>
     </div>

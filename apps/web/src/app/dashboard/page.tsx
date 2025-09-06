@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
-import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase, LogOut } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase, LogOut, Lock, User } from "lucide-react";
 import Logo from '../../components/Logo';
 import ClientForm from '../../components/ClientForm';
+import ChangePasswordModal from '../../components/ChangePasswordModal';
 import { apiService } from '../../lib/api';
 
 export default function Dashboard() {
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showClientForm, setShowClientForm] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -323,14 +326,44 @@ export default function Dashboard() {
                 <Plus className="h-4 w-4" />
                 Add New Client
               </Button>
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50" 
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              
+              {/* User Menu */}
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50" 
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                >
+                  <User className="h-4 w-4" />
+                  Account
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+                
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border">
+                    <button
+                      onClick={() => {
+                        setShowChangePasswordModal(true);
+                        setShowUserMenu(false);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Change Password
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setShowUserMenu(false);
+                      }}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -688,6 +721,24 @@ export default function Dashboard() {
         onClose={handleClientFormClose}
         onSuccess={handleClientFormSuccess}
       />
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+        onSuccess={() => {
+          // You could add a success notification here
+          console.log('Password changed successfully');
+        }}
+      />
+
+      {/* Click outside to close user menu */}
+      {showUserMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </div>
   );
 } 

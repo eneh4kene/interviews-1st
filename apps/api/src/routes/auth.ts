@@ -133,6 +133,20 @@ const clientRegistrationSchema = z.object({
     jobPreferences: z.array(jobPreferenceSchema).max(5, 'Maximum 5 job preferences allowed').optional(),
 });
 
+const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+});
+
+const resetPasswordSchema = z.object({
+    userId: z.string().min(1, 'User ID is required'),
+    newPassword: z.string().min(8, 'New password must be at least 8 characters'),
+});
+
 // Helper functions
 // JWT functions are now handled in utils/jwt.ts
 const generateMagicLinkToken = (email: string, interviewId: string): string => {
@@ -404,6 +418,73 @@ router.get('/me', async (req, res) => {
             error: 'Invalid token',
         };
         res.status(401).json(response);
+    }
+});
+
+// Change password (for authenticated users)
+router.post('/change-password', authRateLimit(5, 15 * 60 * 1000), validateRequest({ body: changePasswordSchema }), async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'No valid authorization token',
+            };
+            return res.status(401).json(response);
+        }
+
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
+        const { currentPassword, newPassword } = req.body;
+
+        // Get current user with password hash
+        const { rows } = await db.query(
+            'SELECT id, email, password_hash FROM users WHERE id = $1 LIMIT 1',
+            [decoded.userId]
+        );
+
+        if (rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'User not found',
+            };
+            return res.status(404).json(response);
+        }
+
+        const user = rows[0];
+
+        // Verify current password
+        const isValidCurrentPassword = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isValidCurrentPassword) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Current password is incorrect',
+            };
+            return res.status(400).json(response);
+        }
+
+        // Hash new password
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+
+        // Update password in database
+        await db.query(
+            'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+            [newPasswordHash, user.id]
+        );
+
+        const response: ApiResponse = {
+            success: true,
+            message: 'Password changed successfully',
+        };
+
+        res.status(200).json(response);
+    } catch (error) {
+        console.error('Change password error:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to change password',
+        };
+        res.status(500).json(response);
     }
 });
 
