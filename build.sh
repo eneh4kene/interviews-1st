@@ -35,6 +35,18 @@ else
     npm run build --workspace=@interview-me/types
 fi
 
+# Verify types package was built
+if [ ! -d "packages/types/dist" ]; then
+    echo "❌ Types package not built properly, trying alternative approach..."
+    cd packages/types
+    if [ "$PKG_MANAGER" = "yarn" ]; then
+        yarn build
+    else
+        npm run build
+    fi
+    cd ../..
+fi
+
 # Build UI package second
 echo "  → Building @interview-me/ui..."
 if [ "$PKG_MANAGER" = "yarn" ]; then
