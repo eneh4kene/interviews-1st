@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
+import AdminClientForm from '../../../components/AdminClientForm';
 
 interface Client {
   id: string;
@@ -785,26 +786,15 @@ export default function ClientManagement() {
         </div>
       </div>
 
-      {/* Create/Edit Client Modal - Placeholder for now */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Create Client</h3>
-            <p className="text-gray-600 mb-4">Client creation form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setShowCreateModal(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setShowCreateModal(false)}>
-                Create
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Client Modal */}
+      <AdminClientForm
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          handleRefresh();
+        }}
+      />
 
       {/* Edit Client Modal - Placeholder for now */}
       {editingClient && (
