@@ -256,12 +256,12 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
             <div>
               <Label htmlFor="worker">Assign to Worker *</Label>
               <Select value={selectedWorkerId} onValueChange={setSelectedWorkerId}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white border-gray-300">
                   <SelectValue placeholder="Select a worker to assign this client to" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-300 shadow-lg">
                   {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
+                    <SelectItem key={worker.id} value={worker.id} className="hover:bg-gray-100">
                       {worker.name} ({worker.email})
                     </SelectItem>
                   ))}

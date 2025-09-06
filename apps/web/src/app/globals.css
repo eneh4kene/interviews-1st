@@ -11,6 +11,30 @@
   }
 }
 
+/* Fix for Select component transparency */
+@layer components {
+  [data-radix-select-content] {
+    background-color: hsl(var(--popover)) !important;
+    color: hsl(var(--popover-foreground)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+  
+  [data-radix-select-trigger] {
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+  }
+  
+  [data-radix-select-item] {
+    background-color: transparent !important;
+  }
+  
+  [data-radix-select-item][data-highlighted] {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+}
+
 /* Theme Tokens */
 :root {
     --bg: #F7F8FB;
@@ -29,6 +53,25 @@
     --dur-fast: 150ms;
     --dur: 220ms;
     --ease: cubic-bezier(.22, .61, .36, 1);
+    
+    /* UI Component Variables */
+    --background: #F7F8FB;
+    --foreground: #0B1020;
+    --card: #FFFFFF;
+    --card-foreground: #0B1020;
+    --popover: #FFFFFF;
+    --popover-foreground: #0B1020;
+    --primary-foreground: #FFFFFF;
+    --secondary: #F1F5F9;
+    --secondary-foreground: #0F172A;
+    --muted-foreground: #64748B;
+    --accent: #F1F5F9;
+    --accent-foreground: #0F172A;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --border: #E2E8F0;
+    --input: #E2E8F0;
+    --ring: #635BFF;
 }
 
 .dark {
@@ -38,6 +81,25 @@
     --text: #E9ECF8;
     --muted: #9AA4B2;
     --shadow: 0 10px 30px -12px rgba(0, 0, 0, .55);
+    
+    /* UI Component Variables - Dark Mode */
+    --background: #0B1020;
+    --foreground: #E9ECF8;
+    --card: #11162A;
+    --card-foreground: #E9ECF8;
+    --popover: #11162A;
+    --popover-foreground: #E9ECF8;
+    --primary-foreground: #FFFFFF;
+    --secondary: #1E243A;
+    --secondary-foreground: #E9ECF8;
+    --muted-foreground: #9AA4B2;
+    --accent: #1E243A;
+    --accent-foreground: #E9ECF8;
+    --destructive: #EF4444;
+    --destructive-foreground: #FFFFFF;
+    --border: #1E243A;
+    --input: #1E243A;
+    --ring: #635BFF;
 }
 
 @layer base {
