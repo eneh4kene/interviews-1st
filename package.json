@@ -30,7 +30,19 @@
   "overrides": {
     "@opentelemetry/api": "1.6.0",
     "@types/express": "^4.17.21",
-    "@types/express-serve-static-core": "^4.19.5"
+    "@types/express-serve-static-core": "^4.19.5",
+    "@types/multer": {
+      "@types/express": "^4.17.21",
+      "@types/express-serve-static-core": "^4.19.5"
+    },
+    "@types/cookie-parser": {
+      "@types/express": "^4.17.21",
+      "@types/express-serve-static-core": "^4.19.5"
+    },
+    "@types/cors": {
+      "@types/express": "^4.17.21",
+      "@types/express-serve-static-core": "^4.19.5"
+    }
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
