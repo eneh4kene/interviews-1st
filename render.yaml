@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: interviewsfirst-api
+    env: node
+    buildCommand: |
+      npm ci
+      npm run build --workspace=@interview-me/types
+      npm run build --workspace=@interview-me/ui
+      npm run build --workspace=@interview-me/api
+    startCommand: cd apps/api && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: POSTGRES_DB_URL
+        fromDatabase:
+          name: interviewsfirst-db
+          property: connectionString
