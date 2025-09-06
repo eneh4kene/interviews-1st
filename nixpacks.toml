@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["echo 'Using Dockerfile instead of Nixpacks'"]
+
+[phases.build]
+cmds = ["echo 'Build handled by Dockerfile'"]
+
+[providers]
+dockerfile = "Dockerfile"
