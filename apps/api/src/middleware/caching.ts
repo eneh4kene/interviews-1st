@@ -38,7 +38,7 @@ export const createCacheMiddleware = (config: CacheConfig) => {
 
         try {
             // Generate cache key
-            const cacheKey = config.keyGenerator 
+            let cacheKey = config.keyGenerator 
                 ? config.keyGenerator(req)
                 : defaultKeyGenerator(req);
 
@@ -47,7 +47,7 @@ export const createCacheMiddleware = (config: CacheConfig) => {
                 const headerValues = config.varyByHeaders
                     .map(header => req.headers[header.toLowerCase()] || '')
                     .join(':');
-                cacheKey += `:${headerValues}`;
+                cacheKey = cacheKey + `:${headerValues}`;
             }
 
             // Try to get cached response
@@ -56,7 +56,7 @@ export const createCacheMiddleware = (config: CacheConfig) => {
             if (cachedResponse) {
                 logger.debug('Cache hit', {
                     requestId: (req as any).id,
-                    cacheKey,
+                    metadata: { cacheKey },
                     path: req.path
                 });
 
@@ -108,16 +108,14 @@ export const createCacheMiddleware = (config: CacheConfig) => {
                     .then(() => {
                         logger.debug('Response cached', {
                             requestId: (req as any).id,
-                            cacheKey,
-                            ttl: config.ttl,
+                            metadata: { cacheKey, ttl: config.ttl },
                             path: req.path
                         });
                     })
                     .catch(error => {
                         logger.warn('Failed to cache response', {
                             requestId: (req as any).id,
-                            cacheKey,
-                            error: error.message,
+                            metadata: { cacheKey, error: error.message },
                             path: req.path
                         });
                     });
@@ -155,16 +153,14 @@ export const createCacheMiddleware = (config: CacheConfig) => {
                     .then(() => {
                         logger.debug('Response cached', {
                             requestId: (req as any).id,
-                            cacheKey,
-                            ttl: config.ttl,
+                            metadata: { cacheKey, ttl: config.ttl },
                             path: req.path
                         });
                     })
                     .catch(error => {
                         logger.warn('Failed to cache response', {
                             requestId: (req as any).id,
-                            cacheKey,
-                            error: error.message,
+                            metadata: { cacheKey, error: error.message },
                             path: req.path
                         });
                     });
@@ -229,12 +225,12 @@ export const cacheUtils = {
         try {
             const keys = await redis.keys(pattern);
             if (keys.length > 0) {
-                await Promise.all(keys.map(key => redis.del(key)));
-                logger.info('Cache invalidated', { pattern, keysCount: keys.length });
+                await Promise.all(keys.map((key: string) => redis.del(key)));
+                logger.info('Cache invalidated', { metadata: { pattern, keysCount: keys.length } });
             }
         } catch (error) {
             logger.error('Cache invalidation failed', {
-                pattern,
+                metadata: { pattern },
                 error: error instanceof Error ? error.message : 'Unknown error'
             });
         }

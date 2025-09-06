@@ -20,7 +20,7 @@ export const queryOptimization = (req: Request, res: Response, next: NextFunctio
                 requestId: (req as any).id,
                 method: req.method,
                 path: req.path,
-                queryTime,
+                metadata: { queryTime },
                 statusCode: res.statusCode
             });
         }
@@ -94,9 +94,7 @@ export const queryResultCache = {
             await redis.set(cacheKey, JSON.stringify(result), ttl);
             
             logger.debug('Query result cached', {
-                cacheKey,
-                ttl,
-                resultSize: JSON.stringify(result).length
+                metadata: { cacheKey, ttl, resultSize: JSON.stringify(result).length }
             });
         } catch (error) {
             logger.warn('Failed to cache query result', {
@@ -115,7 +113,7 @@ export const queryResultCache = {
             const cached = await redis.get(cacheKey);
             
             if (cached) {
-                logger.debug('Query result cache hit', { cacheKey });
+                logger.debug('Query result cache hit', { metadata: { cacheKey } });
                 return JSON.parse(cached);
             }
             
@@ -136,8 +134,8 @@ export const queryResultCache = {
             
             const keys = await redis.keys(`query:${pattern}`);
             if (keys.length > 0) {
-                await Promise.all(keys.map(key => redis.del(key)));
-                logger.info('Query cache invalidated', { pattern, keysCount: keys.length });
+                await Promise.all(keys.map((key: string) => redis.del(key)));
+                logger.info('Query cache invalidated', { metadata: { pattern, keysCount: keys.length } });
             }
         } catch (error) {
             logger.warn('Failed to invalidate query cache', {
@@ -152,20 +150,24 @@ export const dbPerformanceMonitor = {
     // Track query performance
     trackQuery: (query: string, duration: number, rowCount: number) => {
         logger.info('Database query executed', {
-            query: query.substring(0, 100) + (query.length > 100 ? '...' : ''),
-            duration,
-            rowCount,
-            performance: duration < 100 ? 'fast' : duration < 500 ? 'medium' : 'slow'
+            metadata: {
+                query: query.substring(0, 100) + (query.length > 100 ? '...' : ''),
+                duration,
+                rowCount,
+                performance: duration < 100 ? 'fast' : duration < 500 ? 'medium' : 'slow'
+            }
         });
     },
     
     // Track connection pool usage
     trackConnectionPool: (active: number, idle: number, total: number) => {
         logger.debug('Database connection pool status', {
-            active,
-            idle,
-            total,
-            utilization: (active / total * 100).toFixed(2) + '%'
+            metadata: {
+                active,
+                idle,
+                total,
+                utilization: (active / total * 100).toFixed(2) + '%'
+            }
         });
     }
 };
