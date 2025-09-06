@@ -154,7 +154,7 @@ export default function ClientManagement() {
       setError(null);
 
       try {
-        const response = await apiService.getClients(
+        const response = await apiService.getAdminClients(
           currentPage,
           10,
           searchTerm,

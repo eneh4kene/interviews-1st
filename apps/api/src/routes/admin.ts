@@ -1107,7 +1107,7 @@ router.get('/clients', async (req, res) => {
             FROM clients c
             LEFT JOIN users u ON c.worker_id = u.id
             ${whereClause}
-            ORDER BY c.${sortBy} ${sortOrder.toUpperCase()}
+            ORDER BY c.${sortBy} ${(sortOrder as string).toUpperCase()}
             LIMIT $${paramCount} OFFSET $${paramCount + 1}
         `;
 
@@ -1585,7 +1585,7 @@ router.get('/interviews', async (req, res) => {
             LEFT JOIN clients c ON i.client_id = c.id
             LEFT JOIN users u ON c.worker_id = u.id
             ${whereClause}
-            ORDER BY i.${sortBy} ${sortOrder.toUpperCase()}
+            ORDER BY i.${sortBy} ${(sortOrder as string).toUpperCase()}
             LIMIT $${paramCount} OFFSET $${paramCount + 1}
         `;
 

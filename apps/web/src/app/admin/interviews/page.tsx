@@ -148,7 +148,7 @@ export default function InterviewManagement() {
     const fetchData = async () => {
       try {
         const [clientsResponse, workersResponse] = await Promise.all([
-          apiService.getClients(1, 100, '', 'all'),
+          apiService.getAdminClients(1, 100, '', 'all'),
           apiService.getWorkers(1, 100, '', 'all')
         ]);
 
@@ -177,18 +177,18 @@ export default function InterviewManagement() {
       setError(null);
 
       try {
-        const response = await apiService.getInterviews(
-          currentPage,
-          10,
-          searchTerm,
-          statusFilter,
-          clientFilter,
-          workerFilter,
-          sortBy,
-          sortOrder,
-          dateFrom,
-          dateTo
-        );
+        const response = await           apiService.getAdminInterviews(
+            currentPage,
+            10,
+            searchTerm,
+            statusFilter,
+            clientFilter,
+            workerFilter,
+            sortBy,
+            sortOrder,
+            dateFrom,
+            dateTo
+          );
 
         if (response.success) {
           setInterviews(response.data.interviews || []);

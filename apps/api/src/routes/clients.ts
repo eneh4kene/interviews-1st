@@ -1,25 +1,43 @@
 import express from 'express';
 import { z } from 'zod';
 import { validateRequest } from '../utils/validation';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate, authorize, authorizeAny } from '../middleware/auth';
 import { clientAssignmentService } from '../services/clientAssignment';
 import { ApiResponse, Client } from '@interview-me/types';
 import { db } from '../utils/database';
 
 const router = express.Router();
 
+// Apply authentication to all client routes
+router.use(authenticate);
+
 // Get all clients for a worker
-router.get('/', async (req, res) => {
+router.get('/', authorizeAny(['WORKER', 'MANAGER', 'ADMIN']), async (req, res) => {
     try {
-        const workerId = req.query.workerId as string;
         const status = req.query.status as string;
 
+        // Get worker ID from authenticated user or query parameter
+        let workerId = req.query.workerId as string;
+
+        // If no workerId in query and user is not admin, use their own ID
         if (!workerId) {
+            if (req.user?.role === 'ADMIN') {
+                const response: ApiResponse = {
+                    success: false,
+                    error: 'Worker ID is required for admin users',
+                };
+                return res.status(400).json(response);
+            }
+            workerId = req.user?.userId as string;
+        }
+
+        // Non-admin users can only access their own data
+        if (req.user?.role !== 'ADMIN' && workerId !== req.user?.userId) {
             const response: ApiResponse = {
                 success: false,
-                error: 'Worker ID is required',
+                error: 'Insufficient permissions',
             };
-            return res.status(400).json(response);
+            return res.status(403).json(response);
         }
 
         let query = `
@@ -264,17 +282,31 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Get dashboard stats for a worker
-router.get('/stats/dashboard', async (req, res) => {
+router.get('/stats/dashboard', authorizeAny(['WORKER', 'MANAGER', 'ADMIN']), async (req, res) => {
     let workerId: string = '';
     try {
+        // Get worker ID from authenticated user or query parameter
         workerId = req.query.workerId as string;
 
+        // If no workerId in query and user is not admin, use their own ID
         if (!workerId) {
+            if (req.user?.role === 'ADMIN') {
+                const response: ApiResponse = {
+                    success: false,
+                    error: 'Worker ID is required for admin users',
+                };
+                return res.status(400).json(response);
+            }
+            workerId = req.user?.userId as string;
+        }
+
+        // Non-admin users can only access their own data
+        if (req.user?.role !== 'ADMIN' && workerId !== req.user?.userId) {
             const response: ApiResponse = {
                 success: false,
-                error: 'Worker ID is required',
+                error: 'Insufficient permissions',
             };
-            return res.status(400).json(response);
+            return res.status(403).json(response);
         }
 
         // Get client stats

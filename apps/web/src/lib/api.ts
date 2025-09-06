@@ -118,12 +118,16 @@ class ApiService {
     }
 
     // Clients
-    async getClients(workerId: string, status?: string): Promise<ApiResponse<any[]>> {
-        const params = new URLSearchParams({ workerId });
+    async getClients(workerId?: string, status?: string): Promise<ApiResponse<any[]>> {
+        const params = new URLSearchParams();
+        if (workerId) {
+            params.append('workerId', workerId);
+        }
         if (status && status !== 'all') {
             params.append('status', status);
         }
-        return this.request(`/clients?${params.toString()}`);
+        const queryString = params.toString();
+        return this.request(`/clients${queryString ? `?${queryString}` : ''}`);
     }
 
     async getClient(id: string): Promise<ApiResponse<any>> {
@@ -151,8 +155,9 @@ class ApiService {
     }
 
     // Dashboard Stats
-    async getDashboardStats(workerId: string): Promise<ApiResponse<any>> {
-        return this.request(`/clients/stats/dashboard?workerId=${workerId}`);
+    async getDashboardStats(workerId?: string): Promise<ApiResponse<any>> {
+        const params = workerId ? `?workerId=${workerId}` : '';
+        return this.request(`/clients/stats/dashboard${params}`);
     }
 
     // Interviews
@@ -407,8 +412,8 @@ class ApiService {
         return this.request(`/admin/analytics/export?type=${type}&format=${format}&period=${period}`);
     }
 
-    // Client Management API methods
-    async getClients(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', workerId: string = 'all', sortBy: string = 'created_at', sortOrder: string = 'desc'): Promise<ApiResponse<any>> {
+    // Admin Client Management API methods
+    async getAdminClients(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', workerId: string = 'all', sortBy: string = 'created_at', sortOrder: string = 'desc'): Promise<ApiResponse<any>> {
         const params = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
@@ -421,11 +426,11 @@ class ApiService {
         return this.request(`/admin/clients?${params}`);
     }
 
-    async getClient(id: string): Promise<ApiResponse<any>> {
+    async getAdminClient(id: string): Promise<ApiResponse<any>> {
         return this.request(`/admin/clients/${id}`);
     }
 
-    async createClient(clientData: {
+    async createAdminClient(clientData: {
         workerId: string;
         name: string;
         email: string;
@@ -439,7 +444,7 @@ class ApiService {
         });
     }
 
-    async updateClient(id: string, clientData: {
+    async updateAdminClient(id: string, clientData: {
         name?: string;
         email?: string;
         phone?: string;
@@ -454,7 +459,7 @@ class ApiService {
         });
     }
 
-    async deleteClient(id: string): Promise<ApiResponse<any>> {
+    async deleteAdminClient(id: string): Promise<ApiResponse<any>> {
         return this.request(`/admin/clients/${id}`, {
             method: 'DELETE',
         });
@@ -471,8 +476,8 @@ class ApiService {
         });
     }
 
-    // Interview Management API methods
-    async getInterviews(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', clientId: string = 'all', workerId: string = 'all', sortBy: string = 'scheduled_date', sortOrder: string = 'desc', dateFrom: string = '', dateTo: string = ''): Promise<ApiResponse<any>> {
+    // Admin Interview Management API methods
+    async getAdminInterviews(page: number = 1, limit: number = 10, search: string = '', status: string = 'all', clientId: string = 'all', workerId: string = 'all', sortBy: string = 'scheduled_date', sortOrder: string = 'desc', dateFrom: string = '', dateTo: string = ''): Promise<ApiResponse<any>> {
         const params = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString(),
@@ -488,7 +493,7 @@ class ApiService {
         return this.request(`/admin/interviews?${params}`);
     }
 
-    async getInterview(id: string): Promise<ApiResponse<any>> {
+    async getAdminInterview(id: string): Promise<ApiResponse<any>> {
         return this.request(`/admin/interviews/${id}`);
     }
 

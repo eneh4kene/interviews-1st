@@ -69,8 +69,8 @@ export default function Dashboard() {
         }
         const resolvedWorkerId = workerId as string;
         const [clientsResponse, statsResponse] = await Promise.all([
-          apiService.getClients(resolvedWorkerId),
-          apiService.getDashboardStats(resolvedWorkerId)
+          apiService.getClients(), // API will use authenticated user's ID
+          apiService.getDashboardStats() // API will use authenticated user's ID
         ]);
 
         if (!clientsResponse.success) {
