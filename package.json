@@ -10,6 +10,9 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
     "@types/node": "^20.10.0",
     "artillery": "^2.0.24",
     "prettier": "^3.1.0",

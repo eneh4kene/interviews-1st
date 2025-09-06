@@ -93,13 +93,13 @@ router.get('/:id', async (req, res) => {
 
         // First, try to find the job in stored database
         const storedResult = await jobAggregationService.getStoredJobs({});
-        let job = storedResult.jobs.find(j => j.id === id);
+        let job = storedResult.jobs.find((j: any) => j.id === id);
 
         // If not found in database, try to find by external_id (in case the ID is from an aggregator)
         if (!job) {
             try {
                 const externalResult = await jobAggregationService.getStoredJobs({});
-                job = externalResult.jobs.find(j => j.externalId === id);
+                job = externalResult.jobs.find((j: any) => j.externalId === id);
             } catch (externalError) {
                 console.error('Error searching by external ID:', externalError);
             }
@@ -116,7 +116,7 @@ router.get('/:id', async (req, res) => {
                 });
                 
                 // Find the job with matching ID (from aggregator)
-                job = liveResult.jobs.find(j => j.id === id);
+                job = liveResult.jobs.find((j: any) => j.id === id);
                 
                 // If found, store it in the database for future access
                 if (job) {

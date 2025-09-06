@@ -7,17 +7,48 @@ set -e
 
 echo "🚀 Starting Render build process..."
 
+# Detect package manager
+if [ -f "yarn.lock" ]; then
+    PKG_MANAGER="yarn"
+    echo "📦 Using Yarn package manager"
+else
+    PKG_MANAGER="npm"
+    echo "📦 Using npm package manager"
+fi
+
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm ci
+if [ "$PKG_MANAGER" = "yarn" ]; then
+    yarn install
+else
+    npm ci
+fi
 
 # Build packages in correct order
 echo "🔨 Building shared packages..."
-npm run build --workspace=@interview-me/types
-npm run build --workspace=@interview-me/ui
+
+# Build types package first
+echo "  → Building @interview-me/types..."
+if [ "$PKG_MANAGER" = "yarn" ]; then
+    yarn workspace @interview-me/types build
+else
+    npm run build --workspace=@interview-me/types
+fi
+
+# Build UI package second
+echo "  → Building @interview-me/ui..."
+if [ "$PKG_MANAGER" = "yarn" ]; then
+    yarn workspace @interview-me/ui build
+else
+    npm run build --workspace=@interview-me/ui
+fi
 
 # Build API last
-echo "🔨 Building API..."
-npm run build --workspace=@interview-me/api
+echo "  → Building @interview-me/api..."
+if [ "$PKG_MANAGER" = "yarn" ]; then
+    yarn workspace @interview-me/api build
+else
+    npm run build --workspace=@interview-me/api
+fi
 
 echo "✅ Build completed successfully!"
