@@ -21,10 +21,12 @@ A modern B2B SaaS platform for career coaches, recruiters, and job placement pro
 - **Monorepo**: Turborepo with npm workspaces
 - **Frontend**: Next.js 14 with App Router, Tailwind CSS, shadcn/ui
 - **Backend**: Express.js with TypeScript, Zod validation, security middleware
-- **Database**: PostgreSQL 16
-- **Cache**: Redis 7
+- **Database**: PostgreSQL 16 (Neon in production)
+- **Cache**: Redis 7 (HashMap mock in development)
 - **Payment**: Stripe integration
 - **Authentication**: JWT-based with refresh tokens
+- **Deployment**: Vercel (Frontend) + Railway (API) + Neon (Database)
+- **Monitoring**: Production-ready observability and performance monitoring
 
 ## 📁 **Project Structure**
 
@@ -214,18 +216,22 @@ The platform includes a sophisticated job aggregation system that fetches job li
 ## 🔒 **Security & Compliance**
 
 ### **Security Features**
-- **JWT Authentication**: Secure token-based authentication
-- **Rate Limiting**: API protection against abuse
-- **Input Validation**: Zod schema validation
+- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **Rate Limiting**: API protection against abuse (configurable limits)
+- **Input Validation**: Zod schema validation with sanitization
 - **CORS Configuration**: Secure cross-origin requests
-- **Helmet.js**: Security headers
-- **Request Logging**: Pino HTTP logger
+- **Security Headers**: Helmet.js with CSP, HSTS, X-Frame-Options
+- **Request Logging**: Structured logging with Pino HTTP logger
+- **Security Monitoring**: Real-time security event tracking
+- **Password Management**: Secure password change and reset functionality
 
 ### **Data Protection**
 - **GDPR Compliance**: Data privacy regulations
 - **Encryption**: Data at rest and in transit
-- **Access Control**: Role-based permissions
-- **Audit Logs**: Complete activity tracking
+- **Access Control**: Role-based permissions (Admin, Worker, Manager)
+- **Audit Logs**: Complete activity tracking and security events
+- **Input Sanitization**: XSS protection and data validation
+- **Request ID Tracking**: Unique request identification for debugging
 
 ## 🛠️ **Development**
 
@@ -280,28 +286,20 @@ Reusable UI components built with shadcn/ui and Tailwind CSS:
 
 ## 📝 **Environment Variables**
 
-### **Root (.env)**
+### **Development (.env)**
 ```env
+# Database
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jobplace
 REDIS_URL=redis://localhost:6379
-STRIPE_SECRET_KEY=your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
-JWT_PRIVATE_KEY=your_jwt_private_key
-JWT_PUBLIC_KEY=your_jwt_public_key
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
-```
 
-### **Web App (.env.local)**
-```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
-```
+# JWT Secrets
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_here
 
-### **API (.env)**
-```env
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jobplace
-REDIS_URL=redis://localhost:6379
+# API Configuration
 PORT=3001
 NODE_ENV=development
+CORS_ORIGIN=http://localhost:3000
 
 # Job Aggregators
 ADZUNA_APP_ID=your_adzuna_app_id
@@ -319,9 +317,57 @@ JOB_CACHE_TTL_SECONDS=1800
 JOB_STORAGE_TTL_DAYS=30
 ```
 
+### **Production (Vercel + Railway)**
+```env
+# Frontend (Vercel)
+NEXT_PUBLIC_API_URL=https://your-railway-api-url.railway.app
+
+# Backend (Railway)
+DATABASE_URL=your_neon_database_url_here
+REDIS_URL=your_railway_redis_url_here
+JWT_SECRET=your_production_jwt_secret_here
+JWT_REFRESH_SECRET=your_production_jwt_refresh_secret_here
+CORS_ORIGIN=https://your-vercel-app.vercel.app
+NODE_ENV=production
+PORT=3001
+```
+
+### **Web App (.env.local)**
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+```
+
 ## 🚀 **Deployment**
 
-### **Production Build**
+### **Production Deployment (Recommended)**
+The platform is configured for **free hosting** with Vercel + Railway:
+
+#### **Quick Deploy**
+1. **Deploy API to Railway:**
+   - Go to [railway.app](https://railway.app)
+   - Connect GitHub → Select your repo
+   - Set root directory to `apps/api`
+   - Add environment variables (see [Deployment Guide](DEPLOYMENT_GUIDE.md))
+
+2. **Deploy Frontend to Vercel:**
+   - Go to [vercel.com](https://vercel.com)
+   - Connect GitHub → Select your repo
+   - Set root directory to `apps/web`
+   - Add environment variables
+
+3. **Configure CORS:**
+   - Update `CORS_ORIGIN` in Railway with your Vercel URL
+   - Update `NEXT_PUBLIC_API_URL` in Vercel with your Railway URL
+
+#### **Automated Deployment**
+```bash
+# Deploy frontend to Vercel
+./scripts/deploy-vercel.sh
+
+# Follow Railway deployment guide
+```
+
+### **Local Development**
 ```bash
 # Build all packages and apps
 npm run build
@@ -335,6 +381,39 @@ npm start
 # Build and run with Docker Compose
 docker-compose up -d
 ```
+
+### **Cost: $0/month**
+- **Vercel**: FREE (100GB bandwidth)
+- **Railway**: FREE ($5 credit monthly)
+- **Neon**: FREE (generous free tier)
+
+## 🚀 **Production-Ready Features**
+
+### **Security & Monitoring**
+- **Enterprise-grade security** with rate limiting, input sanitization, and security headers
+- **Comprehensive monitoring** with health checks, structured logging, and performance metrics
+- **Real-time observability** with request tracking and error monitoring
+- **Security event logging** and audit trails
+
+### **Performance & Scalability**
+- **Redis-based caching** for improved response times
+- **Response compression** for reduced bandwidth usage
+- **Database query optimization** with performance monitoring
+- **Load testing framework** with Artillery integration
+- **Auto-scaling** on Vercel and Railway
+
+### **Database & Infrastructure**
+- **Production database setup** with automated backups and migrations
+- **Database health monitoring** and maintenance scripts
+- **Connection pooling** and query optimization
+- **Data integrity** with foreign key constraints and validation
+
+### **Deployment & CI/CD**
+- **Automated deployment** with GitHub Actions
+- **Docker containerization** for consistent environments
+- **Kubernetes manifests** for production orchestration
+- **Health checks** and rollback capabilities
+- **Free hosting** with Vercel + Railway + Neon
 
 ## 📊 **Current Status**
 
@@ -350,6 +429,13 @@ docker-compose up -d
 - Professional modal interfaces
 - Payment model implementation
 - Responsive design
+- **Production-ready security (rate limiting, input sanitization, security headers)**
+- **Comprehensive monitoring and observability (health checks, logging, metrics)**
+- **Database production setup (backups, migrations, maintenance)**
+- **CI/CD pipeline with automated testing and deployment**
+- **Performance optimization (caching, compression, query optimization)**
+- **Load testing framework with Artillery integration**
+- **Free hosting deployment (Vercel + Railway + Neon)**
 
 ### **🔄 In Development**
 - Email notifications
