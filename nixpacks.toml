@@ -1,0 +1,8 @@
+[phases.install]
+cmds = ["echo 'Skipping npm ci - handled by build script'"]
+
+[phases.build]
+cmds = ["./scripts/railway-build.sh"]
+
+[providers]
+nodejs = "22"

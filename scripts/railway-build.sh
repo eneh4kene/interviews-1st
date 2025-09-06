@@ -11,8 +11,8 @@ echo "🚀 Starting Railway build process..."
 echo "📦 Installing dependencies..."
 npm ci
 
-# Build packages
-echo "🔨 Building packages..."
+# Build packages in correct order
+echo "🔨 Building shared packages..."
 npm run build --workspace=@interview-me/types
 npm run build --workspace=@interview-me/ui
 
