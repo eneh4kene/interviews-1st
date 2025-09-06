@@ -15,7 +15,12 @@
         "isolatedModules": true,
         "jsx": "preserve",
         "incremental": true,
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "baseUrl": ".",
+        "paths": {
+            "@interview-me/types": ["packages/types/src/index.ts"],
+            "@interview-me/ui": ["packages/ui/src/index.ts"]
+        }
     },
     "exclude": [
         "node_modules",
