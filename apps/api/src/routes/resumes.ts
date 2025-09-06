@@ -9,37 +9,7 @@ import { db } from '../utils/database';
 
 const router = express.Router();
 
-// Mock resume data - in real app, this would come from database
-let mockResumes: Resume[] = [
-    {
-        id: "1",
-        clientId: "2",
-        name: "Software Engineer - Tech Companies",
-        fileUrl: "tech-software-engineer.pdf",
-        isDefault: true,
-        createdAt: new Date("2024-01-15"),
-        updatedAt: new Date("2024-01-15"),
-    },
-    {
-        id: "2",
-        clientId: "2",
-        name: "UX Designer - Creative Agencies",
-        fileUrl: "ux-designer.pdf",
-        isDefault: false,
-        createdAt: new Date("2024-01-20"),
-        updatedAt: new Date("2024-01-20"),
-    },
-];
-
-// Helper function to ensure only one resume per client is default
-const ensureSingleDefault = (clientId: string, defaultResumeId?: string) => {
-    mockResumes = mockResumes.map(resume => ({
-        ...resume,
-        isDefault: resume.clientId === clientId
-            ? (defaultResumeId ? resume.id === defaultResumeId : false)
-            : resume.isDefault
-    }));
-};
+// All resume data now comes from the PostgreSQL database
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
