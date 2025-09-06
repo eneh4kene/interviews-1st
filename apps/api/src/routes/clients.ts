@@ -191,6 +191,94 @@ router.post('/', async (req, res) => {
     }
 });
 
+// Auto-assign client (for worker dashboard)
+router.post('/auto-assign', async (req, res) => {
+    try {
+        const { name, email, phone, location, linkedinUrl, company, position } = req.body;
+
+        if (!name || !email) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Name and email are required',
+            };
+            return res.status(400).json(response);
+        }
+
+        // Check if client already exists
+        const existingClient = await db.query(
+            'SELECT id FROM clients WHERE email = $1',
+            [email]
+        );
+
+        if (existingClient.rows.length > 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'A client with this email already exists',
+            };
+            return res.status(409).json(response);
+        }
+
+        // Use load-balanced assignment to worker with least clients
+        const availableWorkers = await db.query(`
+            SELECT u.id, u.name, u.email, COUNT(c.id) as client_count
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id AND c.status = 'active'
+            WHERE u.role IN ('WORKER', 'MANAGER') AND u.is_active = true
+            GROUP BY u.id, u.name, u.email
+            ORDER BY client_count ASC, u.last_login_at ASC
+            LIMIT 1
+        `);
+
+        if (availableWorkers.rows.length === 0) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'No available workers to assign this client',
+            };
+            return res.status(503).json(response);
+        }
+
+        const workerId = availableWorkers.rows[0].id;
+        const workerName = availableWorkers.rows[0].name;
+        const clientCount = availableWorkers.rows[0].client_count;
+
+        // Create the client
+        const result = await db.query(`
+            INSERT INTO clients (worker_id, name, email, phone, linkedin_url, status, payment_status, total_interviews, total_paid, is_new, assigned_at)
+            VALUES ($1, $2, $3, $4, $5, 'active', 'pending', 0, 0, true, NOW())
+            RETURNING 
+                id,
+                worker_id as "workerId",
+                name,
+                email,
+                phone,
+                linkedin_url as "linkedinUrl",
+                status,
+                payment_status as "paymentStatus",
+                total_interviews as "totalInterviews",
+                total_paid as "totalPaid",
+                is_new as "isNew",
+                assigned_at as "assignedAt",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [workerId, name, email, phone || null, linkedinUrl || null]);
+
+        const response: ApiResponse<Client> = {
+            success: true,
+            data: result.rows[0],
+            message: `Client created successfully. Assigned to ${workerName} (${clientCount + 1} clients).`,
+        };
+
+        res.status(201).json(response);
+    } catch (error) {
+        console.error('Error auto-assigning client:', error);
+        const response: ApiResponse = {
+            success: false,
+            error: 'Failed to create client',
+        };
+        res.status(500).json(response);
+    }
+});
+
 // Update client
 router.put('/:id', async (req, res) => {
     try {
