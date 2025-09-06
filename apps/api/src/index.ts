@@ -1,5 +1,4 @@
 import express from 'express';
-import compression from 'compression';
 
 // Test database connection
 import { db } from './utils/database';
@@ -87,19 +86,19 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Response compression for better performance
-app.use(compression({
-    level: 6, // Compression level (1-9, 6 is good balance)
-    threshold: 1024, // Only compress responses > 1KB
-    filter: (req: any, res: any) => {
-        // Don't compress if client doesn't support it
-        if (req.headers['x-no-compression']) {
-            return false;
-        }
-        // Use compression for all other responses
-        return compression.filter(req, res);
-    }
-}));
+// Response compression for better performance (temporarily disabled due to type conflicts)
+// app.use(compression({
+//     level: 6, // Compression level (1-9, 6 is good balance)
+//     threshold: 1024, // Only compress responses > 1KB
+//     filter: (req: any, res: any) => {
+//         // Don't compress if client doesn't support it
+//         if (req.headers['x-no-compression']) {
+//             return false;
+//         }
+//         // Use compression for all other responses
+//         return compression.filter(req, res);
+//     }
+// }));
 
 // Add request ID for tracking
 app.use((req, res, next) => {
