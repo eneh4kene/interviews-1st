@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 
 // Test database connection
 import { db } from './utils/database';
@@ -26,6 +27,8 @@ import { ApiResponse } from '@interview-me/types';
 import { checkDatabaseHealth } from './utils/database';
 import { requestLogging, errorLogging, logger as appLogger } from './middleware/logging';
 import { performanceMonitoring, getMetrics } from './middleware/metrics';
+import { createCacheMiddleware, cacheConfigs } from './middleware/caching';
+import { queryOptimization } from './middleware/query-optimization';
 import clientsRouter from './routes/clients';
 import interviewsRouter from './routes/interviews';
 import authRouter from './routes/auth';
@@ -84,6 +87,20 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Response compression for better performance
+app.use(compression({
+    level: 6, // Compression level (1-9, 6 is good balance)
+    threshold: 1024, // Only compress responses > 1KB
+    filter: (req, res) => {
+        // Don't compress if client doesn't support it
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Use compression for all other responses
+        return compression.filter(req, res);
+    }
+}));
+
 // Add request ID for tracking
 app.use((req, res, next) => {
     req.id = Math.random().toString(36).substr(2, 9);
@@ -96,6 +113,9 @@ app.use(requestLogging);
 
 // Performance monitoring middleware
 app.use(performanceMonitoring);
+
+// Query optimization middleware
+app.use(queryOptimization);
 
 // Basic input sanitization
 app.use((req, res, next) => {
@@ -173,8 +193,8 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
+// Health check endpoint with caching
+app.get('/health', createCacheMiddleware(cacheConfigs.short), async (req, res) => {
     const dbHealth = await checkDatabaseHealth();
 
     const response: ApiResponse = {
