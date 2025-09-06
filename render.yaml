@@ -2,7 +2,6 @@ services:
   - type: web
     name: interviewsfirst-api
     env: node
-    buildCommand: node render-build.js
     startCommand: cd apps/api && npm start
     envVars:
       - key: NODE_ENV

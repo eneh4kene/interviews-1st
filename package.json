@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "build": "node render-build.js",
     "build:render": "node render-build.js",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
@@ -29,6 +29,9 @@
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/cors": "^2.8.17",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "dotenv": "^17.2.1",
