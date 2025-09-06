@@ -11,6 +11,9 @@
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": "../../",
         "paths": {
