@@ -13,8 +13,13 @@
     "dependencies": {
         "@anatine/zod-openapi": "^2.2.8",
         "@interview-me/types": "*",
+        "@types/compression": "^1.8.1",
+        "@types/cookie-parser": "^1.4.9",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^4.17.21",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/multer": "^2.0.0",
+        "@types/node": "^20.10.0",
         "@types/pg": "^8.15.5",
         "@types/redis": "^4.0.11",
         "bcryptjs": "^2.4.3",
@@ -31,17 +36,11 @@
         "pino-http": "^9.0.0",
         "redis": "^5.8.0",
         "tsx": "^4.6.2",
+        "typescript": "^5.3.0",
         "zod": "^3.22.4",
         "zod-express-middleware": "^1.1.0"
     },
     "devDependencies": {
-        "@types/compression": "^1.8.1",
-        "@types/cookie-parser": "^1.4.9",
-        "@types/cors": "^2.8.19",
-        "@types/express": "^4.17.21",
-        "@types/node": "^20.10.0",
-        "eslint": "^8.56.0",
-        "tsx": "^4.6.0",
-        "typescript": "^5.3.0"
+        "eslint": "^8.56.0"
     }
 }
