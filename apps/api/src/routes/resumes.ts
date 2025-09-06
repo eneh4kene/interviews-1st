@@ -295,31 +295,47 @@ router.put('/:id', validateRequest(updateResumeSchema), async (req, res) => {
         const { id } = req.params;
         const { name, isDefault } = req.body;
 
-        const resumeIndex = mockResumes.findIndex(r => r.id === id);
+        // First, check if resume exists
+        const existingResume = await db.query(`
+            SELECT id, client_id, is_default
+            FROM resumes 
+            WHERE id = $1
+        `, [id]);
 
-        if (resumeIndex === -1) {
+        if (existingResume.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: 'Resume not found',
             });
         }
 
-        const resume = mockResumes[resumeIndex];
+        const resume = existingResume.rows[0];
 
-        // Update the resume first
-        const updatedResume: Resume = {
-            ...resume,
-            name,
-            isDefault: isDefault !== undefined ? isDefault : resume.isDefault,
-            updatedAt: new Date(),
-        };
-
-        mockResumes[resumeIndex] = updatedResume;
-
-        // Then ensure only one default per client if setting as default
+        // If setting as default, ensure only one default per client
         if (isDefault) {
-            ensureSingleDefault(resume.clientId, updatedResume.id);
+            await db.query(`
+                UPDATE resumes 
+                SET is_default = false 
+                WHERE client_id = $1 AND id != $2
+            `, [resume.client_id, id]);
         }
+
+        // Update the resume
+        const result = await db.query(`
+            UPDATE resumes 
+            SET name = $1, is_default = $2, updated_at = NOW()
+            WHERE id = $3
+            RETURNING 
+                id,
+                client_id as "clientId",
+                name,
+                file_url as "fileUrl",
+                is_default as "isDefault",
+                created_at as "createdAt",
+                updated_at as "updatedAt"
+        `, [name, isDefault !== undefined ? isDefault : resume.is_default, id]);
+
+        const updatedResume = result.rows[0];
 
         const response: ApiResponse = {
             success: true,
@@ -386,25 +402,30 @@ router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const resumeIndex = mockResumes.findIndex(r => r.id === id);
+        // First, get the resume details to find the file path
+        const resumeResult = await db.query(`
+            SELECT id, file_url, client_id
+            FROM resumes 
+            WHERE id = $1
+        `, [id]);
 
-        if (resumeIndex === -1) {
+        if (resumeResult.rows.length === 0) {
             return res.status(404).json({
                 success: false,
                 error: 'Resume not found',
             });
         }
 
-        const resume = mockResumes[resumeIndex];
+        const resume = resumeResult.rows[0];
 
         // Delete the file from disk
-        const filePath = path.join(__dirname, '../../uploads/resumes', resume.fileUrl);
+        const filePath = path.join(__dirname, '../../uploads/resumes', resume.file_url);
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
 
-        // Remove from mock data
-        mockResumes.splice(resumeIndex, 1);
+        // Delete from database
+        await db.query('DELETE FROM resumes WHERE id = $1', [id]);
 
         const response: ApiResponse = {
             success: true,
