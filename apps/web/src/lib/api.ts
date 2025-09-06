@@ -1,5 +1,5 @@
 // API service layer for frontend
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002') + '/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001') + '/api';
 
 console.log('🔧 API_BASE_URL configured as:', API_BASE_URL);
 
@@ -72,7 +72,7 @@ class ApiService {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', errorText);
-                
+
                 // Handle 401 Unauthorized - redirect to login
                 if (response.status === 401) {
                     localStorage.removeItem('user');
@@ -83,7 +83,7 @@ class ApiService {
                         error: 'Authentication required',
                     };
                 }
-                
+
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 

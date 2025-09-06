@@ -147,7 +147,7 @@ router.get('/activity', async (req, res) => {
         const recentInterviews = await db.query(`
             SELECT 
                 'interview_scheduled' as type,
-                i.title,
+                i.job_title as title,
                 c.name as client_name,
                 u.name as worker_name,
                 i.created_at as timestamp
@@ -631,11 +631,11 @@ router.post('/workers/:id/reactivate', async (req, res) => {
 router.get('/analytics/overview', async (req, res) => {
     try {
         const { period = '30d' } = req.query;
-        
+
         // Calculate date range based on period
         let dateFilter = '';
         let dateParams: any[] = [];
-        
+
         switch (period) {
             case '7d':
                 dateFilter = 'AND created_at >= NOW() - INTERVAL \'7 days\'';
@@ -752,10 +752,10 @@ router.get('/analytics/overview', async (req, res) => {
 router.get('/analytics/revenue', async (req, res) => {
     try {
         const { period = '30d', groupBy = 'day' } = req.query;
-        
+
         let dateFilter = '';
         let groupByClause = '';
-        
+
         switch (period) {
             case '7d':
                 dateFilter = 'AND created_at >= NOW() - INTERVAL \'7 days\'';
@@ -837,7 +837,7 @@ router.get('/analytics/revenue', async (req, res) => {
 router.get('/analytics/engagement', async (req, res) => {
     try {
         const { period = '30d' } = req.query;
-        
+
         let dateFilter = '';
         switch (period) {
             case '7d':
@@ -913,7 +913,7 @@ router.get('/analytics/engagement', async (req, res) => {
 router.get('/analytics/workers', async (req, res) => {
     try {
         const { period = '30d', sortBy = 'revenue' } = req.query;
-        
+
         let dateFilter = '';
         switch (period) {
             case '7d':
@@ -1011,10 +1011,10 @@ router.get('/analytics/workers', async (req, res) => {
 router.get('/analytics/export', async (req, res) => {
     try {
         const { type = 'overview', format = 'json', period = '30d' } = req.query;
-        
+
         // This would typically generate CSV or Excel files
         // For now, we'll return JSON data that can be converted client-side
-        
+
         const response: ApiResponse = {
             success: true,
             data: {
@@ -1041,18 +1041,18 @@ router.get('/analytics/export', async (req, res) => {
 // Get all clients with pagination, search, and filtering
 router.get('/clients', async (req, res) => {
     try {
-        const { 
-            page = 1, 
-            limit = 10, 
-            search = '', 
-            status = 'all', 
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            status = 'all',
             workerId = 'all',
             sortBy = 'created_at',
             sortOrder = 'desc'
         } = req.query;
 
         const offset = (Number(page) - 1) * Number(limit);
-        
+
         let whereConditions = [];
         let params: any[] = [];
         let paramCount = 0;
@@ -1194,9 +1194,9 @@ router.post('/clients', async (req, res) => {
         const { workerId, name, email, phone, linkedinUrl, status = 'active' } = req.body;
 
         if (!workerId || !name || !email) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Worker ID, name, and email are required' 
+            return res.status(400).json({
+                success: false,
+                error: 'Worker ID, name, and email are required'
             });
         }
 
@@ -1207,9 +1207,9 @@ router.post('/clients', async (req, res) => {
         );
 
         if (workerCheck.rows.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Invalid worker ID' 
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid worker ID'
             });
         }
 
@@ -1368,9 +1368,9 @@ router.delete('/clients/:id', async (req, res) => {
         );
 
         if (Number(interviewCheck.rows[0].count) > 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Cannot delete client with active interviews' 
+            return res.status(400).json({
+                success: false,
+                error: 'Cannot delete client with active interviews'
             });
         }
 
@@ -1392,7 +1392,7 @@ router.delete('/clients/:id', async (req, res) => {
 router.get('/clients/stats', async (req, res) => {
     try {
         const { period = '30d' } = req.query;
-        
+
         let dateFilter = '';
         if (period === '7d') {
             dateFilter = "AND created_at > NOW() - INTERVAL '7 days'";
@@ -1440,16 +1440,16 @@ router.post('/clients/bulk-assign', async (req, res) => {
         const { clientIds, workerId } = req.body;
 
         if (!clientIds || !Array.isArray(clientIds) || clientIds.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Client IDs array is required' 
+            return res.status(400).json({
+                success: false,
+                error: 'Client IDs array is required'
             });
         }
 
         if (!workerId) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Worker ID is required' 
+            return res.status(400).json({
+                success: false,
+                error: 'Worker ID is required'
             });
         }
 
@@ -1460,9 +1460,9 @@ router.post('/clients/bulk-assign', async (req, res) => {
         );
 
         if (workerCheck.rows.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Invalid worker ID' 
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid worker ID'
             });
         }
 
@@ -1495,11 +1495,11 @@ router.post('/clients/bulk-assign', async (req, res) => {
 // Get all interviews with pagination, search, and filtering
 router.get('/interviews', async (req, res) => {
     try {
-        const { 
-            page = 1, 
-            limit = 10, 
-            search = '', 
-            status = 'all', 
+        const {
+            page = 1,
+            limit = 10,
+            search = '',
+            status = 'all',
             clientId = 'all',
             workerId = 'all',
             sortBy = 'scheduled_date',
@@ -1509,7 +1509,7 @@ router.get('/interviews', async (req, res) => {
         } = req.query;
 
         const offset = (Number(page) - 1) * Number(limit);
-        
+
         let whereConditions = [];
         let params: any[] = [];
         let paramCount = 0;
@@ -1517,7 +1517,7 @@ router.get('/interviews', async (req, res) => {
         // Search filter
         if (search) {
             paramCount++;
-            whereConditions.push(`(i.title ILIKE $${paramCount} OR c.name ILIKE $${paramCount} OR c.company_name ILIKE $${paramCount})`);
+            whereConditions.push(`(i.company_name ILIKE $${paramCount} OR i.job_title ILIKE $${paramCount} OR c.name ILIKE $${paramCount})`);
             params.push(`%${search}%`);
         }
 
@@ -1562,7 +1562,6 @@ router.get('/interviews', async (req, res) => {
             SELECT 
                 i.id,
                 i.client_id,
-                i.title,
                 i.company_name,
                 i.job_title,
                 i.scheduled_date,
@@ -1574,8 +1573,7 @@ router.get('/interviews', async (req, res) => {
                 i.client_response_date,
                 i.client_response_notes,
                 i.worker_notes,
-                i.feedback_score,
-                i.feedback_notes,
+                i.paid_at,
                 i.created_at,
                 i.updated_at,
                 c.name as client_name,
@@ -1634,7 +1632,6 @@ router.get('/interviews/:id', async (req, res) => {
             SELECT 
                 i.id,
                 i.client_id,
-                i.title,
                 i.company_name,
                 i.job_title,
                 i.scheduled_date,
@@ -1646,8 +1643,7 @@ router.get('/interviews/:id', async (req, res) => {
                 i.client_response_date,
                 i.client_response_notes,
                 i.worker_notes,
-                i.feedback_score,
-                i.feedback_notes,
+                i.paid_at,
                 i.created_at,
                 i.updated_at,
                 c.name as client_name,
@@ -1680,22 +1676,21 @@ router.get('/interviews/:id', async (req, res) => {
 // Create new interview
 router.post('/interviews', async (req, res) => {
     try {
-        const { 
-            clientId, 
-            title, 
-            companyName, 
-            jobTitle, 
-            scheduledDate, 
+        const {
+            clientId,
+            companyName,
+            jobTitle,
+            scheduledDate,
             interviewType = 'video',
             status = 'scheduled',
             paymentAmount = 0,
             paymentCurrency = 'USD'
         } = req.body;
 
-        if (!clientId || !title || !companyName || !jobTitle || !scheduledDate) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Client ID, title, company name, job title, and scheduled date are required' 
+        if (!clientId || !companyName || !jobTitle || !scheduledDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'Client ID, company name, job title, and scheduled date are required'
             });
         }
 
@@ -1706,22 +1701,21 @@ router.post('/interviews', async (req, res) => {
         );
 
         if (clientCheck.rows.length === 0) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Invalid client ID' 
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid client ID'
             });
         }
 
         const result = await db.query(`
             INSERT INTO interviews (
-                client_id, title, company_name, job_title, scheduled_date, 
+                client_id, company_name, job_title, scheduled_date, 
                 interview_type, status, payment_status, payment_amount, payment_currency
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
             RETURNING 
                 id,
                 client_id,
-                title,
                 company_name,
                 job_title,
                 scheduled_date,
@@ -1732,7 +1726,7 @@ router.post('/interviews', async (req, res) => {
                 payment_currency,
                 created_at,
                 updated_at
-        `, [clientId, title, companyName, jobTitle, scheduledDate, interviewType, status, paymentAmount, paymentCurrency]);
+        `, [clientId, companyName, jobTitle, scheduledDate, interviewType, status, paymentAmount, paymentCurrency]);
 
         const response: ApiResponse = {
             success: true,
@@ -1750,20 +1744,17 @@ router.post('/interviews', async (req, res) => {
 router.put('/interviews/:id', async (req, res) => {
     try {
         const interviewId = req.params.id;
-        const { 
-            title, 
-            companyName, 
-            jobTitle, 
-            scheduledDate, 
+        const {
+            companyName,
+            jobTitle,
+            scheduledDate,
             interviewType,
             status,
             paymentStatus,
             paymentAmount,
             paymentCurrency,
             clientResponseNotes,
-            workerNotes,
-            feedbackScore,
-            feedbackNotes
+            workerNotes
         } = req.body;
 
         // Check if interview exists
@@ -1776,11 +1767,6 @@ router.put('/interviews/:id', async (req, res) => {
         const params = [];
         let paramCount = 0;
 
-        if (title !== undefined) {
-            paramCount++;
-            updateFields.push(`title = $${paramCount}`);
-            params.push(title);
-        }
         if (companyName !== undefined) {
             paramCount++;
             updateFields.push(`company_name = $${paramCount}`);
@@ -1831,16 +1817,6 @@ router.put('/interviews/:id', async (req, res) => {
             updateFields.push(`worker_notes = $${paramCount}`);
             params.push(workerNotes);
         }
-        if (feedbackScore !== undefined) {
-            paramCount++;
-            updateFields.push(`feedback_score = $${paramCount}`);
-            params.push(feedbackScore);
-        }
-        if (feedbackNotes !== undefined) {
-            paramCount++;
-            updateFields.push(`feedback_notes = $${paramCount}`);
-            params.push(feedbackNotes);
-        }
 
         if (updateFields.length === 0) {
             return res.status(400).json({ success: false, error: 'No fields to update' });
@@ -1857,7 +1833,6 @@ router.put('/interviews/:id', async (req, res) => {
             RETURNING 
                 id,
                 client_id,
-                title,
                 company_name,
                 job_title,
                 scheduled_date,
@@ -1868,8 +1843,7 @@ router.put('/interviews/:id', async (req, res) => {
                 payment_currency,
                 client_response_notes,
                 worker_notes,
-                feedback_score,
-                feedback_notes,
+                paid_at,
                 created_at,
                 updated_at
         `, params);
@@ -1915,7 +1889,7 @@ router.delete('/interviews/:id', async (req, res) => {
 router.get('/interviews/stats', async (req, res) => {
     try {
         const { period = '30d' } = req.query;
-        
+
         let dateFilter = '';
         if (period === '7d') {
             dateFilter = "AND created_at > NOW() - INTERVAL '7 days'";
@@ -1969,9 +1943,9 @@ router.patch('/interviews/:id/status', async (req, res) => {
         const { status, notes } = req.body;
 
         if (!status) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Status is required' 
+            return res.status(400).json({
+                success: false,
+                error: 'Status is required'
             });
         }
 
@@ -2028,9 +2002,9 @@ router.post('/interviews/:id/feedback', async (req, res) => {
         const { feedbackScore, feedbackNotes } = req.body;
 
         if (!feedbackScore || feedbackScore < 1 || feedbackScore > 5) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Feedback score must be between 1 and 5' 
+            return res.status(400).json({
+                success: false,
+                error: 'Feedback score must be between 1 and 5'
             });
         }
 

@@ -462,7 +462,9 @@ export default function WorkerManagement() {
         {/* Worker Modal */}
         <WorkerModal
           isOpen={showCreateModal || !!editingWorker}
-          onClose={() => {
+          onClose={(
+            
+          ) => {
             setShowCreateModal(false);
             setEditingWorker(null);
           }}
