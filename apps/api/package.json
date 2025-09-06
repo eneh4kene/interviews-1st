@@ -7,7 +7,8 @@
         "dev": "tsx watch src/index.ts",
         "start": "node dist/index.js",
         "lint": "eslint .",
-        "type-check": "tsc --noEmit"
+        "type-check": "tsc --noEmit",
+        "postinstall": "npm run build"
     },
     "dependencies": {
         "@anatine/zod-openapi": "^2.2.8",
