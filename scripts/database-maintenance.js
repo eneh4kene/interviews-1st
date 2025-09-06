@@ -109,7 +109,7 @@ class DatabaseMaintenance {
                 LEFT JOIN users u ON c.assigned_worker_id = u.id
                 WHERE c.assigned_worker_id IS NOT NULL AND u.id IS NULL
             `);
-            
+
             if (orphanedClients.rows[0].count > 0) {
                 console.log(`   ⚠️  Found ${orphanedClients.rows[0].count} clients with invalid worker assignments`);
             } else {
@@ -123,7 +123,7 @@ class DatabaseMaintenance {
                 GROUP BY email
                 HAVING COUNT(*) > 1
             `);
-            
+
             if (duplicateEmails.rows.length > 0) {
                 console.log(`   ⚠️  Found ${duplicateEmails.rows.length} duplicate email addresses`);
             } else {
@@ -140,9 +140,9 @@ class DatabaseMaintenance {
 
     async runMaintenance() {
         console.log('🔧 Starting database maintenance...');
-        
+
         await this.connect();
-        
+
         const results = {
             analyze: await this.analyzeTables(),
             vacuum: await this.vacuumTables(),
@@ -153,14 +153,14 @@ class DatabaseMaintenance {
 
         console.log('\n📊 Maintenance Summary:');
         console.log('======================');
-        
+
         Object.entries(results).forEach(([task, result]) => {
             const status = result.status === 'success' ? '✅' : '❌';
             console.log(`${status} ${task}: ${result.status}`);
         });
 
         const allSuccessful = Object.values(results).every(result => result.status === 'success');
-        
+
         if (allSuccessful) {
             console.log('\n🎉 Database maintenance completed successfully!');
         } else {
@@ -176,7 +176,7 @@ class DatabaseMaintenance {
 async function main() {
     const command = process.argv[2];
     const maintenance = new DatabaseMaintenance();
-    
+
     if (command === 'run') {
         const success = await maintenance.runMaintenance();
         process.exit(success ? 0 : 1);

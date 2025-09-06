@@ -35,7 +35,7 @@ class DatabaseSeeder {
 
     async seedUsers() {
         console.log('👥 Seeding users...');
-        
+
         const users = [
             {
                 id: uuidv4(),
@@ -62,7 +62,7 @@ class DatabaseSeeder {
 
         for (const user of users) {
             const hashedPassword = await bcrypt.hash(user.password, 10);
-            
+
             await this.pool.query(`
                 INSERT INTO users (id, email, password_hash, name, role, is_active, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
@@ -80,13 +80,13 @@ class DatabaseSeeder {
 
     async seed() {
         console.log('🚀 Starting database seeding...');
-        
+
         await this.connect();
         const users = await this.seedUsers();
-        
+
         console.log('\n🎉 Database seeding completed successfully!');
         console.log(`📊 Seeded: ${users.length} users`);
-        
+
         await this.pool.end();
     }
 }
@@ -95,7 +95,7 @@ class DatabaseSeeder {
 async function main() {
     const command = process.argv[2];
     const seeder = new DatabaseSeeder();
-    
+
     if (command === 'seed') {
         await seeder.seed();
     } else {

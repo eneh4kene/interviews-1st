@@ -132,9 +132,9 @@ class DatabaseHealthChecker {
 
     async runHealthCheck() {
         console.log('🏥 Running database health check...');
-        
+
         await this.connect();
-        
+
         const checks = {
             databaseSize: await this.checkDatabaseSize(),
             activeConnections: await this.checkActiveConnections(),
@@ -145,7 +145,7 @@ class DatabaseHealthChecker {
 
         console.log('\n📊 Database Health Report:');
         console.log('========================');
-        
+
         // Database Size
         console.log(`\n💾 Database Size: ${checks.databaseSize.status.toUpperCase()}`);
         if (checks.databaseSize.status === 'healthy') {
@@ -193,12 +193,12 @@ class DatabaseHealthChecker {
         }
 
         // Overall Health
-        const overallStatus = Object.values(checks).every(check => 
+        const overallStatus = Object.values(checks).every(check =>
             check.status === 'healthy' || check.status === 'warning'
         ) ? 'healthy' : 'unhealthy';
 
         console.log(`\n🎯 Overall Database Health: ${overallStatus.toUpperCase()}`);
-        
+
         await this.pool.end();
         return overallStatus;
     }
@@ -208,7 +208,7 @@ class DatabaseHealthChecker {
 async function main() {
     const command = process.argv[2];
     const checker = new DatabaseHealthChecker();
-    
+
     if (command === 'check') {
         const status = await checker.runHealthCheck();
         process.exit(status === 'healthy' ? 0 : 1);
