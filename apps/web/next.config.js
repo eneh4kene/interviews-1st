@@ -13,39 +13,6 @@ const nextConfig = {
         formats: ['image/webp', 'image/avif'],
     },
     
-    // Bundle optimization
-    webpack: (config, { dev, isServer }) => {
-        // Bundle analyzer (only in development)
-        if (dev && !isServer) {
-            const withBundleAnalyzer = require('next-bundle-analyzer')({
-                enabled: process.env.ANALYZE === 'true',
-            });
-            return withBundleAnalyzer(config);
-        }
-        
-        // Production optimizations
-        if (!dev && !isServer) {
-            config.optimization.splitChunks = {
-                chunks: 'all',
-                cacheGroups: {
-                    vendor: {
-                        test: /[\\/]node_modules[\\/]/,
-                        name: 'vendors',
-                        chunks: 'all',
-                    },
-                    common: {
-                        name: 'common',
-                        minChunks: 2,
-                        chunks: 'all',
-                        enforce: true,
-                    },
-                },
-            };
-        }
-        
-        return config;
-    },
-    
     // Headers for performance
     async headers() {
         return [
