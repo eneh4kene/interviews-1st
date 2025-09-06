@@ -7,6 +7,7 @@ import { validateRequest } from '../utils/validation';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair, verifyRefreshToken, revokeRefreshToken, verifyToken } from '../utils/jwt';
 import { authRateLimit } from '../middleware/auth';
+import { auditLog, logAuthEvent, logSecurityEvent } from '../middleware/audit';
 import { db } from '../utils/database';
 import {
     User,
@@ -155,7 +156,7 @@ const generateMagicLinkToken = (email: string, interviewId: string): string => {
 };
 
 // Routes
-router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body: loginSchema }), async (req, res) => {
+router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body: loginSchema }), auditLog('LOGIN_ATTEMPT', 'AUTH'), async (req, res) => {
     try {
         const { email, password } = req.body as LoginRequest;
 
@@ -166,6 +167,7 @@ router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body:
         );
 
         if (rows.length === 0) {
+            logSecurityEvent('LOGIN_FAILED_USER_NOT_FOUND', { email, ip: req.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -176,6 +178,7 @@ router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body:
         const dbUser = rows[0];
 
         if (!dbUser.is_active) {
+            logSecurityEvent('LOGIN_FAILED_ACCOUNT_DISABLED', { email, userId: dbUser.id, ip: req.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Account disabled',
@@ -187,6 +190,7 @@ router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body:
         const passwordHash: string = dbUser.password_hash;
         const isValid = passwordHash && await bcrypt.compare(password, passwordHash);
         if (!isValid) {
+            logSecurityEvent('LOGIN_FAILED_INVALID_PASSWORD', { email, userId: dbUser.id, ip: req.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -234,6 +238,9 @@ router.post('/login', authRateLimit(10, 15 * 60 * 1000), validateRequest({ body:
         } catch (e) {
             // ignore
         }
+
+        // Log successful login
+        logAuthEvent('LOGIN_SUCCESS', user.id, user.email, true);
 
         const response: LoginResponse = {
             success: true,

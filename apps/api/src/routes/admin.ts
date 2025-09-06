@@ -2045,7 +2045,7 @@ const resetPasswordSchema = z.object({
 });
 
 // Reset user password (admin only)
-router.post('/reset-password', authorize(['ADMIN']), validateRequest({ body: resetPasswordSchema }), async (req, res) => {
+router.post('/reset-password', authorize('ADMIN'), validateRequest({ body: resetPasswordSchema }), async (req, res) => {
     try {
         const { userId, newPassword } = req.body;
 

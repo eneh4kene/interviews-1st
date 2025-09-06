@@ -226,4 +226,39 @@ export const authRateLimit = (maxAttempts: number = 5, windowMs: number = 15 * 6
             next();
         }
     };
+};
+
+// General rate limiting middleware for all endpoints
+export const rateLimit = (maxRequests: number = 100, windowMs: number = 15 * 60 * 1000) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        if (process.env.RATE_LIMIT_DISABLED === 'true') {
+            return next();
+        }
+        
+        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const key = `rate_limit:${ip}`;
+
+        try {
+            const { redis } = await import('../utils/database');
+            const requests = await redis.get(key);
+            const currentRequests = requests ? parseInt(requests) : 0;
+
+            if (currentRequests >= maxRequests) {
+                const response: ApiResponse = {
+                    success: false,
+                    error: 'Too many requests from this IP. Please try again later.',
+                };
+                return res.status(429).json(response);
+            }
+
+            // Increment requests
+            await redis.set(key, (currentRequests + 1).toString(), Math.floor(windowMs / 1000));
+
+            next();
+        } catch (error) {
+            // If Redis is unavailable, allow the request
+            console.error('Rate limiting error:', error);
+            next();
+        }
+    };
 }; 

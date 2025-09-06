@@ -57,7 +57,21 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(logger);
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:"],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
         ? ['https://yourdomain.com']
@@ -67,6 +81,81 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Add request ID for tracking
+app.use((req, res, next) => {
+    req.id = Math.random().toString(36).substr(2, 9);
+    res.setHeader('X-Request-ID', req.id);
+    next();
+});
+
+// Basic input sanitization
+app.use((req, res, next) => {
+    // Sanitize common XSS patterns
+    const sanitize = (obj: any): any => {
+        if (typeof obj === 'string') {
+            return obj
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/<[^>]*>/g, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '');
+        }
+        if (Array.isArray(obj)) {
+            return obj.map(sanitize);
+        }
+        if (obj && typeof obj === 'object') {
+            const sanitized: any = {};
+            for (const key in obj) {
+                if (obj.hasOwnProperty(key)) {
+                    sanitized[key] = sanitize(obj[key]);
+                }
+            }
+            return sanitized;
+        }
+        return obj;
+    };
+
+    if (req.body) req.body = sanitize(req.body);
+    if (req.query) req.query = sanitize(req.query);
+    if (req.params) req.params = sanitize(req.params);
+    
+    next();
+});
+
+// Security logging middleware
+app.use((req, res, next) => {
+    const originalSend = res.send;
+    
+    res.send = function(data: any) {
+        // Log security events
+        if (res.statusCode >= 400) {
+            console.log(`🚨 SECURITY EVENT [${req.id}]:`, {
+                timestamp: new Date().toISOString(),
+                method: req.method,
+                path: req.path,
+                statusCode: res.statusCode,
+                ip: req.ip,
+                userAgent: req.get('User-Agent'),
+                error: data
+            });
+        }
+        
+        // Log authentication events
+        if (req.path.includes('/auth/') && res.statusCode < 400) {
+            console.log(`🔐 AUTH EVENT [${req.id}]:`, {
+                timestamp: new Date().toISOString(),
+                action: req.path,
+                method: req.method,
+                ip: req.ip,
+                success: true
+            });
+        }
+        
+        return originalSend.call(this, data);
+    };
+    
+    next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
