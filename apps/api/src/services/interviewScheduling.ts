@@ -209,7 +209,7 @@ export class InterviewSchedulingService {
       `, [
                 new Date(),
                 new Date(),
-                offer.interview_id
+                offer.interviewId
             ]);
 
             // Remove from Redis cache
@@ -217,7 +217,7 @@ export class InterviewSchedulingService {
 
             return {
                 success: true,
-                interviewId: offer.interview_id
+                interviewId: offer.interviewId
             };
         } catch (error) {
             console.error('Accept interview offer error:', error);
@@ -260,7 +260,7 @@ export class InterviewSchedulingService {
                 new Date(),
                 notes,
                 new Date(),
-                offer.interview_id
+                offer.interviewId
             ]);
 
             // Remove from Redis cache
@@ -268,7 +268,7 @@ export class InterviewSchedulingService {
 
             return {
                 success: true,
-                interviewId: offer.interview_id
+                interviewId: offer.interviewId
             };
         } catch (error) {
             console.error('Decline interview offer error:', error);

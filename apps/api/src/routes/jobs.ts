@@ -40,18 +40,18 @@ const updateAutoApplySchema = z.object({
 router.get('/search', validateRequest(jobSearchSchema), async (req, res) => {
     try {
         const filters: JobSearchFilters = {
-            keywords: req.query.keywords,
-            location: req.query.location,
-            radius: req.query.radius,
+            keywords: req.query.keywords as string,
+            location: req.query.location as string,
+            radius: Number(req.query.radius),
             jobType: req.query.jobType ? [req.query.jobType as any] : undefined,
             workLocation: req.query.workLocation ? [req.query.workLocation as any] : undefined,
-            salaryMin: req.query.salaryMin,
-            salaryMax: req.query.salaryMax,
-            postedWithin: req.query.postedWithin,
-            company: req.query.company,
-            autoApplyEligible: req.query.autoApplyEligible,
-            page: req.query.page,
-            limit: req.query.limit
+            salaryMin: Number(req.query.salaryMin),
+            salaryMax: Number(req.query.salaryMax),
+            postedWithin: req.query.postedWithin as '24h' | '7d' | '30d' | 'all',
+            company: req.query.company as string,
+            autoApplyEligible: req.query.autoApplyEligible === 'true',
+            page: Number(req.query.page),
+            limit: Number(req.query.limit)
         };
 
         const source = req.query.source as 'live' | 'stored' | 'both';
@@ -120,7 +120,7 @@ router.get('/:id', async (req, res) => {
                 
                 // If found, store it in the database for future access
                 if (job) {
-                    await jobAggregationService.storeJobs([job]);
+                    await (jobAggregationService as any).storeJobs([job]);
                 }
             } catch (liveError) {
                 console.error('Error fetching from live aggregators:', liveError);

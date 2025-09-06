@@ -252,8 +252,8 @@ export class JobAggregationService {
                 normalized.salaryMin = rawJob.salary_min;
                 normalized.salaryMax = rawJob.salary_max;
                 normalized.salaryCurrency = rawJob.salary_currency || 'GBP';
-                normalized.jobType = this.mapJobType(rawJob.contract_time || '');
-                normalized.workLocation = this.mapWorkLocation(rawJob.contract_time || '');
+                normalized.jobType = this.mapJobType(rawJob.contract_time || '') as any;
+                normalized.workLocation = this.mapWorkLocation(rawJob.contract_time || '') as any;
                 break;
 
             case 'jooble':
@@ -266,7 +266,7 @@ export class JobAggregationService {
                 normalized.postedDate = rawJob.updated || '';
                 normalized.applyUrl = rawJob.link || '';
                 normalized.externalId = rawJob.id?.toString() || '';
-                normalized.jobType = this.mapJobType(rawJob.type || '');
+                normalized.jobType = this.mapJobType(rawJob.type || '') as any;
                 // Extract salary range if available
                 if (rawJob.salary) {
                     const salaryMatch = rawJob.salary.match(/(\d+(?:,\d+)*)\s*-\s*(\d+(?:,\d+)*)\s*(\w+)/);
@@ -366,9 +366,9 @@ export class JobAggregationService {
             }
 
             const data = await response.json();
-            console.log('🔍 Adzuna API response:', { count: data.results?.length || 0 });
+            console.log('🔍 Adzuna API response:', { count: (data as any).results?.length || 0 });
 
-            const jobs = (data.results || []).map((job: any) => this.normalizeJob(job, 'adzuna'));
+            const jobs = ((data as any).results || []).map((job: any) => this.normalizeJob(job, 'adzuna'));
 
             return { success: true, jobs, source: 'adzuna' };
         } catch (error) {
@@ -405,7 +405,7 @@ export class JobAggregationService {
             };
 
             if (filters.salaryMin) {
-                requestBody.salary = filters.salaryMin;
+                (requestBody as any).salary = filters.salaryMin;
             }
 
             const url = `${config.baseUrl}/${config.apiKey}`;
@@ -425,9 +425,9 @@ export class JobAggregationService {
             }
 
             const data = await response.json();
-            console.log('🔍 Jooble API response:', { count: data.jobs?.length || 0 });
+            console.log('🔍 Jooble API response:', { count: (data as any).jobs?.length || 0 });
 
-            const jobs = (data.jobs || []).map((job: any) => this.normalizeJob(job, 'jooble'));
+            const jobs = ((data as any).jobs || []).map((job: any) => this.normalizeJob(job, 'jooble'));
 
             return { success: true, jobs, source: 'jooble' };
         } catch (error) {
@@ -477,8 +477,8 @@ export class JobAggregationService {
 
             if (!seen.has(combinedHash)) {
                 seen.add(combinedHash);
-                job.title_hash = titleHash;
-                job.company_location_hash = companyLocationHash;
+                (job as any).title_hash = titleHash;
+                (job as any).company_location_hash = companyLocationHash;
                 deduplicated.push(job);
             }
         }
