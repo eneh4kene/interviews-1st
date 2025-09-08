@@ -247,9 +247,24 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                  <SelectItem value="WORKER" className="bg-white hover:bg-gray-50">Worker</SelectItem>
-                  <SelectItem value="MANAGER" className="bg-white hover:bg-gray-50">Manager</SelectItem>
+                <SelectContent 
+                  className="bg-white border border-gray-200 shadow-lg z-50 rounded-md"
+                  style={{ backgroundColor: 'white' }}
+                >
+                  <SelectItem 
+                    value="WORKER" 
+                    className="bg-white hover:bg-gray-50 focus:bg-gray-50 cursor-pointer"
+                    style={{ backgroundColor: 'white' }}
+                  >
+                    Worker
+                  </SelectItem>
+                  <SelectItem 
+                    value="MANAGER" 
+                    className="bg-white hover:bg-gray-50 focus:bg-gray-50 cursor-pointer"
+                    style={{ backgroundColor: 'white' }}
+                  >
+                    Manager
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
