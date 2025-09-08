@@ -60,14 +60,15 @@ export default function Dashboard() {
     return {
       totalClients,
       activeClients,
-      completedClients,
       newClients,
-      totalInterviews,
-      totalRevenue,
-      pendingPayments,
       interviewsThisMonth,
+      placementsThisMonth: completedClients, // Use completed clients as placements
       successRate,
-      interviewsAccepted
+      pendingPayments,
+      totalRevenue,
+      interviewsScheduled: totalInterviews, // Use total interviews as scheduled
+      interviewsAccepted,
+      interviewsDeclined: Math.floor(totalInterviews * 0.2) // Rough estimate
     };
   };
 

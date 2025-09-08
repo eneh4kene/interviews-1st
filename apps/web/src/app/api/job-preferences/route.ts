@@ -105,6 +105,15 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { clientId, jobTitle, companyName, location, salaryMin, salaryMax, jobType, visaSponsorship, salaryCurrency } = body;
 
+        // Validate required fields
+        if (!jobTitle || !location) {
+            const response: ApiResponse = {
+                success: false,
+                error: 'Job title and location are required',
+            };
+            return NextResponse.json(response, { status: 400 });
+        }
+
         if (!clientId) {
             const response: ApiResponse = {
                 success: false,
@@ -164,12 +173,12 @@ export async function POST(request: NextRequest) {
         updated_at as "updatedAt"
     `, [
             clientId,
-            jobTitle,
-            companyName,
-            location,
+            jobTitle || 'Untitled Position',
+            companyName || 'Unknown Company',
+            location || 'Remote',
             salaryMin,
             salaryMax,
-            jobType,
+            jobType || 'remote',
             visaSponsorship || false,
             salaryCurrency || 'GBP'
         ]);

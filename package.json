@@ -3,19 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "node render-build.js",
-    "build:render": "node render-build.js",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "dev": "cd apps/web && npm run dev",
+    "build": "cd apps/web && npm run build",
+    "start": "cd apps/web && npm run start",
+    "lint": "cd apps/web && npm run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "type-check": "turbo run type-check"
+    "type-check": "cd apps/web && npm run type-check"
   },
   "devDependencies": {
-    "@types/compression": "^1.8.1",
-    "@types/cookie-parser": "^1.4.9",
-    "@types/cors": "^2.8.19",
     "@types/node": "^20.10.0",
-    "artillery": "^2.0.24",
     "prettier": "^3.1.0",
     "turbo": "^1.11.0",
     "typescript": "^5.3.0"
@@ -26,23 +22,6 @@
   ],
   "engines": {
     "node": ">=18.0.0"
-  },
-  "overrides": {
-    "@opentelemetry/api": "1.6.0",
-    "@types/express": "^4.17.21",
-    "@types/express-serve-static-core": "^4.19.5",
-    "@types/multer": {
-      "@types/express": "^4.17.21",
-      "@types/express-serve-static-core": "^4.19.5"
-    },
-    "@types/cookie-parser": {
-      "@types/express": "^4.17.21",
-      "@types/express-serve-static-core": "^4.19.5"
-    },
-    "@types/cors": {
-      "@types/express": "^4.17.21",
-      "@types/express-serve-static-core": "^4.19.5"
-    }
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",

@@ -1,8 +1,11 @@
+[phases.setup]
+nixPkgs = ['nodejs', 'npm']
+
 [phases.install]
-cmds = ["echo 'Using Dockerfile instead of Nixpacks'"]
+cmds = ['cd apps/web && npm install']
 
 [phases.build]
-cmds = ["echo 'Build handled by Dockerfile'"]
+cmds = ['cd apps/web && npm run build']
 
-[providers]
-dockerfile = "Dockerfile"
+[start]
+cmd = 'cd apps/web && npm start'

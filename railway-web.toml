@@ -1,7 +1,0 @@
-[deploy]
-image = "ghcr.io/eneh4kene/interview-me-web:ad49f009b4a2b68f5ee9a0a65c5a4fca12e7ff34"
-start = "npm start"
-
-[env]
-NODE_ENV = "production"
-PORT = "3000"

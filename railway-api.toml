@@ -1,7 +1,0 @@
-[deploy]
-image = "ghcr.io/eneh4kene/interview-me-api:ad49f009b4a2b68f5ee9a0a65c5a4fca12e7ff34"
-start = "node dist/apps/api/src/index.js"
-
-[env]
-NODE_ENV = "production"
-PORT = "3001"

@@ -910,6 +910,40 @@ export class JobAggregationService {
         }
     }
 
+    // Get job by ID
+    async getJobById(id: string): Promise<Job | null> {
+        try {
+            const result = await db.query(
+                'SELECT * FROM jobs WHERE id = $1',
+                [id]
+            );
+
+            if (result.rows.length === 0) {
+                return null;
+            }
+
+            const row = result.rows[0];
+            return {
+                ...row,
+                postedDate: row.posted_date,
+                descriptionSnippet: row.description_snippet,
+                applyUrl: row.apply_url,
+                jobType: row.job_type,
+                workLocation: row.work_location,
+                salaryMin: row.salary_min,
+                salaryMax: row.salary_max,
+                salaryCurrency: row.salary_currency,
+                autoApplyStatus: row.auto_apply_status,
+                externalId: row.external_id,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at
+            };
+        } catch (error) {
+            console.error('Error getting job by ID:', error);
+            return null;
+        }
+    }
+
     // Initialize cleanup job (run periodically)
     async initializeCleanup(): Promise<void> {
         // Run cleanup every 24 hours
