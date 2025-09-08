@@ -305,6 +305,13 @@ class ApiService {
         });
     }
 
+    async resetPassword(userId: string, newPassword: string): Promise<ApiResponse<any>> {
+        return this.request('/admin/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ userId, newPassword }),
+        });
+    }
+
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
         try {
             const url = `${API_BASE_URL}/resumes`;

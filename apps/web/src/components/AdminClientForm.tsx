@@ -236,10 +236,10 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="placed">Placed</SelectItem>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                    <SelectItem value="active" className="bg-white hover:bg-gray-50">Active</SelectItem>
+                    <SelectItem value="inactive" className="bg-white hover:bg-gray-50">Inactive</SelectItem>
+                    <SelectItem value="placed" className="bg-white hover:bg-gray-50">Placed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -259,9 +259,9 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
                 <SelectTrigger className="bg-white border-gray-300">
                   <SelectValue placeholder="Select a worker to assign this client to" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300 shadow-lg">
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
                   {workers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id} className="hover:bg-gray-100">
+                    <SelectItem key={worker.id} value={worker.id} className="bg-white hover:bg-gray-50">
                       {worker.name} ({worker.email})
                     </SelectItem>
                   ))}

@@ -324,9 +324,9 @@ export default function ApplicationModal({
                     <SelectTrigger>
                       <SelectValue placeholder="Select a job preference" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       {jobPreferences.map((pref) => (
-                        <SelectItem key={pref.id} value={pref.id}>
+                        <SelectItem key={pref.id} value={pref.id} className="bg-white hover:bg-gray-50">
                           {pref.title} - {pref.company || 'No company'}
                         </SelectItem>
                       ))}
@@ -344,9 +344,9 @@ export default function ApplicationModal({
                     <SelectTrigger>
                       <SelectValue placeholder="Select a resume" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
                       {resumes.map((resume) => (
-                        <SelectItem key={resume.id} value={resume.id}>
+                        <SelectItem key={resume.id} value={resume.id} className="bg-white hover:bg-gray-50">
                           {resume.name} {resume.isDefault && '(Default)'}
                         </SelectItem>
                       ))}
@@ -372,12 +372,12 @@ export default function ApplicationModal({
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="applied">Applied</SelectItem>
-                      <SelectItem value="interviewing">Interviewing</SelectItem>
-                      <SelectItem value="offered">Offered</SelectItem>
-                      <SelectItem value="accepted">Accepted</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                      <SelectItem value="applied" className="bg-white hover:bg-gray-50">Applied</SelectItem>
+                      <SelectItem value="interviewing" className="bg-white hover:bg-gray-50">Interviewing</SelectItem>
+                      <SelectItem value="offered" className="bg-white hover:bg-gray-50">Offered</SelectItem>
+                      <SelectItem value="accepted" className="bg-white hover:bg-gray-50">Accepted</SelectItem>
+                      <SelectItem value="rejected" className="bg-white hover:bg-gray-50">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
