@@ -843,7 +843,6 @@ export class JobAggregationService {
                 title: 'Senior Software Engineer',
                 company: 'TechCorp Inc.',
                 location: 'London, UK',
-                description: 'We are looking for a Senior Software Engineer to join our growing team. You will be responsible for developing and maintaining our core platform.',
                 descriptionSnippet: 'We are looking for a Senior Software Engineer to join our growing team...',
                 salaryMin: 60000,
                 salaryMax: 80000,
@@ -852,8 +851,9 @@ export class JobAggregationService {
                 workLocation: 'hybrid',
                 postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
                 applyUrl: 'https://techcorp.com/careers/senior-software-engineer',
-                source: 'mock',
+                source: 'adzuna' as JobAggregator,
                 externalId: 'mock-1',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
@@ -862,7 +862,6 @@ export class JobAggregationService {
                 title: 'Frontend Developer',
                 company: 'StartupXYZ',
                 location: 'Remote',
-                description: 'Join our innovative startup as a Frontend Developer. Work with React, TypeScript, and modern web technologies.',
                 descriptionSnippet: 'Join our innovative startup as a Frontend Developer. Work with React...',
                 salaryMin: 45000,
                 salaryMax: 65000,
@@ -871,8 +870,9 @@ export class JobAggregationService {
                 workLocation: 'remote',
                 postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
                 applyUrl: 'https://startupxyz.com/jobs/frontend-developer',
-                source: 'mock',
+                source: 'adzuna' as JobAggregator,
                 externalId: 'mock-2',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
@@ -881,7 +881,6 @@ export class JobAggregationService {
                 title: 'DevOps Engineer',
                 company: 'CloudTech Solutions',
                 location: 'Manchester, UK',
-                description: 'We need a DevOps Engineer to help us scale our infrastructure and improve our deployment processes.',
                 descriptionSnippet: 'We need a DevOps Engineer to help us scale our infrastructure...',
                 salaryMin: 55000,
                 salaryMax: 75000,
@@ -890,8 +889,9 @@ export class JobAggregationService {
                 workLocation: 'onsite',
                 postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
                 applyUrl: 'https://cloudtech.com/careers/devops-engineer',
-                source: 'mock',
+                source: 'adzuna' as JobAggregator,
                 externalId: 'mock-3',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
@@ -900,7 +900,6 @@ export class JobAggregationService {
                 title: 'Data Scientist',
                 company: 'DataInsights Ltd',
                 location: 'Bristol, UK',
-                description: 'Looking for a Data Scientist to work on machine learning projects and data analysis.',
                 descriptionSnippet: 'Looking for a Data Scientist to work on machine learning projects...',
                 salaryMin: 50000,
                 salaryMax: 70000,
@@ -909,8 +908,9 @@ export class JobAggregationService {
                 workLocation: 'hybrid',
                 postedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
                 applyUrl: 'https://datainsights.com/jobs/data-scientist',
-                source: 'mock',
+                source: 'adzuna' as JobAggregator,
                 externalId: 'mock-4',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
             },
@@ -919,7 +919,6 @@ export class JobAggregationService {
                 title: 'Product Manager',
                 company: 'InnovateCo',
                 location: 'Edinburgh, UK',
-                description: 'Join our product team as a Product Manager and help shape the future of our products.',
                 descriptionSnippet: 'Join our product team as a Product Manager and help shape...',
                 salaryMin: 65000,
                 salaryMax: 85000,
@@ -928,8 +927,9 @@ export class JobAggregationService {
                 workLocation: 'hybrid',
                 postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
                 applyUrl: 'https://innovateco.com/careers/product-manager',
-                source: 'mock',
+                source: 'adzuna' as JobAggregator,
                 externalId: 'mock-5',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
             }
@@ -943,7 +943,7 @@ export class JobAggregationService {
             filteredJobs = filteredJobs.filter(job =>
                 job.title.toLowerCase().includes(keywords) ||
                 job.company.toLowerCase().includes(keywords) ||
-                job.description.toLowerCase().includes(keywords)
+                job.descriptionSnippet.toLowerCase().includes(keywords)
             );
         }
 
@@ -956,13 +956,13 @@ export class JobAggregationService {
 
         if (filters.jobType && filters.jobType.length > 0) {
             filteredJobs = filteredJobs.filter(job =>
-                job.jobType && filters.jobType.includes(job.jobType)
+                job.jobType && filters.jobType!.includes(job.jobType as any)
             );
         }
 
         if (filters.workLocation && filters.workLocation.length > 0) {
             filteredJobs = filteredJobs.filter(job =>
-                job.workLocation && filters.workLocation.includes(job.workLocation)
+                job.workLocation && filters.workLocation!.includes(job.workLocation as any)
             );
         }
 

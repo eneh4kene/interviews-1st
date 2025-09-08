@@ -251,9 +251,7 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
                   className="bg-white border border-gray-200 shadow-lg z-50 rounded-md"
                   style={{ 
                     backgroundColor: 'white !important',
-                    background: 'white !important',
-                    '--radix-select-content-background': 'white',
-                    '--radix-select-content-bg': 'white'
+                    background: 'white !important'
                   }}
                 >
                   <SelectItem 

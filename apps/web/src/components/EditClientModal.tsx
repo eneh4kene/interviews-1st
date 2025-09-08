@@ -100,7 +100,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
         linkedinUrl: formData.linkedinUrl,
         status: formData.status,
         paymentStatus: formData.paymentStatus,
-        workerId: selectedWorkerId || null
+        workerId: selectedWorkerId || undefined
       };
 
       const response = await apiService.updateAdminClient(client.id, clientData);
