@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
         const { rows } = await db.query(query, params);
 
-        const interviews = rows.map(row => ({
+        const interviews = rows.map((row: any) => ({
             id: row.id,
             client_id: row.clientId,
             title: `${row.companyName} - ${row.jobTitle}`, // Create title from company and job
@@ -205,13 +205,13 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { 
-            clientId, 
-            companyName, 
-            jobTitle, 
-            scheduledDate, 
-            interviewType, 
-            notes 
+        const {
+            clientId,
+            companyName,
+            jobTitle,
+            scheduledDate,
+            interviewType,
+            notes
         } = body;
 
         if (!clientId || !companyName || !jobTitle || !scheduledDate) {

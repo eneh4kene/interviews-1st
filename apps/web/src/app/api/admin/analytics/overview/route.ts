@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
 
         const overview = {
             period,
-            userGrowth: userGrowth.rows.map(row => ({
+            userGrowth: userGrowth.rows.map((row: any) => ({
                 date: row.date,
                 new_users: parseInt(row.new_users),
                 new_clients: parseInt(row.new_clients),
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
                 pending_interviews: parseInt(interviewData.rows[0].pending_interviews),
                 success_rate: successRate
             },
-            workerPerformance: workerPerformance.rows.map(row => ({
+            workerPerformance: workerPerformance.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -183,14 +183,14 @@ export async function GET(request: NextRequest) {
                 successful_interviews: parseInt(row.successful_interviews),
                 total_revenue: parseFloat(row.total_revenue)
             })),
-            recentActivity: recentActivity.rows.map(row => ({
+            recentActivity: recentActivity.rows.map((row: any) => ({
                 type: row.type,
                 id: row.id,
                 title: row.title,
                 created_at: row.created_at,
                 client_name: row.client_name
             })),
-            monthlyTrends: monthlyTrends.rows.map(row => ({
+            monthlyTrends: monthlyTrends.rows.map((row: any) => ({
                 month: row.month,
                 interviews: parseInt(row.interviews),
                 revenue: parseFloat(row.revenue)

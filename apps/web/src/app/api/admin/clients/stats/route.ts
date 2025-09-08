@@ -116,19 +116,19 @@ export async function GET(request: NextRequest) {
             total_revenue: parseFloat(basicStats.rows[0].total_revenue),
             avg_revenue_per_client: parseFloat(basicStats.rows[0].avg_revenue_per_client),
             total_interviews: parseInt(basicStats.rows[0].total_interviews),
-            recent_activity: recentActivity.rows.map(row => ({
+            recent_activity: recentActivity.rows.map((row: any) => ({
                 date: row.date,
                 new_clients: parseInt(row.new_clients)
             })),
-            status_distribution: statusDistribution.rows.map(row => ({
+            status_distribution: statusDistribution.rows.map((row: any) => ({
                 status: row.status,
                 count: parseInt(row.count)
             })),
-            payment_distribution: paymentDistribution.rows.map(row => ({
+            payment_distribution: paymentDistribution.rows.map((row: any) => ({
                 payment_status: row.payment_status,
                 count: parseInt(row.count)
             })),
-            top_workers: topWorkers.rows.map(row => ({
+            top_workers: topWorkers.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,

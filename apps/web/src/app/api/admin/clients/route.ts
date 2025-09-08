@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
 
         const { rows } = await db.query(query, params);
 
-        const clients = rows.map(row => ({
+        const clients = rows.map((row: any) => ({
             id: row.id,
             worker_id: row.workerId,
             name: row.name,

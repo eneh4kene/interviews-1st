@@ -130,14 +130,14 @@ export async function GET(request: NextRequest) {
         const analytics = {
             period,
             groupBy,
-            trends: revenueTrends.rows.map(row => ({
+            trends: revenueTrends.rows.map((row: any) => ({
                 period: row.period,
                 revenue: parseFloat(row.revenue),
                 transactions: parseInt(row.transactions),
                 paid_transactions: parseInt(row.paid_transactions),
                 pending_transactions: parseInt(row.pending_transactions)
             })),
-            byClient: revenueByClient.rows.map(row => ({
+            byClient: revenueByClient.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -145,7 +145,7 @@ export async function GET(request: NextRequest) {
                 total_revenue: parseFloat(row.total_revenue),
                 avg_payment: parseFloat(row.avg_payment)
             })),
-            byWorker: revenueByWorker.rows.map(row => ({
+            byWorker: revenueByWorker.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
                 total_revenue: parseFloat(row.total_revenue),
                 avg_payment: parseFloat(row.avg_payment)
             })),
-            statusDistribution: paymentStatusDistribution.rows.map(row => ({
+            statusDistribution: paymentStatusDistribution.rows.map((row: any) => ({
                 status: row.payment_status,
                 count: parseInt(row.count),
                 total_amount: parseFloat(row.total_amount)

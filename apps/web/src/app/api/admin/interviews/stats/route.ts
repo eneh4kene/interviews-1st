@@ -168,23 +168,23 @@ export async function GET(request: NextRequest) {
             avg_payment_amount: parseFloat(basicStats.rows[0].avg_payment_amount),
             avg_rating: parseFloat(basicStats.rows[0].avg_rating),
             acceptance_rate: acceptanceRate,
-            recent_activity: recentActivity.rows.map(row => ({
+            recent_activity: recentActivity.rows.map((row: any) => ({
                 date: row.date,
                 new_interviews: parseInt(row.new_interviews)
             })),
-            status_distribution: statusDistribution.rows.map(row => ({
+            status_distribution: statusDistribution.rows.map((row: any) => ({
                 status: row.status,
                 count: parseInt(row.count)
             })),
-            type_distribution: typeDistribution.rows.map(row => ({
+            type_distribution: typeDistribution.rows.map((row: any) => ({
                 interview_type: row.interview_type,
                 count: parseInt(row.count)
             })),
-            payment_distribution: paymentDistribution.rows.map(row => ({
+            payment_distribution: paymentDistribution.rows.map((row: any) => ({
                 payment_status: row.payment_status,
                 count: parseInt(row.count)
             })),
-            top_workers: topWorkers.rows.map(row => ({
+            top_workers: topWorkers.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
                 total_revenue: parseFloat(row.total_revenue),
                 avg_rating: parseFloat(row.avg_rating)
             })),
-            top_clients: topClients.rows.map(row => ({
+            top_clients: topClients.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -203,7 +203,7 @@ export async function GET(request: NextRequest) {
                 accepted_count: parseInt(row.accepted_count),
                 total_paid: parseFloat(row.total_paid)
             })),
-            monthly_trends: monthlyTrends.rows.map(row => ({
+            monthly_trends: monthlyTrends.rows.map((row: any) => ({
                 month: row.month,
                 interview_count: parseInt(row.interview_count),
                 completed_count: parseInt(row.completed_count),

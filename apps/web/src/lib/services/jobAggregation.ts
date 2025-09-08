@@ -795,7 +795,7 @@ export class JobAggregationService {
             params.push(limit, offset);
 
             const result = await db.query(query, params);
-            const jobs = result.rows.map(row => ({
+            const jobs = result.rows.map((row: any) => ({
                 ...row,
                 postedDate: row.posted_date,
                 descriptionSnippet: row.description_snippet,
@@ -996,7 +996,7 @@ export class JobAggregationService {
             `;
 
             const result = await db.query(query, [offset, offset + limit]);
-            const jobs = result.rows.map(row => ({
+            const jobs = result.rows.map((row: any) => ({
                 ...row,
                 postedDate: row.posted_date,
                 descriptionSnippet: row.description_snippet,

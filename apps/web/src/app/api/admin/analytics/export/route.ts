@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
             exportData = {
                 period,
                 generated_at: new Date().toISOString(),
-                data: overviewData.rows.map(row => ({
+                data: overviewData.rows.map((row: any) => ({
                     category: row.category,
                     total: parseFloat(row.count),
                     clients: parseFloat(row.clients),
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
             exportData = {
                 period,
                 generated_at: new Date().toISOString(),
-                data: revenueData.rows.map(row => ({
+                data: revenueData.rows.map((row: any) => ({
                     date: row.date,
                     transactions: parseInt(row.transactions),
                     total_revenue: parseFloat(row.total_revenue),
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
             exportData = {
                 period,
                 generated_at: new Date().toISOString(),
-                data: workerData.rows.map(row => ({
+                data: workerData.rows.map((row: any) => ({
                     id: row.id,
                     name: row.name,
                     email: row.email,
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
             exportData = {
                 period,
                 generated_at: new Date().toISOString(),
-                data: clientData.rows.map(row => ({
+                data: clientData.rows.map((row: any) => ({
                     id: row.id,
                     name: row.name,
                     email: row.email,
@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
             exportData = {
                 period,
                 generated_at: new Date().toISOString(),
-                data: interviewData.rows.map(row => ({
+                data: interviewData.rows.map((row: any) => ({
                     id: row.id,
                     company_name: row.company_name,
                     job_title: row.job_title,
@@ -263,10 +263,10 @@ export async function GET(request: NextRequest) {
 // Helper function to convert data to CSV format
 function convertToCSV(data: any[]): string {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [headers.join(',')];
-    
+
     for (const row of data) {
         const values = headers.map(header => {
             const value = row[header];
@@ -278,6 +278,6 @@ function convertToCSV(data: any[]): string {
         });
         csvRows.push(values.join(','));
     }
-    
+
     return csvRows.join('\n');
 }

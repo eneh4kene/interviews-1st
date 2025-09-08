@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
         const analytics = {
             period,
             sortBy,
-            workers: workerPerformance.rows.map(row => ({
+            workers: workerPerformance.rows.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 email: row.email,
@@ -159,13 +159,13 @@ export async function GET(request: NextRequest) {
                 avg_payment: parseFloat(row.avg_payment),
                 success_rate: parseFloat(row.success_rate)
             })),
-            activityTrends: activityTrends.rows.map(row => ({
+            activityTrends: activityTrends.rows.map((row: any) => ({
                 date: row.date,
                 worker_id: row.worker_id,
                 worker_name: row.worker_name,
                 interviews_conducted: parseInt(row.interviews_conducted)
             })),
-            clientAssignments: clientAssignments.rows.map(row => ({
+            clientAssignments: clientAssignments.rows.map((row: any) => ({
                 worker_id: row.worker_id,
                 worker_name: row.worker_name,
                 total_clients: parseInt(row.total_clients),
