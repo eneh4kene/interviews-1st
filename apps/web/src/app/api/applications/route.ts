@@ -55,6 +55,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         client_id as "clientId",
+        job_preference_id as "jobPreferenceId",
+        resume_id as "resumeId",
         job_title as "jobTitle",
         company_name as "companyName",
         application_date as "applicationDate",
@@ -100,7 +102,7 @@ export async function POST(request: NextRequest) {
         const decoded = verifyToken(token);
 
         const body = await request.json();
-        const { clientId, jobTitle, companyName, applicationDate, status, interviewDate, notes } = body;
+        const { clientId, jobTitle, companyName, applicationDate, status, interviewDate, notes, jobPreferenceId, resumeId } = body;
 
         if (!clientId) {
             const response: ApiResponse = {
@@ -136,16 +138,20 @@ export async function POST(request: NextRequest) {
         const { rows } = await db.query(`
       INSERT INTO applications (
         client_id,
+        job_preference_id,
+        resume_id,
         job_title,
         company_name,
         application_date,
         status,
         interview_date,
         notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING 
         id,
         client_id as "clientId",
+        job_preference_id as "jobPreferenceId",
+        resume_id as "resumeId",
         job_title as "jobTitle",
         company_name as "companyName",
         application_date as "applicationDate",
@@ -156,6 +162,8 @@ export async function POST(request: NextRequest) {
         updated_at as "updatedAt"
     `, [
             clientId,
+            jobPreferenceId || null,
+            resumeId || null,
             jobTitle,
             companyName,
             applicationDate,

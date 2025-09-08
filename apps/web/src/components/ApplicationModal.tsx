@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@interview-me/ui";
 import { Input } from "@interview-me/ui";
 import { Label } from "@interview-me/ui";
-import { Select } from "@interview-me/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { X, Calendar, MapPin, Building, Clock, CheckCircle, XCircle, Save, Plus, FileText, Edit } from "lucide-react";
 import { Application, Resume, JobPreference } from "@interview-me/types";
@@ -96,15 +96,16 @@ export default function ApplicationModal({
       return;
     }
 
-    if (!formData.jobPreferenceId) {
-      setError("Job preference is required");
-      return;
-    }
+    // Job preference and resume are optional
+    // if (!formData.jobPreferenceId) {
+    //   setError("Job preference is required");
+    //   return;
+    // }
 
-    if (!formData.resumeId) {
-      setError("Resume is required");
-      return;
-    }
+    // if (!formData.resumeId) {
+    //   setError("Resume is required");
+    //   return;
+    // }
 
     setLoading(true);
     setError(null);
@@ -112,8 +113,8 @@ export default function ApplicationModal({
     try {
       const applicationData = {
         clientId,
-        jobPreferenceId: formData.jobPreferenceId,
-        resumeId: formData.resumeId,
+        jobPreferenceId: formData.jobPreferenceId || undefined,
+        resumeId: formData.resumeId || undefined,
         companyName: formData.companyName.trim(),
         jobTitle: formData.jobTitle.trim(),
         applicationDate: formData.applicationDate,
@@ -227,11 +228,21 @@ export default function ApplicationModal({
                         )}
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Resume Used</Label>
-                          <p className="text-sm">{resumes.find(r => r.id === application.resumeId)?.name || 'Unknown'}</p>
+                          <p className="text-sm">
+                            {application.resumeId 
+                              ? (resumes.find(r => r.id === application.resumeId)?.name || 'Resume not found') 
+                              : 'No resume selected'
+                            }
+                          </p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-gray-600">Job Preference</Label>
-                          <p className="text-sm">{jobPreferences.find(p => p.id === application.jobPreferenceId)?.title || 'Unknown'}</p>
+                          <p className="text-sm">
+                            {application.jobPreferenceId 
+                              ? (jobPreferences.find(p => p.id === application.jobPreferenceId)?.title || 'Job preference not found') 
+                              : 'No job preference selected'
+                            }
+                          </p>
                         </div>
                       </div>
                       {application.notes && (
@@ -310,12 +321,16 @@ export default function ApplicationModal({
                     onValueChange={(value) => handleInputChange("jobPreferenceId", value)}
                     disabled={isViewMode}
                   >
-                    <option value="">Select a job preference</option>
-                    {jobPreferences.map((pref) => (
-                      <option key={pref.id} value={pref.id}>
-                        {pref.title} - {pref.company || 'No company'}
-                      </option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a job preference" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jobPreferences.map((pref) => (
+                        <SelectItem key={pref.id} value={pref.id}>
+                          {pref.title} - {pref.company || 'No company'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
 
@@ -326,12 +341,16 @@ export default function ApplicationModal({
                     onValueChange={(value) => handleInputChange("resumeId", value)}
                     disabled={isViewMode}
                   >
-                    <option value="">Select a resume</option>
-                    {resumes.map((resume) => (
-                      <option key={resume.id} value={resume.id}>
-                        {resume.name} {resume.isDefault && '(Default)'}
-                      </option>
-                    ))}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a resume" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resumes.map((resume) => (
+                        <SelectItem key={resume.id} value={resume.id}>
+                          {resume.name} {resume.isDefault && '(Default)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>
@@ -350,11 +369,16 @@ export default function ApplicationModal({
                     onValueChange={(value) => handleInputChange("status", value)}
                     disabled={isViewMode}
                   >
-                    <option value="applied">Applied</option>
-                    <option value="interviewing">Interviewing</option>
-                    <option value="offered">Offered</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="rejected">Rejected</option>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="applied">Applied</SelectItem>
+                      <SelectItem value="interviewing">Interviewing</SelectItem>
+                      <SelectItem value="offered">Offered</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
 

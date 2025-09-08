@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         client_id as "clientId",
-        name as "filename",
-        file_url as "filePath",
+        name,
+        file_url as "fileUrl",
         is_default as "isDefault",
         created_at as "createdAt",
         updated_at as "updatedAt"
@@ -181,7 +181,8 @@ export async function POST(request: NextRequest) {
 
         // Generate unique filename
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const filename = `resume-${uniqueSuffix}-${file.name}`;
+        const fileExtension = path.extname(file.name);
+        const filename = `resume-${uniqueSuffix}${fileExtension}`;
         const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
         const filePath = path.join(uploadDir, filename);
 
@@ -192,25 +193,45 @@ export async function POST(request: NextRequest) {
         const bytes = await file.arrayBuffer();
         await fs.writeFile(filePath, Buffer.from(bytes));
 
-        // Save resume record to database
+        // Check if this is the first resume for this client
+        const existingResumesResult = await db.query(
+            'SELECT COUNT(*) as count FROM resumes WHERE client_id = $1',
+            [clientId]
+        );
+        const isFirstResume = parseInt(existingResumesResult.rows[0].count) === 0;
+
+        // Determine if this should be the default resume
+        const shouldBeDefault = isFirstResume;
+
+        // If this should be default, unset other defaults for this client first
+        if (shouldBeDefault) {
+            await db.query(
+                'UPDATE resumes SET is_default = false WHERE client_id = $1',
+                [clientId]
+            );
+        }
+
+        // Save resume record to database (store only filename, not full path)
         const { rows } = await db.query(`
       INSERT INTO resumes (
         client_id,
         name,
-        file_url
-      ) VALUES ($1, $2, $3)
+        file_url,
+        is_default
+      ) VALUES ($1, $2, $3, $4)
       RETURNING 
         id,
         client_id as "clientId",
-        name as "filename",
-        file_url as "filePath",
+        name,
+        file_url as "fileUrl",
         is_default as "isDefault",
         created_at as "createdAt",
         updated_at as "updatedAt"
     `, [
             clientId,
             file.name,
-            filePath
+            filename, // Store only filename, not full path
+            shouldBeDefault
         ]);
 
         const response: ApiResponse = {

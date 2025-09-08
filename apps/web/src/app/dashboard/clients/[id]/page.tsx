@@ -721,7 +721,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                               <span>Visa sponsorship required</span>
                             </div>
                           )}
-                          {pref.salaryRange && (
+                          {pref.salaryRange && pref.salaryRange.min && pref.salaryRange.max && (
                             <div className="flex items-center gap-2 text-sm">
                               <DollarSign className="h-4 w-4 text-gray-400" />
                               <span>£{pref.salaryRange.min.toLocaleString()} - £{pref.salaryRange.max.toLocaleString()}</span>
@@ -798,7 +798,12 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                           )}
                           <div>
                             <p className="text-sm font-medium text-gray-600">Resume Used</p>
-                            <p className="text-sm">{resumes.find(r => r.id === app.resumeId)?.name || 'Unknown'}</p>
+                            <p className="text-sm">
+                              {app.resumeId 
+                                ? (resumes.find(r => r.id === app.resumeId)?.name || 'Resume not found') 
+                                : 'No resume selected'
+                              }
+                            </p>
                           </div>
                         </div>
                         {app.notes && (

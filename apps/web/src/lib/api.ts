@@ -357,8 +357,13 @@ class ApiService {
     }
 
     async downloadResume(id: string): Promise<Blob> {
+        const accessToken = localStorage.getItem('accessToken');
         const url = `${API_BASE_URL}/resumes/${id}/download`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+            },
+        });
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: Failed to download resume`);
         }

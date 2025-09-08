@@ -97,7 +97,7 @@ export default function JobPreferenceModal({
       const jobPreferenceData = {
         clientId,
         title: formData.title.trim(),
-        company: formData.company.trim() || undefined,
+        company: formData.company.trim(),
         location: formData.location.trim(),
         workType: formData.workType,
         visaSponsorship: formData.visaSponsorship,

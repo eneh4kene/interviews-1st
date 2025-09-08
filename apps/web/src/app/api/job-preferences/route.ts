@@ -55,12 +55,12 @@ export async function GET(request: NextRequest) {
       SELECT 
         id,
         client_id as "clientId",
-        title as "jobTitle",
-        company as "companyName",
+        title,
+        company,
         location,
         salary_min as "salaryMin",
         salary_max as "salaryMax",
-        work_type as "jobType",
+        work_type as "workType",
         visa_sponsorship as "visaSponsorship",
         salary_currency as "salaryCurrency",
         status,
@@ -103,10 +103,10 @@ export async function POST(request: NextRequest) {
         const decoded = verifyToken(token);
 
         const body = await request.json();
-        const { clientId, jobTitle, companyName, location, salaryMin, salaryMax, jobType, visaSponsorship, salaryCurrency } = body;
+        const { clientId, title, company, location, salaryMin, salaryMax, workType, visaSponsorship, currency, status } = body;
 
         // Validate required fields
-        if (!jobTitle || !location) {
+        if (!title || !location) {
             const response: ApiResponse = {
                 success: false,
                 error: 'Job title and location are required',
@@ -155,17 +155,18 @@ export async function POST(request: NextRequest) {
         salary_max,
         work_type,
         visa_sponsorship,
-        salary_currency
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        salary_currency,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING 
         id,
         client_id as "clientId",
-        title as "jobTitle",
-        company as "companyName",
+        title,
+        company,
         location,
         salary_min as "salaryMin",
         salary_max as "salaryMax",
-        work_type as "jobType",
+        work_type as "workType",
         visa_sponsorship as "visaSponsorship",
         salary_currency as "salaryCurrency",
         status,
@@ -173,14 +174,15 @@ export async function POST(request: NextRequest) {
         updated_at as "updatedAt"
     `, [
             clientId,
-            jobTitle || 'Untitled Position',
-            companyName || 'Unknown Company',
+            title || 'Untitled Position',
+            company || null,
             location || 'Remote',
             salaryMin,
             salaryMax,
-            jobType || 'remote',
+            workType || 'remote',
             visaSponsorship || false,
-            salaryCurrency || 'GBP'
+            currency || 'GBP',
+            status || 'active'
         ]);
 
         const response: ApiResponse = {

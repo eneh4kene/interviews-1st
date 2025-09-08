@@ -587,8 +587,22 @@ export class JobAggregationService {
         // Store in database for future queries
         await this.storeJobs(deduplicatedJobs);
 
-        // Apply additional filters to stored jobs
-        const filteredJobs = await this.applyFilters(deduplicatedJobs, filters);
+        // If no jobs from aggregators, try to get stored jobs from database
+        let jobsToFilter = deduplicatedJobs;
+        if (jobsToFilter.length === 0) {
+            console.log('🔍 No jobs from aggregators, fetching stored jobs from database...');
+            const storedJobsResponse = await this.getStoredJobs(filters);
+            jobsToFilter = storedJobsResponse.jobs;
+
+            // If no stored jobs either, generate mock jobs for development
+            if (jobsToFilter.length === 0) {
+                console.log('🔍 No stored jobs found, generating mock jobs for development...');
+                jobsToFilter = this.generateMockJobs(filters);
+            }
+        }
+
+        // Apply additional filters to jobs
+        const filteredJobs = await this.applyFilters(jobsToFilter, filters);
 
         // Paginate results
         const page = filters.page || 1;
@@ -819,6 +833,152 @@ export class JobAggregationService {
                 aggregatorResults: {}
             };
         }
+    }
+
+    // Generate mock jobs for development when no real data is available
+    private generateMockJobs(filters: JobSearchFilters): Job[] {
+        const mockJobs: Job[] = [
+            {
+                id: 'mock-1',
+                title: 'Senior Software Engineer',
+                company: 'TechCorp Inc.',
+                location: 'London, UK',
+                description: 'We are looking for a Senior Software Engineer to join our growing team. You will be responsible for developing and maintaining our core platform.',
+                descriptionSnippet: 'We are looking for a Senior Software Engineer to join our growing team...',
+                salaryMin: 60000,
+                salaryMax: 80000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'hybrid',
+                postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                applyUrl: 'https://techcorp.com/careers/senior-software-engineer',
+                source: 'mock',
+                externalId: 'mock-1',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-2',
+                title: 'Frontend Developer',
+                company: 'StartupXYZ',
+                location: 'Remote',
+                description: 'Join our innovative startup as a Frontend Developer. Work with React, TypeScript, and modern web technologies.',
+                descriptionSnippet: 'Join our innovative startup as a Frontend Developer. Work with React...',
+                salaryMin: 45000,
+                salaryMax: 65000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'remote',
+                postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+                applyUrl: 'https://startupxyz.com/jobs/frontend-developer',
+                source: 'mock',
+                externalId: 'mock-2',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-3',
+                title: 'DevOps Engineer',
+                company: 'CloudTech Solutions',
+                location: 'Manchester, UK',
+                description: 'We need a DevOps Engineer to help us scale our infrastructure and improve our deployment processes.',
+                descriptionSnippet: 'We need a DevOps Engineer to help us scale our infrastructure...',
+                salaryMin: 55000,
+                salaryMax: 75000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'onsite',
+                postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+                applyUrl: 'https://cloudtech.com/careers/devops-engineer',
+                source: 'mock',
+                externalId: 'mock-3',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-4',
+                title: 'Data Scientist',
+                company: 'DataInsights Ltd',
+                location: 'Bristol, UK',
+                description: 'Looking for a Data Scientist to work on machine learning projects and data analysis.',
+                descriptionSnippet: 'Looking for a Data Scientist to work on machine learning projects...',
+                salaryMin: 50000,
+                salaryMax: 70000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'hybrid',
+                postedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
+                applyUrl: 'https://datainsights.com/jobs/data-scientist',
+                source: 'mock',
+                externalId: 'mock-4',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-5',
+                title: 'Product Manager',
+                company: 'InnovateCo',
+                location: 'Edinburgh, UK',
+                description: 'Join our product team as a Product Manager and help shape the future of our products.',
+                descriptionSnippet: 'Join our product team as a Product Manager and help shape...',
+                salaryMin: 65000,
+                salaryMax: 85000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'hybrid',
+                postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+                applyUrl: 'https://innovateco.com/careers/product-manager',
+                source: 'mock',
+                externalId: 'mock-5',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            }
+        ];
+
+        // Filter mock jobs based on search criteria
+        let filteredJobs = mockJobs;
+
+        if (filters.keywords) {
+            const keywords = filters.keywords.toLowerCase();
+            filteredJobs = filteredJobs.filter(job =>
+                job.title.toLowerCase().includes(keywords) ||
+                job.company.toLowerCase().includes(keywords) ||
+                job.description.toLowerCase().includes(keywords)
+            );
+        }
+
+        if (filters.location) {
+            const location = filters.location.toLowerCase();
+            filteredJobs = filteredJobs.filter(job =>
+                job.location.toLowerCase().includes(location)
+            );
+        }
+
+        if (filters.jobType && filters.jobType.length > 0) {
+            filteredJobs = filteredJobs.filter(job =>
+                job.jobType && filters.jobType.includes(job.jobType)
+            );
+        }
+
+        if (filters.workLocation && filters.workLocation.length > 0) {
+            filteredJobs = filteredJobs.filter(job =>
+                job.workLocation && filters.workLocation.includes(job.workLocation)
+            );
+        }
+
+        if (filters.salaryMin) {
+            filteredJobs = filteredJobs.filter(job =>
+                job.salaryMin && job.salaryMin >= filters.salaryMin!
+            );
+        }
+
+        if (filters.salaryMax) {
+            filteredJobs = filteredJobs.filter(job =>
+                job.salaryMax && job.salaryMax <= filters.salaryMax!
+            );
+        }
+
+        return filteredJobs;
     }
 
     // Get recent jobs from optimized view for better performance
