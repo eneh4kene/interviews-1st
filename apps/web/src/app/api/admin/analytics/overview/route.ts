@@ -142,6 +142,17 @@ export async function GET(request: NextRequest) {
             ORDER BY month DESC
         `);
 
+        // Get platform health data
+        const platformHealthData = await db.query(`
+            SELECT 
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '1 day' THEN 1 END) as active_users,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '7 days' THEN 1 END) as active_last_7d,
+                COUNT(CASE WHEN last_login_at >= NOW() - INTERVAL '30 days' THEN 1 END) as active_last_30d,
+                COUNT(CASE WHEN two_factor_enabled = true THEN 1 END) as users_with_2fa
+            FROM users
+            WHERE role != 'ADMIN'
+        `);
+
         const overview = {
             period,
             userGrowth: userGrowth.rows.map(row => ({
@@ -183,7 +194,14 @@ export async function GET(request: NextRequest) {
                 month: row.month,
                 interviews: parseInt(row.interviews),
                 revenue: parseFloat(row.revenue)
-            }))
+            })),
+            platformHealth: {
+                active_users: parseInt(platformHealthData.rows[0].active_users),
+                active_last_7d: parseInt(platformHealthData.rows[0].active_last_7d),
+                active_last_30d: parseInt(platformHealthData.rows[0].active_last_30d),
+                users_with_2fa: parseInt(platformHealthData.rows[0].users_with_2fa)
+            },
+            generatedAt: new Date().toISOString()
         };
 
         const response: ApiResponse = {

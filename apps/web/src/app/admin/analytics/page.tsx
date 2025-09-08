@@ -275,10 +275,10 @@ export default function AnalyticsDashboard() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(overview.revenue.total_revenue)}</div>
+                  <div className="text-2xl font-bold">{formatCurrency(overview.revenue?.total_revenue || 0)}</div>
                   <div className="flex items-center text-xs text-muted-foreground">
-                    {getTrendIcon(overview.revenue.revenue_30d, 0)}
-                    <span className="ml-1">Last 30 days: {formatCurrency(overview.revenue.revenue_30d)}</span>
+                    {getTrendIcon(overview.revenue?.revenue_30d || 0, 0)}
+                    <span className="ml-1">Last 30 days: {formatCurrency(overview.revenue?.revenue_30d || 0)}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -290,10 +290,10 @@ export default function AnalyticsDashboard() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{overview.platformHealth.active_users}</div>
+                  <div className="text-2xl font-bold">{overview.platformHealth?.active_users || 0}</div>
                   <div className="flex items-center text-xs text-muted-foreground">
                     <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                    <span>{overview.platformHealth.active_last_7d} active in last 7 days</span>
+                    <span>{overview.platformHealth?.active_last_7d || 0} active in last 7 days</span>
                   </div>
                 </CardContent>
               </Card>
@@ -305,9 +305,9 @@ export default function AnalyticsDashboard() {
                   <Target className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{overview.interviews.success_rate}%</div>
+                  <div className="text-2xl font-bold">{overview.interviews?.success_rate || 0}%</div>
                   <div className="flex items-center text-xs text-muted-foreground">
-                    <span>{overview.interviews.accepted_interviews} of {overview.interviews.total_interviews} interviews accepted</span>
+                    <span>{overview.interviews?.accepted_interviews || 0} of {overview.interviews?.total_interviews || 0} interviews accepted</span>
                   </div>
                 </CardContent>
               </Card>
@@ -319,9 +319,9 @@ export default function AnalyticsDashboard() {
                   <UserCheck className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{overview.revenue.active_clients}</div>
+                  <div className="text-2xl font-bold">{overview.revenue?.active_clients || 0}</div>
                   <div className="flex items-center text-xs text-muted-foreground">
-                    <span>{overview.revenue.placed_clients} placed successfully</span>
+                    <span>{overview.revenue?.placed_clients || 0} placed successfully</span>
                   </div>
                 </CardContent>
               </Card>
@@ -344,20 +344,20 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Total Revenue</span>
-                      <span className="text-lg font-bold">{formatCurrency(overview.revenue.total_revenue)}</span>
+                      <span className="text-lg font-bold">{formatCurrency(overview.revenue?.total_revenue || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Last 30 Days</span>
-                      <span className="text-sm">{formatCurrency(overview.revenue.revenue_30d)}</span>
+                      <span className="text-sm">{formatCurrency(overview.revenue?.revenue_30d || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Last 7 Days</span>
-                      <span className="text-sm">{formatCurrency(overview.revenue.revenue_7d)}</span>
+                      <span className="text-sm">{formatCurrency(overview.revenue?.revenue_7d || 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Average per Client</span>
                       <span className="text-sm">
-                        {formatCurrency(overview.revenue.total_revenue / Math.max(overview.revenue.active_clients, 1))}
+                        {formatCurrency((overview.revenue?.total_revenue || 0) / Math.max(overview.revenue?.active_clients || 1, 1))}
                       </span>
                     </div>
                   </div>
@@ -379,19 +379,19 @@ export default function AnalyticsDashboard() {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Total Active Users</span>
-                      <span className="text-lg font-bold">{overview.platformHealth.active_users}</span>
+                      <span className="text-lg font-bold">{overview.platformHealth?.active_users || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Active Last 7 Days</span>
-                      <span className="text-sm">{overview.platformHealth.active_last_7d}</span>
+                      <span className="text-sm">{overview.platformHealth?.active_last_7d || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">Active Last 30 Days</span>
-                      <span className="text-sm">{overview.platformHealth.active_last_30d}</span>
+                      <span className="text-sm">{overview.platformHealth?.active_last_30d || 0}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">2FA Enabled</span>
-                      <span className="text-sm">{overview.platformHealth.users_with_2fa}</span>
+                      <span className="text-sm">{overview.platformHealth?.users_with_2fa || 0}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -423,7 +423,7 @@ export default function AnalyticsDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {overview.workerPerformance.slice(0, 10).map((worker) => (
+                      {(overview.workerPerformance || []).slice(0, 10).map((worker) => (
                         <tr key={worker.id} className="border-b hover:bg-gray-50">
                           <td className="py-2">
                             <div>
@@ -473,7 +473,7 @@ export default function AnalyticsDashboard() {
 
             {/* Data Generated Info */}
             <div className="mt-6 text-center text-sm text-gray-500">
-              Data generated at {formatDate(overview.generatedAt)} for {selectedPeriod} period
+              Data generated at {formatDate(overview.generatedAt || new Date().toISOString())} for {selectedPeriod} period
             </div>
           </>
         ) : null}
