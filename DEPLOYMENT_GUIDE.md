@@ -1,153 +1,183 @@
-# 🚀 InterviewsFirst Deployment Guide
+# 🚀 Deployment Guide: GitHub Container Registry + Railway
 
-## Option 1: Vercel + Railway Deployment
+This guide walks you through deploying your Interview Me application to production using GitHub Container Registry (GHCR) and Railway.
 
-### **Architecture:**
-- **Frontend (Next.js)**: Vercel (FREE)
-- **Backend (API)**: Railway (FREE - $5 credit monthly)
-- **Database**: Neon PostgreSQL (FREE - you already have this)
-- **Cache**: Railway Redis (FREE)
+## 📋 Prerequisites
 
----
+- GitHub repository with Docker images
+- Railway account
+- Environment variables configured
 
-## **Step 1: Deploy Backend to Railway**
+## 🔧 Step 1: GitHub Container Registry Setup
 
-### 1.1 Create Railway Account
+### 1.1 Enable GitHub Actions
+The workflow is already configured in `.github/workflows/docker-build.yml`. It will:
+- Build both API and Web Docker images
+- Push them to `ghcr.io/eneh4kene/interview-me-api` and `ghcr.io/eneh4kene/interview-me-web`
+- Use GitHub's built-in `GITHUB_TOKEN` for authentication
+
+### 1.2 Trigger the Build
+```bash
+# Push to master branch to trigger the build
+git push origin master
+```
+
+### 1.3 Verify Images
+Check your GitHub repository → Packages to see the published images.
+
+## 🚂 Step 2: Railway Deployment
+
+### 2.1 Create Railway Project
 1. Go to [railway.app](https://railway.app)
-2. Sign up with GitHub
-3. Connect your GitHub account
+2. Click "New Project"
+3. Choose "Deploy from GitHub repo"
+4. Select your `interview-me` repository
 
-### 1.2 Deploy API
-1. Click "New Project"
-2. Select "Deploy from GitHub repo"
-3. Choose your `interview-me` repository
-4. **Keep the root directory as the default** (don't change to `apps/api`)
-5. Railway will use the `railway.json` configuration file
-6. The build process will handle the monorepo structure automatically
+### 2.2 Configure Services
 
-### 1.3 Configure Environment Variables in Railway
-Set these in Railway dashboard → Variables:
+#### API Service Configuration:
+- **Name**: `interview-me-api`
+- **Source**: GitHub Container Registry
+- **Image**: `ghcr.io/eneh4kene/interview-me-api:latest`
+- **Port**: `3001`
 
+#### Web Service Configuration:
+- **Name**: `interview-me-web`  
+- **Source**: GitHub Container Registry
+- **Image**: `ghcr.io/eneh4kene/interview-me-web:latest`
+- **Port**: `3000`
+
+### 2.3 Environment Variables
+
+Set these environment variables in Railway dashboard:
+
+#### Required Variables:
 ```bash
-# Database (your existing Neon URL)
-DATABASE_URL=your_neon_database_url_here
+# Database
+DATABASE_URL=postgresql://neondb_owner:npg_pi8PbIqt5WSD@ep-purple-silence-ad2u8w9w-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 
-# JWT Secrets (generate new ones for production)
-JWT_SECRET=your_production_jwt_secret_here
-JWT_REFRESH_SECRET=your_production_jwt_refresh_secret_here
+# Redis (Railway provides this)
+REDIS_URL=redis://redis:6379
 
-# Redis (Railway will provide this automatically)
-REDIS_URL=redis://default:password@redis.railway.internal:6379
+# JWT Secrets
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 
-# Environment
-NODE_ENV=production
-PORT=3001
+# Stripe (if using payments)
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
-# CORS (will be updated after Vercel deployment)
-CORS_ORIGIN=https://your-vercel-app.vercel.app
+# Job APIs
+ADZUNA_APP_ID=00287061
+ADZUNA_APP_KEY=your-adzuna-key
+JOOBLE_API_KEY=your-jooble-key
+
+# Web App
+NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.railway.app
 ```
 
-### 1.4 Add Redis Service
-1. In Railway project dashboard
-2. Click "New" → "Database" → "Add Redis"
-3. Railway will automatically set `REDIS_URL`
-
----
-
-## **Step 2: Deploy Frontend to Vercel**
-
-### 2.1 Create Vercel Account
-1. Go to [vercel.com](https://vercel.com)
-2. Sign up with GitHub
-3. Connect your GitHub account
-
-### 2.2 Deploy Next.js App
-1. Click "New Project"
-2. Import your `interview-me` repository
-3. Set **Root Directory** to `apps/web`
-4. Vercel will auto-detect Next.js
-
-### 2.3 Configure Environment Variables in Vercel
-Set these in Vercel dashboard → Settings → Environment Variables:
-
+#### Optional Variables:
 ```bash
-# API URL (from Railway deployment)
-NEXT_PUBLIC_API_URL=https://your-railway-api-url.railway.app
+# N8N Integration
+N8N_AI_APPLY_WEBHOOK_URL=https://your-n8n-instance.com/webhook/ai-apply
+N8N_BASIC_AUTH_USER=admin
+N8N_BASIC_AUTH_PASSWORD=admin
 
-# No other variables needed for frontend
+# Rate Limiting
+AUTH_RATE_LIMIT_DISABLED=false
 ```
 
----
+## 🔄 Step 3: Continuous Deployment
 
-## **Step 3: Update CORS Configuration**
+### 3.1 Automatic Deployments
+- Every push to `master` triggers GitHub Actions
+- New images are automatically built and pushed to GHCR
+- Railway can be configured to auto-deploy from GHCR
 
-### 3.1 Get Your Vercel URL
-After Vercel deployment, you'll get a URL like:
-`https://interview-me-abc123.vercel.app`
-
-### 3.2 Update Railway CORS
-In Railway dashboard → Variables, update:
+### 3.2 Manual Deployment
 ```bash
-CORS_ORIGIN=https://your-vercel-app.vercel.app
+# Update Railway to use latest image
+railway up --detach
 ```
 
----
+## 🌐 Step 4: Domain Configuration
 
-## **Step 4: Test Your Deployment**
+### 4.1 Custom Domains
+1. In Railway dashboard, go to your service
+2. Click "Settings" → "Domains"
+3. Add your custom domain
+4. Update `NEXT_PUBLIC_API_BASE_URL` to match
 
-### 4.1 Test API
-```bash
-curl https://your-railway-api-url.railway.app/health
+### 4.2 CORS Configuration
+Update your API's CORS settings for production domains:
+```typescript
+// In apps/api/src/index.ts
+app.use(cors({
+    origin: process.env.NODE_ENV === 'production'
+        ? ['https://yourdomain.com', 'https://your-api-domain.railway.app']
+        : ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+}));
 ```
 
-### 4.2 Test Frontend
-Visit your Vercel URL and test:
-- Login functionality
-- Dashboard access
-- All features working
+## 📊 Step 5: Monitoring & Health Checks
 
----
+### 5.1 Health Endpoints
+- **API Health**: `https://your-api-domain.railway.app/health`
+- **Web Health**: `https://your-web-domain.railway.app`
 
-## **Step 5: Custom Domain (Optional)**
+### 5.2 Railway Monitoring
+- View logs in Railway dashboard
+- Monitor resource usage
+- Set up alerts for failures
 
-### 5.1 Vercel Custom Domain
-1. In Vercel dashboard → Settings → Domains
-2. Add your custom domain
-3. Update DNS records as instructed
+## 🔧 Step 6: Database & Redis
 
-### 5.2 Update API CORS
-Update Railway CORS to include your custom domain:
-```bash
-CORS_ORIGIN=https://yourdomain.com,https://your-vercel-app.vercel.app
-```
+### 6.1 Database
+- Your Neon database is already configured
+- No additional setup needed
 
----
+### 6.2 Redis
+- Railway provides managed Redis
+- Use the `REDIS_URL` provided by Railway
 
-## **Cost Breakdown:**
-- **Vercel**: FREE (100GB bandwidth, unlimited projects)
-- **Railway**: FREE ($5 credit monthly - covers small apps)
-- **Neon**: FREE (you already have this)
-- **Total**: $0/month
-
----
-
-## **Troubleshooting:**
+## 🚨 Troubleshooting
 
 ### Common Issues:
-1. **CORS errors**: Update `CORS_ORIGIN` in Railway
-2. **Database connection**: Verify `DATABASE_URL` in Railway
-3. **Redis connection**: Railway auto-provides `REDIS_URL`
-4. **Build errors**: Check Railway logs for API issues
 
-### Support:
-- Railway: [Discord](https://discord.gg/railway)
-- Vercel: [Documentation](https://vercel.com/docs)
+1. **CORS Errors**
+   - Check `NEXT_PUBLIC_API_BASE_URL` matches your API domain
+   - Verify CORS origins include your web domain
 
----
+2. **Database Connection**
+   - Ensure `DATABASE_URL` is correctly set
+   - Check Neon database is accessible
 
-## **Next Steps After Deployment:**
-1. Set up monitoring
-2. Configure backups
-3. Set up CI/CD
-4. Add custom domain
-5. Scale as needed
+3. **Image Pull Errors**
+   - Verify images exist in GHCR
+   - Check Railway has access to your GitHub packages
+
+4. **Build Failures**
+   - Check GitHub Actions logs
+   - Verify Dockerfile paths are correct
+
+## 📝 Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | ✅ | Neon PostgreSQL connection string |
+| `REDIS_URL` | ✅ | Redis connection string (provided by Railway) |
+| `JWT_SECRET` | ✅ | Secret key for JWT tokens |
+| `NEXT_PUBLIC_API_BASE_URL` | ✅ | Public API URL for web app |
+| `ADZUNA_APP_ID` | ✅ | Adzuna API app ID |
+| `ADZUNA_APP_KEY` | ✅ | Adzuna API key |
+| `JOOBLE_API_KEY` | ✅ | Jooble API key |
+| `STRIPE_SECRET_KEY` | ❌ | Stripe secret key (if using payments) |
+| `STRIPE_WEBHOOK_SECRET` | ❌ | Stripe webhook secret (if using payments) |
+
+## 🎉 Success!
+
+Once deployed, your application will be available at:
+- **Web App**: `https://your-web-domain.railway.app`
+- **API**: `https://your-api-domain.railway.app`
+
+The application will automatically update when you push changes to the `master` branch!

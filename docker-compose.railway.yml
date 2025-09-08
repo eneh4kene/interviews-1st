@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # API Service
+  api:
+    image: ghcr.io/eneh4kene/interview-me-api:latest
+    container_name: interview-me-api
+    environment:
+      - NODE_ENV=production
+      - PORT=${PORT:-3001}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_APP_KEY=${ADZUNA_APP_KEY}
+      - JOOBLE_API_KEY=${JOOBLE_API_KEY}
+    ports:
+      - "${PORT:-3001}:3001"
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Web Service
+  web:
+    image: ghcr.io/eneh4kene/interview-me-web:latest
+    container_name: interview-me-web
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  uploads:
