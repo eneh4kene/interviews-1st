@@ -83,7 +83,7 @@ interface InterviewStats {
   pending_payments: number;
   total_revenue: number;
   avg_payment_amount: number;
-  avg_feedback_score: number;
+  avg_rating: number;
   acceptance_rate: number;
 }
 
@@ -514,7 +514,7 @@ export default function InterviewManagement() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Accepted</p>
                     <p className="text-2xl font-semibold text-gray-900">{stats.accepted_interviews}</p>
-                    <p className="text-xs text-gray-500">{stats.acceptance_rate}% rate</p>
+                    <p className="text-xs text-gray-500">{stats.acceptance_rate ? stats.acceptance_rate.toFixed(1) : '0.0'}% rate</p>
                   </div>
                 </div>
               </CardContent>
@@ -542,7 +542,7 @@ export default function InterviewManagement() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Avg Rating</p>
-                    <p className="text-2xl font-semibold text-gray-900">{stats.avg_feedback_score.toFixed(1)}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{stats.avg_rating ? stats.avg_rating.toFixed(1) : '0.0'}</p>
                   </div>
                 </div>
               </CardContent>

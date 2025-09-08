@@ -151,11 +151,15 @@ export async function GET(request: NextRequest) {
             ORDER BY month DESC
         `);
 
+        const totalInterviews = parseInt(basicStats.rows[0].total_interviews);
+        const acceptedInterviews = parseInt(basicStats.rows[0].accepted_interviews);
+        const acceptanceRate = totalInterviews > 0 ? (acceptedInterviews / totalInterviews) * 100 : 0;
+
         const stats = {
-            total_interviews: parseInt(basicStats.rows[0].total_interviews),
+            total_interviews: totalInterviews,
             scheduled_interviews: parseInt(basicStats.rows[0].scheduled_interviews),
             completed_interviews: parseInt(basicStats.rows[0].completed_interviews),
-            accepted_interviews: parseInt(basicStats.rows[0].accepted_interviews),
+            accepted_interviews: acceptedInterviews,
             declined_interviews: parseInt(basicStats.rows[0].declined_interviews),
             cancelled_interviews: parseInt(basicStats.rows[0].cancelled_interviews),
             paid_interviews: parseInt(basicStats.rows[0].paid_interviews),
@@ -163,6 +167,7 @@ export async function GET(request: NextRequest) {
             total_revenue: parseFloat(basicStats.rows[0].total_revenue),
             avg_payment_amount: parseFloat(basicStats.rows[0].avg_payment_amount),
             avg_rating: parseFloat(basicStats.rows[0].avg_rating),
+            acceptance_rate: acceptanceRate,
             recent_activity: recentActivity.rows.map(row => ({
                 date: row.date,
                 new_interviews: parseInt(row.new_interviews)
