@@ -8,20 +8,33 @@ dotenv.config();
 // console.log('Database URL:', process.env.DATABASE_URL);
 // console.log('Redis URL:', process.env.REDIS_URL);
 
-if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is not set');
-}
+// Only check DATABASE_URL when actually connecting, not during build
+// if (!process.env.DATABASE_URL) {
+//     throw new Error('DATABASE_URL is not set');
+// }
 
 // PostgreSQL connection pool
 const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/jobplace',
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
     connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
 });
 
-// Removed eager connection testing that closed the pool on startup. The pool
-// will be managed by the application lifecycle.
+// Function to validate database connection
+export async function validateDatabaseConnection(): Promise<void> {
+    if (!process.env.DATABASE_URL) {
+        throw new Error('DATABASE_URL is not set');
+    }
+    
+    try {
+        const client = await pgPool.connect();
+        await client.query('SELECT 1');
+        client.release();
+    } catch (error) {
+        throw new Error(`Database connection failed: ${error}`);
+    }
+}
 
 // Redis client - REPLIT FIX
 let redisClient: any = null;
@@ -185,8 +198,8 @@ export const redis = {
 // Health check function
 export const checkDatabaseHealth = async () => {
     try {
-        // Check PostgreSQL
-        await pgPool.query('SELECT 1');
+        // Validate database connection first
+        await validateDatabaseConnection();
 
         // Check Redis
         await redisClient.ping();
