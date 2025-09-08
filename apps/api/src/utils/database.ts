@@ -26,7 +26,7 @@ export async function validateDatabaseConnection(): Promise<void> {
     if (!process.env.DATABASE_URL) {
         throw new Error('DATABASE_URL is not set');
     }
-    
+
     try {
         const client = await pgPool.connect();
         await client.query('SELECT 1');
@@ -98,6 +98,9 @@ function createMockRedis() {
             return 1;
         },
         on: () => { }, // Mock event handlers
+        quit: async () => { return 'OK'; }, // Mock quit method
+        ping: async () => 'PONG', // Mock ping method
+        disconnect: async () => { return 'OK'; }, // Mock disconnect method
     };
 }
 
