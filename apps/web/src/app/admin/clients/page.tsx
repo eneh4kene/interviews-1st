@@ -33,6 +33,8 @@ import {
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
 import AdminClientForm from '../../../components/AdminClientForm';
+import EditClientModal from '../../../components/EditClientModal';
+import BulkAssignModal from '../../../components/BulkAssignModal';
 
 interface Client {
   id: string;
@@ -94,6 +96,7 @@ export default function ClientManagement() {
   const [workers, setWorkers] = useState<any[]>([]);
   const [selectedClients, setSelectedClients] = useState<string[]>([]);
   const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [clientNames, setClientNames] = useState<{ [key: string]: string }>({});
 
   // Authentication check
   useEffect(() => {
@@ -168,6 +171,13 @@ export default function ClientManagement() {
         if (response.success) {
           setClients(response.data.clients || []);
           setPagination(response.data.pagination || null);
+          
+          // Update client names for bulk assign modal
+          const names: { [key: string]: string } = {};
+          (response.data.clients || []).forEach((client: Client) => {
+            names[client.id] = client.name;
+          });
+          setClientNames(names);
         } else {
           setError(response.error || 'Failed to fetch clients');
         }
@@ -232,7 +242,7 @@ export default function ClientManagement() {
 
   const handleCreateClient = async (clientData: any) => {
     try {
-      const response = await apiService.createClient(clientData);
+      const response = await apiService.createAdminClient(clientData);
       if (response.success) {
         setShowCreateModal(false);
         handleRefresh();
@@ -247,7 +257,7 @@ export default function ClientManagement() {
 
   const handleUpdateClient = async (id: string, clientData: any) => {
     try {
-      const response = await apiService.updateClient(id, clientData);
+      const response = await apiService.updateAdminClient(id, clientData);
       if (response.success) {
         setEditingClient(null);
         handleRefresh();
@@ -264,7 +274,7 @@ export default function ClientManagement() {
     if (!confirm('Are you sure you want to delete this client?')) return;
 
     try {
-      const response = await apiService.deleteClient(id);
+      const response = await apiService.deleteAdminClient(id);
       if (response.success) {
         handleRefresh();
       } else {
@@ -796,47 +806,29 @@ export default function ClientManagement() {
         }}
       />
 
-      {/* Edit Client Modal - Placeholder for now */}
-      {editingClient && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Edit Client</h3>
-            <p className="text-gray-600 mb-4">Client editing form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setEditingClient(null)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setEditingClient(null)}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Edit Client Modal */}
+      <EditClientModal
+        isOpen={!!editingClient}
+        onClose={() => setEditingClient(null)}
+        onSuccess={() => {
+          setEditingClient(null);
+          handleRefresh();
+        }}
+        client={editingClient}
+      />
 
-      {/* Bulk Assign Modal - Placeholder for now */}
-      {showBulkAssign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Assign Clients to Worker</h3>
-            <p className="text-gray-600 mb-4">Bulk assignment form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setShowBulkAssign(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setShowBulkAssign(false)}>
-                Assign
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Bulk Assign Modal */}
+      <BulkAssignModal
+        isOpen={showBulkAssign}
+        onClose={() => setShowBulkAssign(false)}
+        onSuccess={() => {
+          setShowBulkAssign(false);
+          setSelectedClients([]);
+          handleRefresh();
+        }}
+        selectedClients={selectedClients}
+        clientNames={clientNames}
+      />
     </div>
   );
 }
