@@ -47,6 +47,34 @@
   }
 }
 
+/* Additional specific fixes for modal dropdowns */
+@layer utilities {
+  .modal [data-radix-select-content] {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+  }
+  
+  .modal [data-radix-select-item] {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+  }
+  
+  /* Target the specific modal container */
+  [role="dialog"] [data-radix-select-content] {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+  }
+  
+  [role="dialog"] [data-radix-select-item] {
+    background-color: white !important;
+    background: white !important;
+    opacity: 1 !important;
+  }
+}
+
 /* Theme Tokens */
 :root {
     --bg: #F7F8FB;
