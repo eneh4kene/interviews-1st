@@ -199,7 +199,7 @@ export const authRateLimit = (maxAttempts: number = 5, windowMs: number = 15 * 6
         if (process.env.AUTH_RATE_LIMIT_DISABLED === 'true') {
             return next();
         }
-        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const ip = req.ip || req.connection?.remoteAddress || 'unknown';
         const endpoint = req.path;
         const key = `auth_rate_limit:${ip}:${endpoint}`;
 
@@ -235,7 +235,7 @@ export const rateLimit = (maxRequests: number = 100, windowMs: number = 15 * 60 
             return next();
         }
         
-        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        const ip = req.ip || req.connection?.remoteAddress || 'unknown';
         const key = `rate_limit:${ip}`;
 
         try {

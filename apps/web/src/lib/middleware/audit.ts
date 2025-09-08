@@ -32,7 +32,7 @@ export const auditLog = (action: string, resource?: string) => {
                 action,
                 resource,
                 resourceId: req.params?.id,
-                ip: req.ip || req.connection.remoteAddress || 'unknown',
+                ip: req.ip || req.connection?.remoteAddress || 'unknown',
                 userAgent: req.get('User-Agent'),
                 success: res.statusCode < 400,
                 error: res.statusCode >= 400 ? data : undefined,
