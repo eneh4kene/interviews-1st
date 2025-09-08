@@ -205,7 +205,7 @@ export default function JobPreferenceModal({
                 <Label htmlFor="workType">Work Type</Label>
                 <Select 
                   value={formData.workType} 
-                  onChange={(e) => handleInputChange("workType", e.target.value)}
+                  onValueChange={(value) => handleInputChange("workType", value)}
                 >
                   <option value="remote">Remote</option>
                   <option value="hybrid">Hybrid</option>
@@ -261,7 +261,7 @@ export default function JobPreferenceModal({
                 <Label htmlFor="currency">Currency</Label>
                 <Select 
                   value={formData.currency} 
-                  onChange={(e) => handleInputChange("currency", e.target.value)}
+                  onValueChange={(value) => handleInputChange("currency", value)}
                 >
                   <option value="GBP">GBP (£)</option>
                   <option value="USD">USD ($)</option>
@@ -273,7 +273,7 @@ export default function JobPreferenceModal({
                 <Label htmlFor="status">Status</Label>
                 <Select 
                   value={formData.status} 
-                  onChange={(e) => handleInputChange("status", e.target.value)}
+                  onValueChange={(value) => handleInputChange("status", value)}
                 >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>

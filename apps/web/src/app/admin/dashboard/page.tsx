@@ -71,6 +71,7 @@ interface ActivityItem {
   worker_name?: string;
   title?: string;
   client_name?: string;
+  role?: string;
   timestamp: string;
 }
 

@@ -201,7 +201,7 @@ export default function ClientForm({ isOpen, onClose, onSuccess }: ClientFormPro
                 <Label htmlFor="status">Initial Status</Label>
                 <Select 
                   value={formData.status} 
-                  onChange={(e) => handleInputChange("status", e.target.value)}
+                  onValueChange={(value) => handleInputChange("status", value)}
                 >
                   <option value="new">New</option>
                   <option value="active">Active</option>

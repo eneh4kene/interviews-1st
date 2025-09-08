@@ -206,7 +206,7 @@ export default function EditClientForm({ isOpen, onClose, onSuccess, client }: E
                 <Label htmlFor="status">Status</Label>
                 <Select 
                   value={formData.status} 
-                  onChange={(e) => handleInputChange("status", e.target.value)}
+                  onValueChange={(value) => handleInputChange("status", value)}
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>

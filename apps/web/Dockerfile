@@ -1,60 +1,53 @@
-# Multi-stage build for InterviewsFirst Web
-FROM node:20-alpine AS base
+# Multi-stage build for Next.js web app
+FROM node:18-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
-COPY packages/types/package*.json ./packages/types/
-COPY packages/ui/package*.json ./packages/ui/
+COPY packages/ ./packages/
 
 # Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-COPY apps/web/package*.json ./apps/web/
-COPY packages/types/package*.json ./packages/types/
-COPY packages/ui/package*.json ./packages/ui/
-
-# Install all dependencies (including dev dependencies)
-RUN npm ci
-
-# Copy source code
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN npm run build --workspace=apps/web
+WORKDIR /app/apps/web
+RUN mkdir -p public
+RUN npm run build
 
-# Production image
+# Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
-# Create non-root user
+ENV NODE_ENV=production
+
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Copy built application
-COPY --from=builder --chown=nodejs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nodejs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder --chown=nodejs:nodejs /app/apps/web/public ./apps/web/public
+# Copy the built application
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/package-lock.json ./package-lock.json
 
-# Switch to non-root user
-USER nodejs
+# Install production dependencies
+RUN npm ci --omit=dev
 
-# Expose port
+USER nextjs
+
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "apps/web/server.js"]
+CMD ["npm", "start"]

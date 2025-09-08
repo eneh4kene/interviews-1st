@@ -78,8 +78,8 @@ app.use(helmet({
 }));
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://yourdomain.com']
-        : ['http://localhost:3000', 'https://*.replit.dev', 'https://*.replit.co'],
+        ? ['https://yourdomain.com', 'http://localhost:3000', 'http://localhost:3001']
+        : ['http://localhost:3000', 'http://localhost:3001', 'https://*.replit.dev', 'https://*.replit.co'],
     credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -145,15 +145,15 @@ app.use((req, res, next) => {
     if (req.body) req.body = sanitize(req.body);
     if (req.query) req.query = sanitize(req.query);
     if (req.params) req.params = sanitize(req.params);
-    
+
     next();
 });
 
 // Security logging middleware
 app.use((req, res, next) => {
     const originalSend = res.send;
-    
-    res.send = function(data: any) {
+
+    res.send = function (data: any) {
         // Log security events
         if (res.statusCode >= 400) {
             console.log(`🚨 SECURITY EVENT [${req.id}]:`, {
@@ -166,7 +166,7 @@ app.use((req, res, next) => {
                 error: data
             });
         }
-        
+
         // Log authentication events
         if (req.path.includes('/auth/') && res.statusCode < 400) {
             console.log(`🔐 AUTH EVENT [${req.id}]:`, {
@@ -177,10 +177,10 @@ app.use((req, res, next) => {
                 success: true
             });
         }
-        
+
         return originalSend.call(this, data);
     };
-    
+
     next();
 });
 
@@ -213,7 +213,7 @@ app.get('/health/ready', async (req, res) => {
     // Readiness probe - checks if the app is ready to receive traffic
     const dbHealth = await checkDatabaseHealth();
     const isReady = dbHealth.status === 'healthy';
-    
+
     res.status(isReady ? 200 : 503).json({
         status: isReady ? 'ready' : 'not ready',
         timestamp: new Date().toISOString(),
@@ -236,7 +236,7 @@ app.get('/health/live', (req, res) => {
 app.get('/health/detailed', async (req, res) => {
     // Detailed health check for monitoring systems
     const startTime = Date.now();
-    
+
     try {
         // Check all systems
         const checks = await Promise.allSettled([
@@ -276,10 +276,10 @@ app.get('/health/detailed', async (req, res) => {
             }
         };
 
-        const allHealthy = checks.every(check => 
+        const allHealthy = checks.every(check =>
             check.status === 'fulfilled' && check.value.status === 'healthy'
         );
-        
+
         res.status(allHealthy ? 200 : 503).json(response);
     } catch (error) {
         res.status(503).json({

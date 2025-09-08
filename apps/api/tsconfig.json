@@ -1,24 +1,29 @@
-{
+perfect. Now I want to push  the working container to github container registry and deploy the container in railway. I'm not sure how to go about it and how to deal with all the environment variables involved{
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./dist",
         "rootDir": "../../",
+        "noEmit": false,
         "target": "ES2020",
         "module": "CommonJS",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-    "strict": false,
-    "noImplicitAny": false,
-    "skipLibCheck": true,
-    "noImplicitReturns": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+        "strict": false,
+        "noImplicitAny": false,
+        "skipLibCheck": true,
+        "noImplicitReturns": false,
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
         "forceConsistentCasingInFileNames": true,
         "baseUrl": "../../",
         "paths": {
-            "@interview-me/types": ["packages/types/src/index.ts"],
-            "@interview-me/ui": ["packages/ui/src/index.ts"]
+            "@interview-me/types": [
+                "packages/types/src/index.ts"
+            ],
+            "@interview-me/ui": [
+                "packages/ui/src/index.ts"
+            ]
         }
     },
     "include": [

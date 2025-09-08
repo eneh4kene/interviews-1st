@@ -1,18 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    output: 'standalone',
     transpilePackages: ["@interview-me/ui", "@interview-me/types"],
-    
+
     // Performance optimizations
     compress: true,
     poweredByHeader: false,
     generateEtags: true,
-    
+
     // Image optimization
     images: {
         domains: ['localhost'],
         formats: ['image/webp', 'image/avif'],
     },
-    
+
     // Headers for performance
     async headers() {
         return [

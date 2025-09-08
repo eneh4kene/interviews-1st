@@ -307,7 +307,7 @@ export default function ApplicationModal({
                   <Label htmlFor="jobPreferenceId">Job Preference</Label>
                   <Select 
                     value={formData.jobPreferenceId} 
-                    onChange={(e) => handleInputChange("jobPreferenceId", e.target.value)}
+                    onValueChange={(value) => handleInputChange("jobPreferenceId", value)}
                     disabled={isViewMode}
                   >
                     <option value="">Select a job preference</option>
@@ -323,7 +323,7 @@ export default function ApplicationModal({
                   <Label htmlFor="resumeId">Resume Used</Label>
                   <Select 
                     value={formData.resumeId} 
-                    onChange={(e) => handleInputChange("resumeId", e.target.value)}
+                    onValueChange={(value) => handleInputChange("resumeId", value)}
                     disabled={isViewMode}
                   >
                     <option value="">Select a resume</option>
@@ -347,7 +347,7 @@ export default function ApplicationModal({
                   <Label htmlFor="status">Application Status</Label>
                   <Select 
                     value={formData.status} 
-                    onChange={(e) => handleInputChange("status", e.target.value)}
+                    onValueChange={(value) => handleInputChange("status", value)}
                     disabled={isViewMode}
                   >
                     <option value="applied">Applied</option>
