@@ -63,13 +63,18 @@ export async function POST(
         }
 
         // Update interview with feedback
-        const updateFields = ['rating = $1', 'updated_at = NOW()'];
-        const updateValues = [feedbackScore];
-        let paramIndex = 2;
+        const updateFields = ['updated_at = NOW()'];
+        const updateValues = [];
+        let paramIndex = 1;
 
+        // Since rating doesn't exist in the actual schema, we'll store it in worker_notes
         if (feedbackNotes !== undefined) {
-            updateFields.push(`feedback = $${paramIndex}`);
-            updateValues.push(feedbackNotes);
+            updateFields.push(`worker_notes = $${paramIndex}`);
+            updateValues.push(`Rating: ${feedbackScore}/5. ${feedbackNotes}`);
+            paramIndex++;
+        } else {
+            updateFields.push(`worker_notes = $${paramIndex}`);
+            updateValues.push(`Rating: ${feedbackScore}/5`);
             paramIndex++;
         }
 

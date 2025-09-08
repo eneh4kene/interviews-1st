@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
                 COUNT(CASE WHEN payment_status = 'pending' THEN 1 END) as pending_payments,
                 COALESCE(SUM(payment_amount), 0) as total_revenue,
                 COALESCE(AVG(payment_amount), 0) as avg_payment_amount,
-                COALESCE(AVG(rating), 0) as avg_rating
+                0 as avg_rating
             FROM interviews
             WHERE 1=1 ${dateFilter}
         `);
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
                 COUNT(CASE WHEN i.status = 'completed' THEN 1 END) as completed_count,
                 COUNT(CASE WHEN i.status = 'client_accepted' THEN 1 END) as accepted_count,
                 COALESCE(SUM(i.payment_amount), 0) as total_revenue,
-                COALESCE(AVG(i.rating), 0) as avg_rating
+                0 as avg_rating
             FROM users u
             LEFT JOIN clients c ON u.id = c.worker_id
             LEFT JOIN interviews i ON c.id = i.client_id

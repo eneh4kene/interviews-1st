@@ -32,7 +32,6 @@ export async function GET(
             `SELECT 
                 i.id,
                 i.client_id as "clientId",
-                i.title,
                 i.company_name as "companyName",
                 i.job_title as "jobTitle",
                 i.scheduled_date as "scheduledDate",
@@ -40,9 +39,8 @@ export async function GET(
                 i.status,
                 i.payment_status as "paymentStatus",
                 i.payment_amount as "paymentAmount",
-                i.notes,
-                i.feedback,
-                i.rating,
+                i.worker_notes as "notes",
+                i.client_response_notes as "feedback",
                 i.created_at as "createdAt",
                 i.updated_at as "updatedAt",
                 c.name as "clientName",
@@ -68,7 +66,7 @@ export async function GET(
         const interview = {
             id: rows[0].id,
             client_id: rows[0].clientId,
-            title: rows[0].title,
+            title: `${rows[0].companyName} - ${rows[0].jobTitle}`,
             company_name: rows[0].companyName,
             job_title: rows[0].jobTitle,
             scheduled_date: rows[0].scheduledDate,
@@ -78,7 +76,7 @@ export async function GET(
             payment_amount: rows[0].paymentAmount,
             notes: rows[0].notes,
             feedback: rows[0].feedback,
-            rating: rows[0].rating,
+            rating: 0, // Default rating since it doesn't exist in DB
             created_at: rows[0].createdAt,
             updated_at: rows[0].updatedAt,
             client_name: rows[0].clientName,
@@ -132,7 +130,6 @@ export async function PUT(
 
         const body = await request.json();
         const { 
-            title, 
             companyName, 
             jobTitle, 
             scheduledDate, 
@@ -141,8 +138,7 @@ export async function PUT(
             paymentStatus, 
             paymentAmount, 
             notes, 
-            feedback, 
-            rating 
+            feedback
         } = body;
 
         // Check if interview exists
@@ -164,11 +160,7 @@ export async function PUT(
         const updateValues = [];
         let paramIndex = 1;
 
-        if (title !== undefined) {
-            updateFields.push(`title = $${paramIndex}`);
-            updateValues.push(title);
-            paramIndex++;
-        }
+        // Title is derived from company and job, so we don't update it directly
 
         if (companyName !== undefined) {
             updateFields.push(`company_name = $${paramIndex}`);
@@ -213,22 +205,18 @@ export async function PUT(
         }
 
         if (notes !== undefined) {
-            updateFields.push(`notes = $${paramIndex}`);
+            updateFields.push(`worker_notes = $${paramIndex}`);
             updateValues.push(notes);
             paramIndex++;
         }
 
         if (feedback !== undefined) {
-            updateFields.push(`feedback = $${paramIndex}`);
+            updateFields.push(`client_response_notes = $${paramIndex}`);
             updateValues.push(feedback);
             paramIndex++;
         }
 
-        if (rating !== undefined) {
-            updateFields.push(`rating = $${paramIndex}`);
-            updateValues.push(rating);
-            paramIndex++;
-        }
+        // Rating doesn't exist in the actual database schema
 
         if (updateFields.length === 0) {
             const response: ApiResponse = {

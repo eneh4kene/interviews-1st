@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
         // Search condition
         if (search) {
-            whereConditions.push(`(i.title ILIKE $${paramIndex} OR i.company_name ILIKE $${paramIndex} OR i.job_title ILIKE $${paramIndex} OR c.name ILIKE $${paramIndex})`);
+            whereConditions.push(`(i.company_name ILIKE $${paramIndex} OR i.job_title ILIKE $${paramIndex} OR c.name ILIKE $${paramIndex})`);
             params.push(`%${search}%`);
             paramIndex++;
         }
@@ -104,7 +104,6 @@ export async function GET(request: NextRequest) {
             SELECT 
                 i.id,
                 i.client_id as "clientId",
-                i.title,
                 i.company_name as "companyName",
                 i.job_title as "jobTitle",
                 i.scheduled_date as "scheduledDate",
@@ -112,9 +111,8 @@ export async function GET(request: NextRequest) {
                 i.status,
                 i.payment_status as "paymentStatus",
                 i.payment_amount as "paymentAmount",
-                i.notes,
-                i.feedback,
-                i.rating,
+                i.worker_notes as "notes",
+                i.client_response_notes as "feedback",
                 i.created_at as "createdAt",
                 i.updated_at as "updatedAt",
                 c.name as "clientName",
@@ -137,7 +135,7 @@ export async function GET(request: NextRequest) {
         const interviews = rows.map(row => ({
             id: row.id,
             client_id: row.clientId,
-            title: row.title,
+            title: `${row.companyName} - ${row.jobTitle}`, // Create title from company and job
             company_name: row.companyName,
             job_title: row.jobTitle,
             scheduled_date: row.scheduledDate,
@@ -147,7 +145,7 @@ export async function GET(request: NextRequest) {
             payment_amount: row.paymentAmount,
             notes: row.notes,
             feedback: row.feedback,
-            rating: row.rating,
+            rating: 0, // Default rating since it doesn't exist in DB
             created_at: row.createdAt,
             updated_at: row.updatedAt,
             client_name: row.clientName,
@@ -209,7 +207,6 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { 
             clientId, 
-            title, 
             companyName, 
             jobTitle, 
             scheduledDate, 
@@ -217,10 +214,10 @@ export async function POST(request: NextRequest) {
             notes 
         } = body;
 
-        if (!clientId || !title || !companyName || !jobTitle || !scheduledDate) {
+        if (!clientId || !companyName || !jobTitle || !scheduledDate) {
             const response: ApiResponse = {
                 success: false,
-                error: 'Client ID, title, company name, job title, and scheduled date are required',
+                error: 'Client ID, company name, job title, and scheduled date are required',
             };
             return NextResponse.json(response, { status: 400 });
         }
@@ -241,10 +238,10 @@ export async function POST(request: NextRequest) {
 
         // Create interview
         const result = await db.query(
-            `INSERT INTO interviews (client_id, title, company_name, job_title, scheduled_date, interview_type, status, payment_status, payment_amount, notes, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, 'scheduled', 'pending', 0, $7, NOW(), NOW())
+            `INSERT INTO interviews (client_id, company_name, job_title, scheduled_date, interview_type, status, payment_status, payment_amount, worker_notes, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, 'scheduled', 'pending', 10.00, $6, NOW(), NOW())
              RETURNING id`,
-            [clientId, title, companyName, jobTitle, scheduledDate, interviewType || 'video', notes || null]
+            [clientId, companyName, jobTitle, scheduledDate, interviewType || 'video', notes || null]
         );
 
         const response: ApiResponse = {

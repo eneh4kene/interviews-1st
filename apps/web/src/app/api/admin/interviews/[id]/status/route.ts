@@ -40,7 +40,7 @@ export async function PATCH(
         }
 
         // Validate status
-        const validStatuses = ['scheduled', 'completed', 'client_accepted', 'client_declined', 'cancelled'];
+        const validStatuses = ['scheduled', 'client_accepted', 'client_declined', 'completed', 'cancelled'];
         if (!validStatuses.includes(status)) {
             const response: ApiResponse = {
                 success: false,
@@ -69,7 +69,7 @@ export async function PATCH(
         let paramIndex = 2;
 
         if (notes !== undefined) {
-            updateFields.push(`notes = $${paramIndex}`);
+            updateFields.push(`worker_notes = $${paramIndex}`);
             updateValues.push(notes);
             paramIndex++;
         }
