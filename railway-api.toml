@@ -1,13 +1,6 @@
-[build]
-builder = "dockerfile"
-dockerfilePath = "apps/api/Dockerfile"
-
 [deploy]
-startCommand = "node dist/apps/api/src/index.js"
-healthcheckPath = "/health"
-healthcheckTimeout = 100
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
+image = "ghcr.io/eneh4kene/interview-me-api:latest"
+start = "node dist/apps/api/src/index.js"
 
 [env]
 NODE_ENV = "production"
