@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "cd apps/web && npm run dev",
     "build": "cd apps/web && npm run build",
+    "build:packages": "cd packages/types && npm run build && cd ../ui && npm run build",
     "start": "cd apps/web && npm run start",
     "lint": "cd apps/web && npm run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
