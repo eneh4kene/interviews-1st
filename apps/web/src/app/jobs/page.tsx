@@ -70,7 +70,7 @@ export default function JobsPage() {
         ...(filters.source !== 'all' && { source: filters.source })
       });
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/jobs/search?${params}`);
+      const response = await fetch(`/api/jobs/search?${params}`);
       const data: JobSearchResponse = await response.json();
 
       if (data.success) {

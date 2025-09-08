@@ -42,7 +42,7 @@ export default function OfferPage() {
     try {
       const acceptData: OfferAcceptRequest = { token: offer.token };
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/interviews/${offer.interviewId}/accept`, {
+      const response = await fetch(`/api/interviews/${offer.interviewId}/accept`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export default function OfferPage() {
         reason: 'Client declined the offer'
       };
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/interviews/${offer.interviewId}/decline`, {
+      const response = await fetch(`/api/interviews/${offer.interviewId}/decline`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -127,7 +127,7 @@ export default function ClientSignupPage() {
         formDataToSend.append('resume', formData.resumeFile);
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/register-client`, {
+      const response = await fetch('/api/auth/register-client', {
         method: 'POST',
         body: formDataToSend, // Don't set Content-Type header, let browser set it with boundary
       });

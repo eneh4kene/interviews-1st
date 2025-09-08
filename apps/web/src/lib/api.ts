@@ -1,5 +1,5 @@
 // API service layer for frontend
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001') + '/api';
+const API_BASE_URL = '/api';
 
 console.log('🔧 API_BASE_URL configured as:', API_BASE_URL);
 
@@ -175,10 +175,15 @@ class ApiService {
         });
     }
 
-    // Dashboard Stats
+    // Dashboard Stats - DEPRECATED: Use client-side calculation instead
     async getDashboardStats(workerId?: string): Promise<ApiResponse<any>> {
-        const params = workerId ? `?workerId=${workerId}` : '';
-        return this.request(`/clients/stats/dashboard${params}`);
+        // This function is deprecated - stats should be calculated client-side from clients data
+        console.error('🚨 DEPRECATED: getDashboardStats called - this should not happen!');
+        console.trace('Stack trace for deprecated getDashboardStats call:');
+        return {
+            success: false,
+            error: 'getDashboardStats is deprecated - use client-side calculation instead'
+        };
     }
 
     // Interviews
@@ -303,12 +308,18 @@ class ApiService {
     async uploadResume(formData: FormData): Promise<ApiResponse<any>> {
         try {
             const url = `${API_BASE_URL}/resumes`;
+
+            // Get access token from localStorage
+            const token = localStorage.getItem('accessToken');
+            const authHeaders: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
+
             const response = await fetch(url, {
                 method: 'POST',
                 body: formData, // Don't set Content-Type for FormData
                 headers: {
                     'Cache-Control': 'no-cache',
                     'Pragma': 'no-cache',
+                    ...authHeaders,
                 },
             });
 
