@@ -1,4 +1,4 @@
-perfect. Now I want to push  the working container to github container registry and deploy the container in railway. I'm not sure how to go about it and how to deal with all the environment variables involved{
+{
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./dist",
