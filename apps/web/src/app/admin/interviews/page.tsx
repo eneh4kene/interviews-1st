@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
+import CreateInterviewModal from '../../../components/CreateInterviewModal';
+import EditInterviewModal from '../../../components/EditInterviewModal';
 
 interface Interview {
   id: string;
@@ -849,47 +851,26 @@ export default function InterviewManagement() {
         </div>
       </div>
 
-      {/* Create/Edit Interview Modal - Placeholder for now */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Schedule Interview</h3>
-            <p className="text-gray-600 mb-4">Interview scheduling form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setShowCreateModal(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setShowCreateModal(false)}>
-                Schedule
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Interview Modal */}
+      <CreateInterviewModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          handleRefresh();
+        }}
+      />
 
-      {/* Edit Interview Modal - Placeholder for now */}
-      {editingInterview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-medium mb-4">Edit Interview</h3>
-            <p className="text-gray-600 mb-4">Interview editing form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setEditingInterview(null)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setEditingInterview(null)}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Edit Interview Modal */}
+      <EditInterviewModal
+        isOpen={!!editingInterview}
+        onClose={() => setEditingInterview(null)}
+        onSuccess={() => {
+          setEditingInterview(null);
+          handleRefresh();
+        }}
+        interview={editingInterview}
+      />
     </div>
   );
 }
