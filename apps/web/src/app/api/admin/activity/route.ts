@@ -51,9 +51,9 @@ export async function GET(request: NextRequest) {
 
         // Combine and sort all activities
         const activities = [
-            ...recentUsers.rows.map(row => ({ ...row, type: 'user_registration' })),
-            ...recentClients.rows.map(row => ({ ...row, type: 'client_registration' })),
-            ...recentInterviews.rows.map(row => ({ ...row, type: 'interview_scheduled' }))
+            ...recentUsers.rows.map((row: any) => ({ ...row, type: 'user_registration' })),
+            ...recentClients.rows.map((row: any) => ({ ...row, type: 'client_registration' })),
+            ...recentInterviews.rows.map((row: any) => ({ ...row, type: 'interview_scheduled' }))
         ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, limit);
 
