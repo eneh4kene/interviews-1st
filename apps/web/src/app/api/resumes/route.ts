@@ -2,35 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/utils/jwt';
 import { db } from '@/lib/utils/database';
 import { ApiResponse } from '@interview-me/types';
-import multer from 'multer';
 import { promises as fs } from 'fs';
 import path from 'path';
-
-// Configure multer for file uploads
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: async (req, file, cb) => {
-            const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-            await fs.mkdir(uploadDir, { recursive: true });
-            cb(null, uploadDir);
-        },
-        filename: (req, file, cb) => {
-            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-            cb(null, `resume-${uniqueSuffix}-${file.originalname}`);
-        },
-    }),
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (allowedTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Invalid file type. Only PDF and Word documents are allowed.'));
-        }
-    },
-    limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
-    },
-});
 
 export async function GET(request: NextRequest) {
     try {
