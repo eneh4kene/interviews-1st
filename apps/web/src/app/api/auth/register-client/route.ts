@@ -27,9 +27,41 @@ const clientRegistrationSchema = z.object({
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const validatedData = clientRegistrationSchema.parse(body);
-        const { name, email, phone, location, linkedinUrl, company, position, jobPreferences = [] } = validatedData;
+        // Handle FormData for file uploads
+        const formData = await request.formData();
+        
+        // Extract form fields
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
+        const phone = formData.get('phone') as string;
+        const location = formData.get('location') as string;
+        const linkedinUrl = formData.get('linkedinUrl') as string;
+        const company = formData.get('company') as string;
+        const position = formData.get('position') as string;
+        const jobPreferencesStr = formData.get('jobPreferences') as string;
+        const resumeFile = formData.get('resume') as File | null;
+        
+        // Parse job preferences
+        let jobPreferences = [];
+        if (jobPreferencesStr) {
+            try {
+                jobPreferences = JSON.parse(jobPreferencesStr);
+            } catch (e) {
+                console.error('Error parsing job preferences:', e);
+            }
+        }
+        
+        // Validate the data
+        const validatedData = clientRegistrationSchema.parse({
+            name,
+            email,
+            phone,
+            location,
+            linkedinUrl,
+            company,
+            position,
+            jobPreferences
+        });
 
         // Check if client already exists
         const existingClient = await db.query(
@@ -110,6 +142,40 @@ export async function POST(request: NextRequest) {
                     preference.salaryMax || null,
                     preference.currency
                 ]);
+            }
+        }
+
+        // Handle resume file upload if provided
+        if (resumeFile && resumeFile.size > 0) {
+            try {
+                // Create uploads directory if it doesn't exist
+                const fs = require('fs');
+                const path = require('path');
+                const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
+                
+                if (!fs.existsSync(uploadsDir)) {
+                    fs.mkdirSync(uploadsDir, { recursive: true });
+                }
+
+                // Generate unique filename
+                const timestamp = Date.now();
+                const randomId = Math.floor(Math.random() * 1000000000);
+                const fileExtension = path.extname(resumeFile.name);
+                const fileName = `resume-${timestamp}-${randomId}${fileExtension}`;
+                const filePath = path.join(uploadsDir, fileName);
+
+                // Save file
+                const buffer = Buffer.from(await resumeFile.arrayBuffer());
+                fs.writeFileSync(filePath, buffer);
+
+                // Create resume record in database
+                await db.query(`
+                    INSERT INTO resumes (client_id, name, file_url, is_default)
+                    VALUES ($1, $2, $3, true)
+                `, [clientId, resumeFile.name, fileName]);
+            } catch (fileError) {
+                console.error('Error uploading resume file:', fileError);
+                // Don't fail the registration if file upload fails
             }
         }
 
