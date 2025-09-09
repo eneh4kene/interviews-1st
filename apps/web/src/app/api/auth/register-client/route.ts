@@ -179,6 +179,16 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Send welcome email to client
+        try {
+            const { emailService } = await import('@/lib/services/emailService');
+            await emailService.sendWelcomeEmail(clientId);
+            console.log('✅ Welcome email queued for client:', clientId);
+        } catch (emailError) {
+            console.error('❌ Failed to send welcome email:', emailError);
+            // Don't fail the registration if email fails
+        }
+
         const response: ApiResponse = {
             success: true,
             data: result.rows[0],

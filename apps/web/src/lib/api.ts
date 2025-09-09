@@ -602,6 +602,113 @@ class ApiService {
             body: JSON.stringify({ feedbackScore, feedbackNotes }),
         });
     }
+
+    // Email Management API methods
+    async getEmailTemplates(category: string = 'all', search: string = ''): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams();
+        if (category !== 'all') params.append('category', category);
+        if (search) params.append('search', search);
+        return this.request(`/emails?${params}`);
+    }
+
+    async getEmailTemplate(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/emails/templates/${id}`);
+    }
+
+    async createEmailTemplate(templateData: {
+        name: string;
+        subject: string;
+        html_content: string;
+        text_content?: string;
+        variables?: string[];
+        category?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/emails', {
+            method: 'POST',
+            body: JSON.stringify(templateData),
+        });
+    }
+
+    async updateEmailTemplate(id: string, templateData: {
+        name?: string;
+        subject?: string;
+        html_content?: string;
+        text_content?: string;
+        variables?: string[];
+        category?: string;
+        is_active?: boolean;
+    }): Promise<ApiResponse<any>> {
+        return this.request(`/emails/templates/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(templateData),
+        });
+    }
+
+    async deleteEmailTemplate(id: string): Promise<ApiResponse<any>> {
+        return this.request(`/emails/templates/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
+    async getEmailQueue(status: string = 'all', page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            status,
+            page: page.toString(),
+            limit: limit.toString()
+        });
+        return this.request(`/emails/queue?${params}`);
+    }
+
+    async processEmailQueue(): Promise<ApiResponse<any>> {
+        return this.request('/emails/queue', {
+            method: 'POST',
+        });
+    }
+
+    async sendTestEmail(toEmail: string, toName: string, templateName: string, variables: Record<string, any> = {}): Promise<ApiResponse<any>> {
+        return this.request('/emails/send-test', {
+            method: 'POST',
+            body: JSON.stringify({ toEmail, toName, templateName, variables }),
+        });
+    }
+
+    async sendWelcomeEmail(clientId: string): Promise<ApiResponse<any>> {
+        return this.request(`/emails/send-welcome/${clientId}`, {
+            method: 'POST',
+        });
+    }
+
+    async sendInterviewScheduledEmail(clientId: string, interviewData: {
+        companyName: string;
+        jobTitle: string;
+        interviewDate: string;
+        interviewTime: string;
+        interviewType: string;
+        interviewLocation: string;
+        interviewUrl: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/emails/send-interview-scheduled', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, interviewData }),
+        });
+    }
+
+    async generateApplicationEmail(clientId: string, companyName: string, jobTitle: string): Promise<ApiResponse<any>> {
+        return this.request('/emails/generate-application-email', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, companyName, jobTitle }),
+        });
+    }
+
+    async getApplicationEmails(clientId?: string, status: string = 'all', page: number = 1, limit: number = 20): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams({
+            status,
+            page: page.toString(),
+            limit: limit.toString()
+        });
+        if (clientId) params.append('clientId', clientId);
+        return this.request(`/emails/application-emails?${params}`);
+    }
 }
 
 export const apiService = new ApiService(); 

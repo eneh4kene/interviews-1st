@@ -8,6 +8,7 @@ import {
   Users, 
   UserCheck, 
   Calendar,
+  Mail,
   DollarSign, 
   TrendingUp, 
   Activity, 
@@ -250,6 +251,10 @@ export default function AdminDashboard() {
               <a href="/admin/interviews" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <Calendar className="h-5 w-5 mr-3" />
                 Interview Management
+              </a>
+              <a href="/admin/emails" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                <Mail className="h-5 w-5 mr-3" />
+                Email Management
               </a>
               <a href="/admin/analytics" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <BarChart3 className="h-5 w-5 mr-3" />
