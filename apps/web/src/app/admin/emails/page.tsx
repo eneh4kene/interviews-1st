@@ -24,18 +24,23 @@ import {
   BarChart3,
   Settings,
   Eye,
-  Play
+  Play,
+  Copy
 } from "lucide-react";
 import { apiService } from '../../../lib/api';
 import Logo from '../../../components/Logo';
 import EmailInbox from '../../../components/EmailInbox';
+import EmailTemplateModal from '../../../components/EmailTemplateModal';
 
 interface EmailTemplate {
   id: string;
   name: string;
   subject: string;
+  html_content?: string;
+  text_content?: string;
   category: string;
   is_active: boolean;
+  variables?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -129,6 +134,24 @@ export default function EmailManagement() {
     window.location.reload();
   };
 
+  const fetchTemplates = async () => {
+    try {
+      console.log('Fetching templates...');
+      const response = await apiService.getEmailTemplates(categoryFilter, searchTerm);
+      console.log('Templates response:', response);
+      if (response.success) {
+        setTemplates(response.data || []);
+        console.log('Templates set:', response.data);
+      } else {
+        setError(response.error || 'Failed to fetch templates');
+        console.error('Failed to fetch templates:', response.error);
+      }
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      setError('Failed to fetch templates');
+    }
+  };
+
   const handleProcessQueue = async () => {
     try {
       const response = await apiService.processEmailQueue();
@@ -144,21 +167,97 @@ export default function EmailManagement() {
     }
   };
 
-  const handleSendTestEmail = async (templateName: string) => {
-    const toEmail = prompt('Enter test email address:');
+
+  const handleSendTemplateEmail = async (template: EmailTemplate) => {
+    const toEmail = prompt('Enter recipient email address:');
     if (!toEmail) return;
+    
+    const toName = prompt('Enter recipient name (optional):') || 'Valued Client';
 
     try {
-      const response = await apiService.sendTestEmail(toEmail, 'Test User', templateName);
-      if (response.success) {
-        alert('Test email sent successfully');
+      // Create a custom email using the template
+      const emailData = {
+        to_email: toEmail,
+        to_name: toName,
+        template_name: template.name,
+        variables: {
+          client_name: toName,
+          company_name: 'InterviewsFirst',
+          worker_name: 'Sarah Johnson',
+          worker_phone: '+1-555-0123',
+          dashboard_url: 'https://interviewsfirst.com/dashboard'
+        }
+      };
+
+      // Send the email using the template
+      const response = await fetch('/api/emails/send-template', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(emailData)
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('Email sent successfully using template!');
       } else {
-        alert('Failed to send test email');
+        alert('Failed to send email: ' + result.error);
       }
     } catch (error) {
-      console.error('Error sending test email:', error);
-      alert('Failed to send test email');
+      console.error('Error sending template email:', error);
+      alert('Failed to send email');
     }
+  };
+
+  const handleSaveTemplate = async (template: EmailTemplate) => {
+    try {
+      console.log('Saving template:', template);
+      
+      if (template.id) {
+        // Update existing template
+        console.log('Updating existing template with ID:', template.id);
+        const response = await apiService.updateEmailTemplate(template.id, template);
+        console.log('Update response:', response);
+      } else {
+        // Create new template
+        console.log('Creating new template');
+        const response = await apiService.createEmailTemplate(template);
+        console.log('Create response:', response);
+      }
+      
+      console.log('Refreshing templates list...');
+      await fetchTemplates();
+      setShowCreateModal(false);
+      setEditingTemplate(null);
+      console.log('Template saved successfully');
+    } catch (error) {
+      console.error('Error saving template:', error);
+      alert('Failed to save template: ' + (error as Error).message);
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    try {
+      await apiService.deleteEmailTemplate(templateId);
+      await fetchTemplates();
+      setEditingTemplate(null);
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('Failed to delete template');
+    }
+  };
+
+  const handleDuplicateTemplate = async (template: EmailTemplate) => {
+    const duplicatedTemplate = {
+      ...template,
+      id: undefined,
+      name: `${template.name} (Copy)`,
+      created_at: undefined,
+      updated_at: undefined
+    };
+    setEditingTemplate(duplicatedTemplate);
   };
 
   const getStatusIcon = (status: string) => {
@@ -392,23 +491,37 @@ export default function EmailManagement() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
-                              onClick={() => handleSendTestEmail(template.name)}
+                              onClick={() => handleSendTemplateEmail(template)}
                               variant="outline"
                               size="sm"
+                              title="Send Email Using Template"
+                              className="text-blue-600 hover:text-blue-800"
                             >
-                              <Send className="h-4 w-4" />
+                              <Send className="h-4 w-4 mr-1" />
+                              Send
+                            </Button>
+                            <Button
+                              onClick={() => handleDuplicateTemplate(template)}
+                              variant="outline"
+                              size="sm"
+                              title="Duplicate Template"
+                            >
+                              <Copy className="h-4 w-4" />
                             </Button>
                             <Button
                               onClick={() => setEditingTemplate(template)}
                               variant="outline"
                               size="sm"
+                              title="Edit Template"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
+                              onClick={() => handleDeleteTemplate(template.id)}
                               variant="outline"
                               size="sm"
                               className="text-red-600 hover:text-red-800"
+                              title="Delete Template"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -513,47 +626,21 @@ export default function EmailManagement() {
         )}
       </div>
 
-      {/* Create/Edit Template Modal - Placeholder */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-medium mb-4">Create Email Template</h3>
-            <p className="text-gray-600 mb-4">Template creation form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setShowCreateModal(false)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setShowCreateModal(false)}>
-                Create
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Template Modal */}
+      <EmailTemplateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleSaveTemplate}
+      />
 
-      {/* Edit Template Modal - Placeholder */}
-      {editingTemplate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-medium mb-4">Edit Email Template</h3>
-            <p className="text-gray-600 mb-4">Template editing form will be implemented here.</p>
-            <div className="flex justify-end gap-2">
-              <Button
-                onClick={() => setEditingTemplate(null)}
-                variant="outline"
-              >
-                Cancel
-              </Button>
-              <Button onClick={() => setEditingTemplate(null)}>
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Edit Template Modal */}
+      <EmailTemplateModal
+        isOpen={!!editingTemplate}
+        onClose={() => setEditingTemplate(null)}
+        template={editingTemplate}
+        onSave={handleSaveTemplate}
+        onDelete={handleDeleteTemplate}
+      />
     </div>
   );
 }

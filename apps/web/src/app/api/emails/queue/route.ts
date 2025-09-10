@@ -64,12 +64,16 @@ export async function POST(request: NextRequest) {
         // For now, skip authentication for email queue (admin-only feature)
         // TODO: Implement proper admin authentication
 
-        // Process email queue
-        // This would typically trigger a background job processor
-        // For now, we'll just return success
+        // Import and process email queue using existing email service
+        const { emailService } = await import('@/lib/services/emailService');
+
+        await emailService.processQueue();
+
         const response: ApiResponse = {
             success: true,
-            data: { message: 'Email queue processing initiated' }
+            data: {
+                message: 'Email queue processing completed'
+            }
         };
 
         return NextResponse.json(response);

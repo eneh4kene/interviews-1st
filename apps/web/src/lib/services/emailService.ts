@@ -1,5 +1,20 @@
 // Frontend email service - works within Next.js environment
 import { db } from '../utils/database';
+import sgMail from '@sendgrid/mail';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from parent directory
+dotenv.config({ path: path.join(process.cwd(), '../../.env') });
+
+// Configure SendGrid
+console.log('SendGrid API Key loaded:', process.env.SENDGRID_API_KEY ? 'Yes' : 'No');
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid configured successfully');
+} else {
+  console.error('SendGrid API key not found in environment variables');
+}
 
 export interface EmailTemplate {
   id: string;
@@ -330,6 +345,96 @@ export class EmailService {
     } catch (error) {
       console.error('Error getting email stats:', error);
       return null;
+    }
+  }
+
+  // Process email queue
+  async processQueue(): Promise<void> {
+    try {
+      console.log('Processing email queue...');
+
+      // Get pending emails ordered by priority and scheduled time
+      const result = await db.query(`
+        SELECT * FROM email_queue 
+        WHERE status = 'pending' 
+        AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+        ORDER BY priority DESC, scheduled_at ASC
+        LIMIT 10
+      `);
+
+      console.log(`Found ${result.rows.length} pending emails`);
+
+      for (const email of result.rows) {
+        await this.processEmailQueueItem(email);
+      }
+    } catch (error) {
+      console.error('Error processing email queue:', error);
+    }
+  }
+
+  // Process individual email queue item
+  private async processEmailQueueItem(email: EmailQueueItem): Promise<void> {
+    try {
+      console.log(`Processing email to ${email.to_email}`);
+
+      // Update status to sending
+      await db.query(
+        'UPDATE email_queue SET status = $1 WHERE id = $2',
+        ['sending', email.id]
+      );
+
+      // Send email via SendGrid
+      const msg = {
+        to: email.to_email,
+        from: {
+          email: email.from_email,
+          name: email.from_name
+        },
+        subject: email.subject,
+        text: email.text_content || '',
+        html: email.html_content || email.text_content || ''
+      };
+
+      await sgMail.send(msg);
+      console.log(`✅ Email sent successfully to ${email.to_email}`);
+
+      // Update status to sent
+      await db.query(
+        'UPDATE email_queue SET status = $1, sent_at = NOW() WHERE id = $2',
+        ['sent', email.id]
+      );
+
+      // Log email
+      await this.logEmail(email.id, email.to_email, email.subject, 'sent');
+
+    } catch (error) {
+      console.error(`❌ Failed to send email to ${email.to_email}:`, error);
+
+      // Update status to failed
+      await db.query(
+        'UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3',
+        ['failed', (error as Error).message, email.id]
+      );
+
+      await this.logEmail(email.id, email.to_email, email.subject, 'failed', (error as Error).message);
+    }
+  }
+
+  // Log email
+  private async logEmail(
+    queueId: string,
+    recipientEmail: string,
+    subject: string,
+    status: string,
+    errorMessage?: string
+  ): Promise<void> {
+    try {
+      await db.query(`
+        INSERT INTO email_logs (queue_id, recipient_email, subject, status, error_message)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [queueId, recipientEmail, subject, status, errorMessage]);
+    } catch (error) {
+      console.error('Error logging email:', error);
     }
   }
 }
