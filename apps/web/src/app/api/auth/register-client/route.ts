@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     try {
         // Handle FormData for file uploads
         const formData = await request.formData();
-        
+
         // Extract form fields
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         const position = formData.get('position') as string;
         const jobPreferencesStr = formData.get('jobPreferences') as string;
         const resumeFile = formData.get('resume') as File | null;
-        
+
         // Parse job preferences
         let jobPreferences = [];
         if (jobPreferencesStr) {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
                 console.error('Error parsing job preferences:', e);
             }
         }
-        
+
         // Validate the data
         const validatedData = clientRegistrationSchema.parse({
             name,
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
                 const fs = require('fs');
                 const path = require('path');
                 const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
-                
+
                 if (!fs.existsSync(uploadsDir)) {
                     fs.mkdirSync(uploadsDir, { recursive: true });
                 }
@@ -181,9 +181,15 @@ export async function POST(request: NextRequest) {
 
         // Send welcome email to client
         try {
+            // Import and use the email service directly
             const { emailService } = await import('@/lib/services/emailService');
-            await emailService.sendWelcomeEmail(clientId);
-            console.log('✅ Welcome email queued for client:', clientId);
+            const success = await emailService.sendWelcomeEmail(clientId);
+
+            if (success) {
+                console.log('✅ Welcome email queued for client:', clientId);
+            } else {
+                console.error('❌ Failed to send welcome email');
+            }
         } catch (emailError) {
             console.error('❌ Failed to send welcome email:', emailError);
             // Don't fail the registration if email fails

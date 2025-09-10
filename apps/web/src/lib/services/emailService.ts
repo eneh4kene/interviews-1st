@@ -1,38 +1,5 @@
-import nodemailer from 'nodemailer';
+// Frontend email service - works within Next.js environment
 import { db } from '../utils/database';
-
-// Email configuration
-const EMAIL_CONFIG = {
-  // Development domains (easily replaceable)
-  domains: {
-    careers: 'careers.interviewsfirst-dev.com',
-    applications: 'applications.interviewsfirst-dev.com',
-    tech: 'tech-careers.interviewsfirst-dev.com',
-    finance: 'finance-careers.interviewsfirst-dev.com',
-    support: 'support.interviewsfirst-dev.com'
-  },
-  
-  // Production domains (for later)
-  productionDomains: {
-    careers: 'careers.interviewsfirst.com',
-    applications: 'applications.interviewsfirst.com',
-    tech: 'tech-careers.interviewsfirst.com',
-    finance: 'finance-careers.interviewsfirst.com',
-    support: 'support.interviewsfirst.com'
-  },
-  
-  // Email provider configuration
-  provider: process.env.EMAIL_PROVIDER || 'nodemailer',
-  nodemailer: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  }
-};
 
 export interface EmailTemplate {
   id: string;
@@ -67,27 +34,6 @@ export interface EmailQueueItem {
 }
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
-  private isInitialized = false;
-
-  constructor() {
-    this.initializeTransporter();
-  }
-
-  private async initializeTransporter() {
-    try {
-      if (EMAIL_CONFIG.provider === 'nodemailer') {
-        this.transporter = nodemailer.createTransporter(EMAIL_CONFIG.nodemailer);
-        await this.transporter.verify();
-        console.log('✅ Email transporter initialized successfully');
-      }
-      this.isInitialized = true;
-    } catch (error) {
-      console.error('❌ Failed to initialize email transporter:', error);
-      this.isInitialized = false;
-    }
-  }
-
   // Generate application email based on client and company
   async generateApplicationEmail(clientId: string, companyName: string, jobTitle: string): Promise<string> {
     try {
@@ -102,23 +48,23 @@ export class EmailService {
       }
 
       const client = clientResult.rows[0];
-      
+
       // Determine domain type based on company
       const domainType = this.getDomainType(companyName);
-      const domain = EMAIL_CONFIG.domains[domainType as keyof typeof EMAIL_CONFIG.domains];
-      
+      const domain = this.getDomain(domainType);
+
       // Generate sanitized name for email
       const sanitizedName = client.name.toLowerCase()
         .replace(/[^a-z0-9]/g, '.')
         .replace(/\.+/g, '.')
         .replace(/^\.|\.$/g, '');
-      
+
       // Generate unique identifier
       const timestamp = Date.now().toString(36);
       const randomId = Math.random().toString(36).substring(2, 8);
-      
+
       const proxyEmail = `${sanitizedName}.${timestamp}.${randomId}@${domain}`;
-      
+
       // Store application email record
       await db.query(`
         INSERT INTO application_emails (
@@ -130,7 +76,7 @@ export class EmailService {
           company_name = EXCLUDED.company_name,
           updated_at = CURRENT_TIMESTAMP
       `, [clientId, proxyEmail, '', jobTitle, companyName, domainType]);
-      
+
       return proxyEmail;
     } catch (error) {
       console.error('Error generating application email:', error);
@@ -141,21 +87,34 @@ export class EmailService {
   // Determine domain type based on company
   private getDomainType(companyName: string): string {
     const company = companyName.toLowerCase();
-    
+
     // Tech companies
-    if (company.includes('tech') || company.includes('software') || company.includes('ai') || 
-        company.includes('data') || company.includes('cloud') || company.includes('digital')) {
+    if (company.includes('tech') || company.includes('software') || company.includes('ai') ||
+      company.includes('data') || company.includes('cloud') || company.includes('digital')) {
       return 'tech';
     }
-    
+
     // Finance companies
     if (company.includes('bank') || company.includes('finance') || company.includes('investment') ||
-        company.includes('credit') || company.includes('insurance') || company.includes('trading')) {
+      company.includes('credit') || company.includes('insurance') || company.includes('trading')) {
       return 'finance';
     }
-    
+
     // Default to careers
     return 'careers';
+  }
+
+  // Get domain for type
+  private getDomain(domainType: string): string {
+    const domains = {
+      careers: 'careers.interviewsfirst-dev.com',
+      applications: 'applications.interviewsfirst-dev.com',
+      tech: 'tech-careers.interviewsfirst-dev.com',
+      finance: 'finance-careers.interviewsfirst-dev.com',
+      support: 'support.interviewsfirst-dev.com'
+    };
+
+    return domains[domainType as keyof typeof domains] || domains.careers;
   }
 
   // Get email template by name
@@ -165,7 +124,7 @@ export class EmailService {
         'SELECT * FROM email_templates WHERE name = $1 AND is_active = true',
         [templateName]
       );
-      
+
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error getting email template:', error);
@@ -183,7 +142,7 @@ export class EmailService {
     Object.entries(variables).forEach(([key, value]) => {
       const placeholder = `{{${key}}}`;
       const replacement = value || '';
-      
+
       subject = subject.replace(new RegExp(placeholder, 'g'), replacement);
       html = html.replace(new RegExp(placeholder, 'g'), replacement);
       text = text.replace(new RegExp(placeholder, 'g'), replacement);
@@ -208,7 +167,7 @@ export class EmailService {
       }
 
       const rendered = this.renderTemplate(template, variables);
-      
+
       const result = await db.query(`
         INSERT INTO email_queue (
           to_email, to_name, from_email, from_name, template_id, subject,
@@ -218,7 +177,7 @@ export class EmailService {
       `, [
         toEmail,
         toName,
-        EMAIL_CONFIG.domains.support,
+        process.env.VERIFIED_SENDER_EMAIL || 'interviewsfirst@gmail.com',
         'InterviewsFirst',
         template.id,
         rendered.subject,
@@ -236,42 +195,6 @@ export class EmailService {
     }
   }
 
-  // Send email immediately
-  async sendEmail(
-    toEmail: string,
-    toName: string,
-    subject: string,
-    htmlContent: string,
-    textContent?: string,
-    fromEmail?: string,
-    fromName?: string
-  ): Promise<boolean> {
-    try {
-      if (!this.isInitialized) {
-        throw new Error('Email service not initialized');
-      }
-
-      const mailOptions = {
-        from: `${fromName || 'InterviewsFirst'} <${fromEmail || EMAIL_CONFIG.domains.support}>`,
-        to: `${toName} <${toEmail}>`,
-        subject,
-        html: htmlContent,
-        text: textContent
-      };
-
-      if (this.transporter) {
-        await this.transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent to ${toEmail}`);
-        return true;
-      } else {
-        throw new Error('No email transporter available');
-      }
-    } catch (error) {
-      console.error('Error sending email:', error);
-      return false;
-    }
-  }
-
   // Send welcome email to client
   async sendWelcomeEmail(clientId: string): Promise<boolean> {
     try {
@@ -281,8 +204,7 @@ export class EmailService {
           c.name as client_name,
           c.email as client_email,
           u.name as worker_name,
-          u.email as worker_email,
-          u.phone as worker_phone
+          u.email as worker_email
         FROM clients c
         LEFT JOIN users u ON c.worker_id = u.id
         WHERE c.id = $1
@@ -292,7 +214,7 @@ export class EmailService {
         throw new Error('Client not found');
       }
 
-      const { client_name, client_email, worker_name, worker_email, worker_phone } = result.rows[0];
+      const { client_name, client_email, worker_name, worker_email } = result.rows[0];
 
       // Queue welcome email
       await this.queueEmail(
@@ -303,10 +225,10 @@ export class EmailService {
           clientName: client_name,
           workerName: worker_name || 'Your Career Coach',
           workerEmail: worker_email || 'support@interviewsfirst.com',
-          workerPhone: worker_phone || 'Contact us for details',
+          workerPhone: 'Contact us for details',
           clientEmail: client_email,
-          dashboardUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/dashboard`,
-          unsubscribeUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/unsubscribe?token=${clientId}`
+          dashboardUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002'}/dashboard`,
+          unsubscribeUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002'}/unsubscribe?token=${clientId}`
         },
         10 // High priority
       );
@@ -367,7 +289,7 @@ export class EmailService {
           workerName: worker_name || 'Your Career Coach',
           workerEmail: worker_email || 'support@interviewsfirst.com',
           clientEmail: client_email,
-          unsubscribeUrl: `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000'}/unsubscribe?token=${clientId}`
+          unsubscribeUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002'}/unsubscribe?token=${clientId}`
         },
         10 // High priority
       );

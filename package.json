@@ -26,11 +26,13 @@
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
+    "@sendgrid/mail": "^8.1.5",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "dotenv": "^17.2.1",
     "framer-motion": "^12.23.12",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.539.0"
+    "lucide-react": "^0.539.0",
+    "nodemailer": "^7.0.6"
   }
 }

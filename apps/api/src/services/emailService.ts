@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { db } from '../utils/database';
 import { ApiResponse } from '@interview-me/types';
 
@@ -12,7 +13,7 @@ const EMAIL_CONFIG = {
     finance: 'finance-careers.interviewsfirst-dev.com',
     support: 'support.interviewsfirst-dev.com'
   },
-  
+
   // Production domains (for later)
   productionDomains: {
     careers: 'careers.interviewsfirst.com',
@@ -21,24 +22,24 @@ const EMAIL_CONFIG = {
     finance: 'finance-careers.interviewsfirst.com',
     support: 'support.interviewsfirst.com'
   },
-  
+
   // Email provider configuration
-  provider: process.env.EMAIL_PROVIDER || 'nodemailer',
+  provider: process.env.EMAIL_PROVIDER || 'sendgrid',
   nodemailer: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: process.env.SMTP_HOST || 'smtp.sendgrid.net',
     port: parseInt(process.env.SMTP_PORT || '587'),
     secure: process.env.SMTP_SECURE === 'true',
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      user: process.env.SMTP_USER || 'apikey',
+      pass: process.env.SMTP_PASS || process.env.SENDGRID_API_KEY
     }
   },
-  
+
   // SendGrid configuration
   sendgrid: {
     apiKey: process.env.SENDGRID_API_KEY
   },
-  
+
   // AWS SES configuration
   ses: {
     accessKeyId: process.env.AWS_SES_ACCESS_KEY,
@@ -108,7 +109,8 @@ export class EmailService {
         await this.transporter.verify();
         console.log('✅ Email transporter initialized successfully');
       } else if (EMAIL_CONFIG.provider === 'sendgrid') {
-        // SendGrid will be handled via API calls
+        // Initialize SendGrid
+        sgMail.setApiKey(EMAIL_CONFIG.sendgrid.apiKey || '');
         console.log('✅ SendGrid email service configured');
       } else if (EMAIL_CONFIG.provider === 'ses') {
         // AWS SES will be handled via AWS SDK
@@ -135,23 +137,23 @@ export class EmailService {
       }
 
       const client = clientResult.rows[0];
-      
+
       // Determine domain type based on company
       const domainType = this.getDomainType(companyName);
       const domain = EMAIL_CONFIG.domains[domainType as keyof typeof EMAIL_CONFIG.domains];
-      
+
       // Generate sanitized name for email
       const sanitizedName = client.name.toLowerCase()
         .replace(/[^a-z0-9]/g, '.')
         .replace(/\.+/g, '.')
         .replace(/^\.|\.$/g, '');
-      
+
       // Generate unique identifier
       const timestamp = Date.now().toString(36);
       const randomId = Math.random().toString(36).substring(2, 8);
-      
+
       const proxyEmail = `${sanitizedName}.${timestamp}.${randomId}@${domain}`;
-      
+
       // Store application email record
       await db.query(`
         INSERT INTO application_emails (
@@ -163,7 +165,7 @@ export class EmailService {
           company_name = EXCLUDED.company_name,
           updated_at = CURRENT_TIMESTAMP
       `, [clientId, proxyEmail, '', jobTitle, companyName, domainType]);
-      
+
       return proxyEmail;
     } catch (error) {
       console.error('Error generating application email:', error);
@@ -174,19 +176,19 @@ export class EmailService {
   // Determine domain type based on company
   private getDomainType(companyName: string): string {
     const company = companyName.toLowerCase();
-    
+
     // Tech companies
-    if (company.includes('tech') || company.includes('software') || company.includes('ai') || 
-        company.includes('data') || company.includes('cloud') || company.includes('digital')) {
+    if (company.includes('tech') || company.includes('software') || company.includes('ai') ||
+      company.includes('data') || company.includes('cloud') || company.includes('digital')) {
       return 'tech';
     }
-    
+
     // Finance companies
     if (company.includes('bank') || company.includes('finance') || company.includes('investment') ||
-        company.includes('credit') || company.includes('insurance') || company.includes('trading')) {
+      company.includes('credit') || company.includes('insurance') || company.includes('trading')) {
       return 'finance';
     }
-    
+
     // Default to careers
     return 'careers';
   }
@@ -198,7 +200,7 @@ export class EmailService {
         'SELECT * FROM email_templates WHERE name = $1 AND is_active = true',
         [templateName]
       );
-      
+
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error getting email template:', error);
@@ -216,7 +218,7 @@ export class EmailService {
     Object.entries(variables).forEach(([key, value]) => {
       const placeholder = `{{${key}}}`;
       const replacement = value || '';
-      
+
       subject = subject.replace(new RegExp(placeholder, 'g'), replacement);
       html = html.replace(new RegExp(placeholder, 'g'), replacement);
       text = text.replace(new RegExp(placeholder, 'g'), replacement);
@@ -241,7 +243,7 @@ export class EmailService {
       }
 
       const rendered = this.renderTemplate(template, variables);
-      
+
       const result = await db.query(`
         INSERT INTO email_queue (
           to_email, to_name, from_email, from_name, template_id, subject,
@@ -284,17 +286,34 @@ export class EmailService {
         throw new Error('Email service not initialized');
       }
 
-      const mailOptions = {
-        from: `${fromName || 'InterviewsFirst'} <${fromEmail || EMAIL_CONFIG.domains.support}>`,
-        to: `${toName} <${toEmail}>`,
-        subject,
-        html: htmlContent,
-        text: textContent
-      };
+      if (EMAIL_CONFIG.provider === 'sendgrid') {
+        // Use SendGrid API
+        const msg = {
+          to: toEmail,
+          from: {
+            email: fromEmail || EMAIL_CONFIG.domains.support,
+            name: fromName || 'InterviewsFirst'
+          },
+          subject,
+          html: htmlContent,
+          text: textContent
+        };
 
-      if (this.transporter) {
+        await sgMail.send(msg);
+        console.log(`✅ Email sent via SendGrid to ${toEmail}`);
+        return true;
+      } else if (this.transporter) {
+        // Use Nodemailer
+        const mailOptions = {
+          from: `${fromName || 'InterviewsFirst'} <${fromEmail || EMAIL_CONFIG.domains.support}>`,
+          to: `${toName} <${toEmail}>`,
+          subject,
+          html: htmlContent,
+          text: textContent
+        };
+
         await this.transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent to ${toEmail}`);
+        console.log(`✅ Email sent via Nodemailer to ${toEmail}`);
         return true;
       } else {
         throw new Error('No email transporter available');
@@ -367,20 +386,20 @@ export class EmailService {
   // Handle email failure
   private async handleEmailFailure(email: EmailQueueItem, errorMessage?: string): Promise<void> {
     const newRetryCount = email.retry_count + 1;
-    
+
     if (newRetryCount >= email.max_retries) {
       // Mark as failed
       await db.query(
         'UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3',
         ['failed', errorMessage || 'Max retries exceeded', email.id]
       );
-      
+
       await this.logEmail(email.id, email.to_email, email.subject, 'failed', errorMessage);
     } else {
       // Schedule retry
       const retryDelay = Math.pow(2, newRetryCount) * 60000; // Exponential backoff
       const retryTime = new Date(Date.now() + retryDelay);
-      
+
       await db.query(
         'UPDATE email_queue SET retry_count = $1, scheduled_at = $2, status = $3 WHERE id = $4',
         [newRetryCount, retryTime, 'pending', email.id]
@@ -439,8 +458,8 @@ export class EmailService {
           workerEmail: worker_email || 'support@interviewsfirst.com',
           workerPhone: worker_phone || 'Contact us for details',
           clientEmail: client_email,
-          dashboardUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard`,
-          unsubscribeUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/unsubscribe?token=${clientId}`
+          dashboardUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/dashboard`,
+          unsubscribeUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/unsubscribe?token=${clientId}`
         },
         10 // High priority
       );
@@ -501,7 +520,7 @@ export class EmailService {
           workerName: worker_name || 'Your Career Coach',
           workerEmail: worker_email || 'support@interviewsfirst.com',
           clientEmail: client_email,
-          unsubscribeUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/unsubscribe?token=${clientId}`
+          unsubscribeUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001'}/unsubscribe?token=${clientId}`
         },
         10 // High priority
       );
@@ -510,6 +529,35 @@ export class EmailService {
     } catch (error) {
       console.error('Error sending interview scheduled email:', error);
       return false;
+    }
+  }
+
+  // Handle incoming email (for reply processing)
+  async handleIncomingEmail(
+    fromEmail: string,
+    fromName: string,
+    subject: string,
+    content: string,
+    replyToEmail: string,
+    clientId?: string,
+    applicationEmailId?: string
+  ): Promise<string> {
+    try {
+      // Generate thread ID if not provided
+      const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+
+      const result = await db.query(`
+        INSERT INTO email_inbox (
+          from_email, from_name, subject, content, reply_to_email,
+          client_id, application_email_id, thread_id, status, is_read
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'unread', false)
+        RETURNING id
+      `, [fromEmail, fromName, subject, content, replyToEmail, clientId, applicationEmailId, threadId]);
+
+      return result.rows[0].id;
+    } catch (error) {
+      console.error('Error handling incoming email:', error);
+      throw error;
     }
   }
 
