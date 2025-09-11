@@ -40,6 +40,7 @@ interface EmailTemplate {
   text_content: string;
   category: string;
   is_active: boolean;
+  is_default?: boolean;
   variables?: string[];
   created_at?: string;
   updated_at?: string;
@@ -224,7 +225,8 @@ export default function EmailManagement() {
         text_content: template.text_content || '',
         variables: template.variables || [],
         category: template.category || 'general',
-        is_active: template.is_active !== undefined ? template.is_active : true
+        is_active: template.is_active !== undefined ? template.is_active : true,
+        is_default: template.is_default || false
       };
       
       console.log('Template data being sent:', JSON.stringify(templateData, null, 2));
@@ -506,6 +508,11 @@ export default function EmailManagement() {
                               }`}>
                                 {template.is_active ? 'Active' : 'Inactive'}
                               </span>
+                              {template.is_default && (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                  Default
+                                </span>
+                              )}
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 {template.category}
                               </span>

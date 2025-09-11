@@ -29,6 +29,7 @@ interface EmailTemplate {
   text_content: string;
   category: string;
   is_active: boolean;
+  is_default?: boolean;
   variables?: string[];
   created_at?: string;
   updated_at?: string;
@@ -115,6 +116,7 @@ export default function EmailTemplateModal({
     text_content: '',
     category: 'welcome',
     is_active: true,
+    is_default: false,
     variables: []
   });
   
@@ -135,6 +137,7 @@ export default function EmailTemplateModal({
         text_content: template.text_content || '',
         category: template.category,
         is_active: template.is_active,
+        is_default: template.is_default || false,
         variables: template.variables || []
       });
       
@@ -392,6 +395,18 @@ export default function EmailTemplateModal({
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <Label htmlFor="is_active">Active Template</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="is_default"
+                      checked={formData.is_default}
+                      onChange={(e) => handleInputChange('is_default', e.target.checked)}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <Label htmlFor="is_default">Default Template for Category</Label>
+                    <span className="text-xs text-gray-500">(Only one default per category)</span>
                   </div>
                 </CardContent>
               </Card>

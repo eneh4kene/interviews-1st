@@ -46,15 +46,23 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         const templateId = params.id;
         const body = await request.json();
-        const { name, subject, html_content, text_content, variables, category, is_active } = body;
+        const { name, subject, html_content, text_content, variables, category, is_active, is_default } = body;
+
+        // If setting as default, unset other defaults in the same category
+        if (is_default) {
+            await db.query(
+                'UPDATE email_templates SET is_default = false WHERE category = $1 AND is_default = true AND id != $2',
+                [category || 'general', templateId]
+            );
+        }
 
         const result = await db.query(`
             UPDATE email_templates 
             SET name = $1, subject = $2, html_content = $3, text_content = $4, 
-                variables = $5, category = $6, is_active = $7, updated_at = NOW()
-            WHERE id = $8
+                variables = $5, category = $6, is_active = $7, is_default = $8, updated_at = NOW()
+            WHERE id = $9
             RETURNING *
-        `, [name, subject, html_content, text_content, JSON.stringify(variables || []), category, is_active, templateId]);
+        `, [name, subject, html_content, text_content, JSON.stringify(variables || []), category, is_active, is_default || false, templateId]);
 
         if (result.rows.length === 0) {
             return NextResponse.json({ success: false, error: 'Template not found' }, { status: 404 });

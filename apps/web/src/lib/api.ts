@@ -623,6 +623,7 @@ class ApiService {
         variables?: string[];
         category?: string;
         is_active?: boolean;
+        is_default?: boolean;
     }): Promise<ApiResponse<any>> {
         return this.request('/emails', {
             method: 'POST',
@@ -638,6 +639,7 @@ class ApiService {
         variables?: string[];
         category?: string;
         is_active?: boolean;
+        is_default?: boolean;
     }): Promise<ApiResponse<any>> {
         return this.request(`/emails/templates/${id}`, {
             method: 'PUT',

@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
         }
 
         const result = await db.query(`
-            SELECT id, name, subject, html_content, text_content, variables, category, is_active, created_at, updated_at
+            SELECT id, name, subject, html_content, text_content, variables, category, is_active, is_default, created_at, updated_at
             FROM email_templates
             WHERE ${whereConditions.join(' AND ')}
-            ORDER BY created_at DESC
+            ORDER BY is_default DESC, created_at DESC
         `, params);
 
         const response: ApiResponse = {
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         // }
 
         const body = await request.json();
-        const { name, subject, html_content, text_content, variables, category } = body;
+        const { name, subject, html_content, text_content, variables, category, is_active, is_default } = body;
 
         if (!name || !subject || !html_content) {
             return NextResponse.json({
@@ -72,11 +72,19 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
+        // If setting as default, unset other defaults in the same category
+        if (is_default) {
+            await db.query(
+                'UPDATE email_templates SET is_default = false WHERE category = $1 AND is_default = true',
+                [category || 'general']
+            );
+        }
+
         const result = await db.query(`
-            INSERT INTO email_templates (name, subject, html_content, text_content, variables, category)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO email_templates (name, subject, html_content, text_content, variables, category, is_active, is_default)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
-        `, [name, subject, html_content, text_content, JSON.stringify(variables || []), category || 'general']);
+        `, [name, subject, html_content, text_content, JSON.stringify(variables || []), category || 'general', is_active !== false, is_default || false]);
 
         const response: ApiResponse = {
             success: true,

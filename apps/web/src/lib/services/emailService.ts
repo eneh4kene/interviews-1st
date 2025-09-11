@@ -132,7 +132,7 @@ export class EmailService {
     return domains[domainType as keyof typeof domains] || domains.careers;
   }
 
-  // Get email template by name
+  // Get email template by name (backward compatibility)
   async getTemplate(templateName: string): Promise<EmailTemplate | null> {
     try {
       const result = await db.query(
@@ -143,6 +143,54 @@ export class EmailService {
       return result.rows[0] || null;
     } catch (error) {
       console.error('Error getting email template:', error);
+      return null;
+    }
+  }
+
+  // Get default template by category
+  async getDefaultTemplate(category: string): Promise<EmailTemplate | null> {
+    try {
+      const result = await db.query(
+        'SELECT * FROM email_templates WHERE category = $1 AND is_default = true AND is_active = true',
+        [category]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error getting default template:', error);
+      return null;
+    }
+  }
+
+  // Get any active template by category (fallback)
+  async getAnyTemplate(category: string): Promise<EmailTemplate | null> {
+    try {
+      const result = await db.query(
+        'SELECT * FROM email_templates WHERE category = $1 AND is_active = true ORDER BY created_at DESC LIMIT 1',
+        [category]
+      );
+
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Error getting any template:', error);
+      return null;
+    }
+  }
+
+  // Get best available template by category (default first, then any active)
+  async getBestTemplate(category: string): Promise<EmailTemplate | null> {
+    try {
+      // First try to get the default template
+      let template = await this.getDefaultTemplate(category);
+
+      // If no default template, get any active template in the category
+      if (!template) {
+        template = await this.getAnyTemplate(category);
+      }
+
+      return template;
+    } catch (error) {
+      console.error('Error getting best template:', error);
       return null;
     }
   }
@@ -210,6 +258,50 @@ export class EmailService {
     }
   }
 
+  // Queue email by category (new method)
+  async queueEmailByCategory(
+    toEmail: string,
+    toName: string,
+    category: string,
+    variables: Record<string, any>,
+    priority: number = 0,
+    scheduledAt?: Date
+  ): Promise<string> {
+    try {
+      const template = await this.getBestTemplate(category);
+      if (!template) {
+        throw new Error(`No template found for category: ${category}`);
+      }
+
+      const rendered = this.renderTemplate(template, variables);
+
+      const result = await db.query(`
+        INSERT INTO email_queue (
+          to_email, to_name, from_email, from_name, template_id, subject,
+          html_content, text_content, variables, priority, scheduled_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING id
+      `, [
+        toEmail,
+        toName,
+        process.env.VERIFIED_SENDER_EMAIL || 'interviewsfirst@gmail.com',
+        'InterviewsFirst',
+        template.id,
+        rendered.subject,
+        rendered.html,
+        rendered.text,
+        JSON.stringify(variables),
+        priority,
+        scheduledAt || new Date()
+      ]);
+
+      return result.rows[0].id;
+    } catch (error) {
+      console.error('Error queuing email by category:', error);
+      throw error;
+    }
+  }
+
   // Send welcome email to client
   async sendWelcomeEmail(clientId: string): Promise<boolean> {
     try {
@@ -231,11 +323,11 @@ export class EmailService {
 
       const { client_name, client_email, worker_name, worker_email } = result.rows[0];
 
-      // Queue welcome email
-      await this.queueEmail(
+      // Queue welcome email using category-based selection
+      await this.queueEmailByCategory(
         client_email,
         client_name,
-        'client_welcome',
+        'welcome', // Use category instead of hardcoded template name
         {
           clientName: client_name,
           workerName: worker_name || 'Your Career Coach',
@@ -287,11 +379,11 @@ export class EmailService {
 
       const { client_name, client_email, worker_name, worker_email } = result.rows[0];
 
-      // Queue interview scheduled email
-      await this.queueEmail(
+      // Queue interview scheduled email using category-based selection
+      await this.queueEmailByCategory(
         client_email,
         client_name,
-        'interview_scheduled',
+        'interview', // Use category instead of hardcoded template name
         {
           clientName: client_name,
           companyName: interviewData.companyName,
