@@ -522,7 +522,7 @@ export default function ClientManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                      <SelectItem value="all">All Workers</SelectItem>
+                      <SelectItem value="all">All Talent Managers</SelectItem>
                       {workers.map((worker) => (
                         <SelectItem key={worker.id} value={worker.id}>
                           {worker.name}
@@ -624,7 +624,7 @@ export default function ClientManagement() {
                             </div>
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Worker
+                            Talent Manager
                           </th>
                           <th 
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"

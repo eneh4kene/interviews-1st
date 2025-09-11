@@ -483,7 +483,7 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold text-text mb-6">
-              Why Choose Interview Me?
+              Why Choose InterviewsFirst?
             </h2>
             <p className="text-xl text-muted max-w-3xl mx-auto">
               We've revolutionized job searching by putting results first and eliminating the noise.
@@ -602,7 +602,7 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold text-text mb-6">
-              What Our Clients Say
+              What Our Talents Say
             </h2>
             <p className="text-xl text-muted">
               Real results from real job seekers who trusted us with their careers.
@@ -864,7 +864,7 @@ export default function Home() {
           </div>
           
           <div className="border-t border-zinc-800 mt-12 pt-8 text-center text-zinc-400">
-            <p>&copy; 2024 Interview Me. All rights reserved.</p>
+            <p>&copy; 2024 InterviewsFirst. All rights reserved.</p>
           </div>
         </div>
       </footer>

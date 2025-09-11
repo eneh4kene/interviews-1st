@@ -32,18 +32,18 @@ export default function LoginPage() {
               <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-6 h-6 text-blue-600" />
               </div>
-              <CardTitle>Workers & Managers</CardTitle>
+              <CardTitle>Talent Managers</CardTitle>
               <CardDescription>
-                Career coaches and recruiters managing client portfolios
+                Career coaches and recruiters managing talent portfolios
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-sm text-gray-600 mb-4">
-                Access your dashboard to manage clients, schedule interviews, and track placements.
+                Access your dashboard to manage talents, schedule interviews, and track placements.
               </p>
               <Link href="/login/worker">
                 <Button className="w-full">
-                  Sign in as Worker
+                  Sign in as Talent Manager
                 </Button>
               </Link>
             </CardContent>
@@ -55,7 +55,7 @@ export default function LoginPage() {
               <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <User className="w-6 h-6 text-green-600" />
               </div>
-              <CardTitle>Clients</CardTitle>
+              <CardTitle>Talents</CardTitle>
               <CardDescription>
                 Job seekers looking for career opportunities
               </CardDescription>
@@ -66,7 +66,7 @@ export default function LoginPage() {
               </p>
               <Link href="/login/client">
                 <Button className="w-full">
-                  Sign in as Client
+                  Sign in as Talent
                 </Button>
               </Link>
             </CardContent>

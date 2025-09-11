@@ -242,11 +242,11 @@ export default function AdminDashboard() {
               </a>
               <a href="/admin/workers" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <Users className="h-5 w-5 mr-3" />
-                Worker Management
+                Talent Mgr. Management
               </a>
               <a href="/admin/clients" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <UserCheck className="h-5 w-5 mr-3" />
-                Client Management
+                Talent Management
               </a>
               <a href="/admin/interviews" className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
                 <Calendar className="h-5 w-5 mr-3" />
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
                   {/* Total Clients */}
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+                      <CardTitle className="text-sm font-medium">Total Talents</CardTitle>
                       <UserCheck className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>

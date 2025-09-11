@@ -331,8 +331,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-4">
               <Logo size="md" />
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Client Portfolio Dashboard</h1>
-                <p className="text-gray-600">Manage your clients' job search journeys</p>
+                <h1 className="text-2xl font-bold text-gray-900">Talent Portfolio Dashboard</h1>
+                <p className="text-gray-600">Manage your talents' job search journeys</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -356,7 +356,7 @@ export default function Dashboard() {
               </Button>
               <Button className="flex items-center gap-2" onClick={handleAddNewClient}>
                 <Plus className="h-4 w-4" />
-                Add New Client
+                Add New Talent
               </Button>
               
               {/* User Menu */}
@@ -412,7 +412,7 @@ export default function Dashboard() {
                     <Users className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Total Clients</p>
+                    <p className="text-sm font-medium text-gray-600">Total Talents</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.totalClients}</p>
                   </div>
                 </div>
@@ -426,7 +426,7 @@ export default function Dashboard() {
                     <Target className="h-6 w-6 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">Active Clients</p>
+                    <p className="text-sm font-medium text-gray-600">Active Talents</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.activeClients}</p>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export default function Dashboard() {
                     <Users className="h-6 w-6 text-orange-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600">New Clients (72h)</p>
+                    <p className="text-sm font-medium text-gray-600">New Talents (72h)</p>
                     <p className="text-2xl font-bold text-gray-900">{stats.newClients}</p>
                   </div>
                 </div>
@@ -647,7 +647,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Clients Grid */}
+        {/* Talents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClients.map((client) => (
             <Card 
@@ -730,17 +730,17 @@ export default function Dashboard() {
         {filteredClients.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-400 text-6xl mb-4">👥</div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No clients found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No talents found</h3>
             <p className="text-gray-600 mb-4">
               {searchTerm || statusFilter !== 'all' 
                 ? 'Try adjusting your search or filters'
-                : 'Get started by adding your first client'
+                : 'Get started by adding your first talent'
               }
             </p>
             {!searchTerm && statusFilter === 'all' && (
               <Button onClick={handleAddNewClient}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add New Client
+                Add New Talent
               </Button>
             )}
           </div>

@@ -229,7 +229,7 @@ export default function WorkerManagement() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Logo />
-              <h1 className="ml-4 text-xl font-semibold text-gray-900">Worker Management</h1>
+              <h1 className="ml-4 text-xl font-semibold text-gray-900">Talent Mgr. Management</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button
@@ -245,7 +245,7 @@ export default function WorkerManagement() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add Worker
+                Add Talent Manager
               </Button>
             </div>
           </div>
@@ -308,7 +308,7 @@ export default function WorkerManagement() {
               </div>
             </div>
 
-        {/* Workers List */}
+        {/* Talent Managers List */}
         <div className="grid gap-6">
           {loading ? (
             <Card>
@@ -321,16 +321,16 @@ export default function WorkerManagement() {
             <Card>
               <CardContent className="text-center py-12">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No workers found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No talent managers found</h3>
                 <p className="text-gray-500 mb-4">
                   {searchTerm || statusFilter !== 'all' 
                     ? 'Try adjusting your search or filter criteria.'
-                    : 'Get started by adding your first worker.'
+                    : 'Get started by adding your first talent manager.'
                   }
                 </p>
                 <Button onClick={() => setShowCreateModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Worker
+                  Add Talent Manager
                 </Button>
               </CardContent>
             </Card>
