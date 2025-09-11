@@ -99,6 +99,41 @@ class ApiService {
         }
     }
 
+    // Generic HTTP methods
+    async get<T>(endpoint: string, options: { params?: Record<string, any> } = {}): Promise<ApiResponse<T>> {
+        const url = new URL(`${API_BASE_URL}${endpoint}`, window.location.origin);
+
+        if (options.params) {
+            Object.entries(options.params).forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.append(key, String(value));
+                }
+            });
+        }
+
+        return this.request<T>(endpoint + (url.search || ''));
+    }
+
+    async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+        return this.request<T>(endpoint, {
+            method: 'POST',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
+    async put<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+        return this.request<T>(endpoint, {
+            method: 'PUT',
+            body: data ? JSON.stringify(data) : undefined,
+        });
+    }
+
+    async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+        return this.request<T>(endpoint, {
+            method: 'DELETE',
+        });
+    }
+
     // Authentication
     async login(email: string, password: string): Promise<ApiResponse<{ user: any; accessToken: string }>> {
         return this.request('/auth/login', {
@@ -711,6 +746,95 @@ class ApiService {
         });
         if (clientId) params.append('clientId', clientId);
         return this.request(`/emails/application-emails?${params}`);
+    }
+
+    // Job Discovery Methods
+    async getFilteredJobs(clientId: string, filters: {
+        keywords?: string;
+        location?: string;
+        page?: number;
+        limit?: number;
+        salaryMin?: number;
+        salaryMax?: number;
+        workType?: 'remote' | 'hybrid' | 'onsite';
+        source?: string;
+        aiApplicableOnly?: boolean;
+    } = {}): Promise<ApiResponse<any>> {
+        const params = new URLSearchParams();
+
+        if (filters.keywords) params.append('keywords', filters.keywords);
+        if (filters.location) params.append('location', filters.location);
+        if (filters.page) params.append('page', filters.page.toString());
+        if (filters.limit) params.append('limit', filters.limit.toString());
+        if (filters.salaryMin) params.append('salaryMin', filters.salaryMin.toString());
+        if (filters.salaryMax) params.append('salaryMax', filters.salaryMax.toString());
+        if (filters.workType) params.append('workType', filters.workType);
+        if (filters.source) params.append('source', filters.source);
+        if (filters.aiApplicableOnly) params.append('aiApplicableOnly', 'true');
+
+        return this.request(`/jobs/filtered/${clientId}?${params}`);
+    }
+
+    async getJobStats(clientId: string): Promise<ApiResponse<any>> {
+        return this.request(`/jobs/stats/${clientId}`);
+    }
+
+    async classifyJob(job: any): Promise<ApiResponse<any>> {
+        return this.request('/jobs/classify', {
+            method: 'POST',
+            body: JSON.stringify({ job }),
+        });
+    }
+
+    async batchClassifyJobs(jobs: any[]): Promise<ApiResponse<any>> {
+        return this.request('/jobs/classify/batch', {
+            method: 'POST',
+            body: JSON.stringify({ jobs }),
+        });
+    }
+
+    async getAiApplicableJobs(limit: number = 50): Promise<ApiResponse<any>> {
+        return this.request(`/jobs/ai-applicable?limit=${limit}`);
+    }
+
+    async getClassificationStats(): Promise<ApiResponse<any>> {
+        return this.request('/jobs/classification-stats');
+    }
+
+    async getJobClassification(jobId: string): Promise<ApiResponse<any>> {
+        return this.request(`/jobs/classification/${jobId}`);
+    }
+
+    async updateJobClassification(jobId: string, classification: any): Promise<ApiResponse<any>> {
+        return this.request(`/jobs/classification/${jobId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ classification }),
+        });
+    }
+
+    // Application Management Methods
+    async checkDuplicateApplication(clientId: string, jobId: string): Promise<ApiResponse<any>> {
+        return this.request('/applications/check-duplicate', {
+            method: 'POST',
+            body: JSON.stringify({ clientId, jobId }),
+        });
+    }
+
+    async createApplication(applicationData: {
+        clientId: string;
+        jobId?: string;
+        jobTitle: string;
+        companyName: string;
+        companyWebsite?: string;
+        applyUrl?: string;
+        applicationType?: 'ai' | 'manual';
+        resumeId?: string;
+        notes?: string;
+    }): Promise<ApiResponse<any>> {
+        return this.request('/applications/create', {
+            method: 'POST',
+            body: JSON.stringify(applicationData),
+        });
     }
 }
 

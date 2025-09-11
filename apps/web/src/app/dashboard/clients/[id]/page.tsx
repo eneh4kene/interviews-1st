@@ -27,6 +27,7 @@ import EditResumeModal from '../../../../components/EditResumeModal';
 import JobPreferenceModal from '../../../../components/JobPreferenceModal';
 import ViewApplicationsModal from '../../../../components/ViewApplicationsModal';
 import ApplicationModal from '../../../../components/ApplicationModal';
+import JobDiscoveryTab from '../../../../components/JobDiscoveryTab';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -35,7 +36,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'applications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery'>('overview');
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEditResumeModal, setShowEditResumeModal] = useState(false);
@@ -467,7 +468,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 { id: 'overview', label: 'Overview', icon: Users },
                 { id: 'resumes', label: 'Resumes', icon: FileText },
                 { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
-                { id: 'applications', label: 'Applications', icon: TrendingUp },
+                { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -757,83 +758,15 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
               </div>
             )}
 
-            {/* Applications Tab */}
-            {activeTab === 'applications' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-medium">Job Applications</h3>
-                  <Button onClick={handleAddApplication}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Application
-                  </Button>
-                </div>
-
-                <div className="space-y-4">
-                  {applications.map((app) => (
-                    <Card key={app.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-lg">{app.jobTitle}</CardTitle>
-                            <CardDescription>{app.companyName}</CardDescription>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(app.status)}`}>
-                            {getStatusIcon(app.status)}
-                            {app.status}
-                          </span>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Application Date</p>
-                            <p className="text-sm">{new Date(app.applicationDate).toLocaleDateString()}</p>
-                          </div>
-                          {app.interviewDate && (
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-gray-400" />
-                              <p className="text-sm">{new Date(app.interviewDate).toLocaleDateString()}</p>
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-medium text-gray-600">Resume Used</p>
-                            <p className="text-sm">
-                              {app.resumeId 
-                                ? (resumes.find(r => r.id === app.resumeId)?.name || 'Resume not found') 
-                                : 'No resume selected'
-                              }
-                            </p>
-                          </div>
-                        </div>
-                        {app.notes && (
-                          <div className="mb-4">
-                            <p className="text-sm font-medium text-gray-600">Notes</p>
-                            <p className="text-sm text-gray-900">{app.notes}</p>
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(app)}>Update Status</Button>
-                          <Button size="sm" variant="outline" onClick={() => handleAddNotes(app)}>Add Notes</Button>
-                          <Button size="sm" variant="outline" onClick={() => handleViewDetails(app)}>View Details</Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {applications.length === 0 && (
-                  <div className="text-center py-12">
-                    <div className="text-gray-400 text-6xl mb-4">📝</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
-                    <p className="text-gray-600 mb-4">Start applying to jobs to track your progress</p>
-                    <Button onClick={handleAddApplication}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add First Application
-                    </Button>
-                  </div>
-                )}
-              </div>
+            {/* Job Discovery Tab */}
+            {activeTab === 'job-discovery' && (
+              <JobDiscoveryTab 
+                clientId={params.id}
+                onJobApply={(job, applicationType) => {
+                  // Optional: Handle additional post-application logic
+                  console.log('Job application completed:', { job, applicationType });
+                }}
+              />
             )}
           </div>
         </div>
