@@ -28,6 +28,7 @@ import JobPreferenceModal from '../../../../components/JobPreferenceModal';
 import ViewApplicationsModal from '../../../../components/ViewApplicationsModal';
 import ApplicationModal from '../../../../components/ApplicationModal';
 import JobDiscoveryTab from '../../../../components/JobDiscoveryTab';
+import AiApplicationsTab from '../../../../components/AiApplicationsTab';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -36,7 +37,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery' | 'ai-applications'>('overview');
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEditResumeModal, setShowEditResumeModal] = useState(false);
@@ -469,6 +470,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 { id: 'resumes', label: 'Resumes', icon: FileText },
                 { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
                 { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
+                { id: 'ai-applications', label: 'AI Applications', icon: CheckCircle },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -765,6 +767,17 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 onJobApply={(job, applicationType) => {
                   // Optional: Handle additional post-application logic
                   console.log('Job application completed:', { job, applicationType });
+                }}
+              />
+            )}
+
+            {/* AI Applications Tab */}
+            {activeTab === 'ai-applications' && (
+              <AiApplicationsTab 
+                clientId={params.id}
+                onApplicationUpdate={(application) => {
+                  // Optional: Handle additional post-application logic
+                  console.log('AI application updated:', application);
                 }}
               />
             )}

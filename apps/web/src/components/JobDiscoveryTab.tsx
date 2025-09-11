@@ -124,45 +124,73 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
 
       setApplyingJobs(prev => new Set(prev).add(job.id));
 
-      // Check for duplicate application if job has an ID
-      if (job.id) {
-        const duplicateCheck = await apiService.checkDuplicateApplication(clientId, job.id);
-        
-        if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
-          alert(`Application already exists: ${duplicateCheck.data.message}`);
-          return;
-        }
-      }
+      if (applicationType === 'ai') {
+        // Use AI Apply service for AI applications
+        const response = await apiService.post('/ai-apply/submit', {
+          client_id: clientId,
+          job_id: job.id,
+          job_title: job.title,
+          company_name: job.company,
+          company_website: job.company_website,
+          wait_for_approval: true, // Always wait for approval for now
+          worker_notes: `AI application from job discovery`
+        });
 
-      // Create application
-      const applicationData = {
-        clientId,
-        jobId: job.id,
-        jobTitle: job.title,
-        companyName: job.company,
-        companyWebsite: job.company_website,
-        applyUrl: job.apply_url,
-        applicationType,
-        notes: `Applied via ${applicationType === 'ai' ? 'AI' : 'Manual'} application from job discovery`
-      };
-
-      const response = await apiService.createApplication(applicationData);
-
-      if (response.success) {
-        alert(`Successfully applied to ${job.title} at ${job.company} via ${applicationType === 'ai' ? 'AI' : 'Manual'} application!`);
-        
-        // Refresh data to show updated stats
-        await fetchData();
-        
-        // Call parent handler if provided
-        if (onJobApply) {
-          onJobApply(job, applicationType);
+        if (response.success) {
+          alert(`AI application submitted for ${job.title} at ${job.company}! Check the AI Applications tab to review and approve.`);
+          
+          // Refresh data to show updated stats
+          await fetchData();
+          
+          // Call parent handler if provided
+          if (onJobApply) {
+            onJobApply(job, applicationType);
+          }
+        } else {
+          alert(`Failed to submit AI application: ${response.error}`);
         }
       } else {
-        if (response.data?.isDuplicate) {
-          alert(`Application already exists: ${response.error}`);
+        // Use regular application system for manual applications
+        // Check for duplicate application if job has an ID
+        if (job.id) {
+          const duplicateCheck = await apiService.checkDuplicateApplication(clientId, job.id);
+          
+          if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
+            alert(`Application already exists: ${duplicateCheck.data.message}`);
+            return;
+          }
+        }
+
+        // Create application
+        const applicationData = {
+          clientId,
+          jobId: job.id,
+          jobTitle: job.title,
+          companyName: job.company,
+          companyWebsite: job.company_website,
+          applyUrl: job.apply_url,
+          applicationType,
+          notes: `Applied via ${applicationType === 'ai' ? 'AI' : 'Manual'} application from job discovery`
+        };
+
+        const response = await apiService.createApplication(applicationData);
+
+        if (response.success) {
+          alert(`Successfully applied to ${job.title} at ${job.company} via ${applicationType === 'ai' ? 'AI' : 'Manual'} application!`);
+          
+          // Refresh data to show updated stats
+          await fetchData();
+          
+          // Call parent handler if provided
+          if (onJobApply) {
+            onJobApply(job, applicationType);
+          }
         } else {
-          alert(`Failed to apply: ${response.error}`);
+          if (response.data?.isDuplicate) {
+            alert(`Application already exists: ${response.error}`);
+          } else {
+            alert(`Failed to apply: ${response.error}`);
+          }
         }
       }
     } catch (error) {
