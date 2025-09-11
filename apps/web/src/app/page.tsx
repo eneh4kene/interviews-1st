@@ -853,7 +853,7 @@ export default function Home() {
                 <Link href="/login" className="block text-zinc-400 hover:text-white transition-colors">
                   Login
                 </Link>
-                <Link href="/signup" className="block text-zinc-400 hover:text-white transition-colors">
+                <Link href="/signup/client" className="block text-zinc-400 hover:text-white transition-colors">
                   Sign Up
                 </Link>
                 <Link href="/contact" className="block text-zinc-400 hover:text-white transition-colors">
