@@ -221,6 +221,20 @@ export class JobAggregationService {
         return createHash('sha256').update(text.toLowerCase().trim()).digest('hex');
     }
 
+    // Check if stored jobs are fresh (less than 24 hours old)
+    private isStoredDataFresh(jobs: Job[]): boolean {
+        if (jobs.length === 0) return false;
+
+        const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        // Check if any job is newer than 24 hours
+        return jobs.some(job => {
+            const jobDate = new Date(job.postedDate || job.createdAt);
+            return jobDate > twentyFourHoursAgo;
+        });
+    }
+
     // Normalize job data from different aggregators
     private normalizeJob(rawJob: any, source: JobAggregator): Job {
         const normalized: Job = {
@@ -574,31 +588,44 @@ export class JobAggregationService {
             return JSON.parse(cached);
         }
 
-        // Fetch from aggregators
-        const aggregatorResults = await this.fetchFromAggregators(filters);
+        // Check database first for fresh jobs (cost-saving strategy)
+        console.log('🔍 Checking database for fresh jobs first...');
+        const storedJobsResponse = await this.getStoredJobs(filters);
+        const storedJobs = storedJobsResponse.jobs;
+        const isStoredDataFresh = this.isStoredDataFresh(storedJobs);
 
-        // Combine and deduplicate jobs
-        const allJobs = aggregatorResults
-            .filter(result => result.success)
-            .flatMap(result => result.jobs);
+        let deduplicatedJobs: Job[] = [];
+        let aggregatorResults: JobAggregatorResponse[] = [];
 
-        const deduplicatedJobs = this.deduplicateJobs(allJobs);
+        if (isStoredDataFresh && storedJobs.length > 0) {
+            // Use fresh database jobs, skip expensive API calls
+            console.log(`🔍 Using fresh database jobs (${storedJobs.length} jobs) - skipping API calls to save costs`);
+            deduplicatedJobs = storedJobs;
+        } else {
+            // Database is stale or empty, fetch from APIs
+            console.log('🔍 Database is stale or empty, fetching from external APIs...');
+            aggregatorResults = await this.fetchFromAggregators(filters);
 
-        // Store in database for future queries
-        await this.storeJobs(deduplicatedJobs);
+            // Combine and deduplicate jobs
+            const allJobs = aggregatorResults
+                .filter(result => result.success)
+                .flatMap(result => result.jobs);
 
-        // If no jobs from aggregators, try to get stored jobs from database
-        let jobsToFilter = deduplicatedJobs;
-        if (jobsToFilter.length === 0) {
-            console.log('🔍 No jobs from aggregators, fetching stored jobs from database...');
-            const storedJobsResponse = await this.getStoredJobs(filters);
-            jobsToFilter = storedJobsResponse.jobs;
+            deduplicatedJobs = this.deduplicateJobs(allJobs);
 
-            // If no stored jobs either, generate mock jobs for development
-            if (jobsToFilter.length === 0) {
-                console.log('🔍 No stored jobs found, generating mock jobs for development...');
-                jobsToFilter = this.generateMockJobs(filters);
+            // Store fresh jobs in database for future queries
+            if (deduplicatedJobs.length > 0) {
+                await this.storeJobs(deduplicatedJobs);
             }
+        }
+
+        // Use the jobs we determined above
+        let jobsToFilter = deduplicatedJobs;
+
+        // If no jobs from either source, generate mock jobs for development
+        if (jobsToFilter.length === 0) {
+            console.log('🔍 No jobs found anywhere, generating mock jobs for development...');
+            jobsToFilter = this.generateMockJobs(filters);
         }
 
         // Apply additional filters to jobs
