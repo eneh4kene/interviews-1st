@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         }
 
         const result = await db.query(`
-            SELECT id, name, subject, category, is_active, created_at, updated_at
+            SELECT id, name, subject, html_content, text_content, variables, category, is_active, created_at, updated_at
             FROM email_templates
             WHERE ${whereConditions.join(' AND ')}
             ORDER BY created_at DESC

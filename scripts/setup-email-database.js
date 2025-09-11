@@ -10,6 +10,7 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config();
 
 console.log('🗄️  Setting up Email Database...');
 console.log('================================\n');

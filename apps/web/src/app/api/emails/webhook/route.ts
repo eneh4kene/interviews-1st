@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Extract sender name from email
-        const fromName = fromEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const fromName = fromEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
 
         // Generate thread ID based on subject or create new one
         const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;

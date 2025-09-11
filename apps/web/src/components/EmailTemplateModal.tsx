@@ -6,8 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@inte
 import { Input } from "@interview-me/ui";
 import { Label } from "@interview-me/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@interview-me/ui";
-import { Textarea } from "@interview-me/ui";
-import { Switch } from "@interview-me/ui";
+// Note: Textarea and Switch are not available in @interview-me/ui, using alternatives
 import { 
   X, 
   Save, 
@@ -123,6 +122,7 @@ export default function EmailTemplateModal({
   const [previewData, setPreviewData] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState<{ html: number; text: number }>({ html: 0, text: 0 });
 
   // Initialize form data when template changes
   useEffect(() => {
@@ -165,28 +165,89 @@ export default function EmailTemplateModal({
     }));
   };
 
+  const handleTextareaClick = (field: 'html_content' | 'text_content', event: React.MouseEvent<HTMLTextAreaElement>) => {
+    const textarea = event.currentTarget;
+    const cursorPos = textarea.selectionStart;
+    if (field === 'html_content') {
+      setCursorPosition(prev => ({ ...prev, html: cursorPos }));
+    } else {
+      setCursorPosition(prev => ({ ...prev, text: cursorPos }));
+    }
+  };
+
+  const handleTextareaKeyUp = (field: 'html_content' | 'text_content', event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = event.currentTarget;
+    const cursorPos = textarea.selectionStart;
+    if (field === 'html_content') {
+      setCursorPosition(prev => ({ ...prev, html: cursorPos }));
+    } else {
+      setCursorPosition(prev => ({ ...prev, text: cursorPos }));
+    }
+  };
+
+  const handleTextareaChange = (field: 'html_content' | 'text_content', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleVariableInsert = (variableName: string) => {
     const variableTag = `{{${variableName}}}`;
     if (activeTab === 'html') {
+      const currentContent = formData.html_content;
+      const currentPos = cursorPosition.html;
+      const newContent = currentContent.slice(0, currentPos) + variableTag + currentContent.slice(currentPos);
       setFormData(prev => ({
         ...prev,
-        html_content: prev.html_content + variableTag
+        html_content: newContent
+      }));
+      // Update cursor position to after the inserted variable
+      setCursorPosition(prev => ({
+        ...prev,
+        html: currentPos + variableTag.length
       }));
     } else {
+      const currentContent = formData.text_content;
+      const currentPos = cursorPosition.text;
+      const newContent = currentContent.slice(0, currentPos) + variableTag + currentContent.slice(currentPos);
       setFormData(prev => ({
         ...prev,
-        text_content: prev.text_content + variableTag
+        text_content: newContent
+      }));
+      // Update cursor position to after the inserted variable
+      setCursorPosition(prev => ({
+        ...prev,
+        text: currentPos + variableTag.length
       }));
     }
   };
 
+  // Restore cursor position after variable insertion only
+  useEffect(() => {
+    const textarea = document.getElementById(activeTab === 'html' ? 'html_content' : 'text_content') as HTMLTextAreaElement;
+    if (textarea) {
+      const pos = activeTab === 'html' ? cursorPosition.html : cursorPosition.text;
+      // Only restore cursor position if it's significantly different (variable insertion)
+      if (Math.abs(textarea.selectionStart - pos) > 1) {
+        textarea.setSelectionRange(pos, pos);
+      }
+    }
+  }, [cursorPosition, activeTab]);
+
   const handleSave = async () => {
+    console.log('=== MODAL SAVE CLICKED ===');
+    console.log('Form data:', JSON.stringify(formData, null, 2));
+    console.log('Template prop:', template);
+    
     setIsLoading(true);
     try {
       await onSave(formData);
+      console.log('Modal save completed successfully');
       onClose();
     } catch (error) {
-      console.error('Error saving template:', error);
+      console.error('Error saving template in modal:', error);
+      alert('Failed to save template: ' + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
@@ -241,7 +302,7 @@ export default function EmailTemplateModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
@@ -273,7 +334,7 @@ export default function EmailTemplateModal({
           </div>
         </div>
 
-        <div className="flex h-[calc(90vh-120px)]">
+        <div className="flex flex-1 overflow-hidden">
           {/* Left Panel - Form */}
           <div className="w-1/2 p-6 overflow-y-auto border-r">
             <div className="space-y-6">
@@ -306,12 +367,12 @@ export default function EmailTemplateModal({
                   <div>
                     <Label htmlFor="category">Category</Label>
                     <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white border-gray-300">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white border border-gray-300 shadow-lg z-50">
                         {TEMPLATE_CATEGORIES.map(category => (
-                          <SelectItem key={category.value} value={category.value}>
+                          <SelectItem key={category.value} value={category.value} className="bg-white hover:bg-gray-50">
                             <div>
                               <div className="font-medium">{category.label}</div>
                               <div className="text-sm text-gray-500">{category.description}</div>
@@ -323,10 +384,12 @@ export default function EmailTemplateModal({
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Switch
+                    <input
+                      type="checkbox"
                       id="is_active"
                       checked={formData.is_active}
-                      onCheckedChange={(checked) => handleInputChange('is_active', checked)}
+                      onChange={(e) => handleInputChange('is_active', e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
                     <Label htmlFor="is_active">Active Template</Label>
                   </div>
@@ -413,12 +476,15 @@ export default function EmailTemplateModal({
               {activeTab === 'html' && (
                 <div>
                   <Label htmlFor="html_content">HTML Content</Label>
-                  <Textarea
+                  <textarea
                     id="html_content"
                     value={formData.html_content}
-                    onChange={(e) => handleInputChange('html_content', e.target.value)}
+                    onChange={(e) => handleTextareaChange('html_content', e.target.value)}
+                    onClick={(e) => handleTextareaClick('html_content', e)}
+                    onKeyUp={(e) => handleTextareaKeyUp('html_content', e)}
                     placeholder="Enter your HTML email content here..."
-                    className="min-h-[400px] font-mono text-sm"
+                    className="w-full min-h-[400px] font-mono text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={15}
                   />
                 </div>
               )}
@@ -426,12 +492,15 @@ export default function EmailTemplateModal({
               {activeTab === 'text' && (
                 <div>
                   <Label htmlFor="text_content">Text Content</Label>
-                  <Textarea
+                  <textarea
                     id="text_content"
                     value={formData.text_content}
-                    onChange={(e) => handleInputChange('text_content', e.target.value)}
+                    onChange={(e) => handleTextareaChange('text_content', e.target.value)}
+                    onClick={(e) => handleTextareaClick('text_content', e)}
+                    onKeyUp={(e) => handleTextareaKeyUp('text_content', e)}
                     placeholder="Enter your plain text email content here..."
-                    className="min-h-[400px] font-mono text-sm"
+                    className="w-full min-h-[400px] font-mono text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={15}
                   />
                 </div>
               )}

@@ -33,16 +33,16 @@ import EmailInbox from '../../../components/EmailInbox';
 import EmailTemplateModal from '../../../components/EmailTemplateModal';
 
 interface EmailTemplate {
-  id: string;
+  id?: string;
   name: string;
   subject: string;
-  html_content?: string;
-  text_content?: string;
+  html_content: string;
+  text_content: string;
   category: string;
   is_active: boolean;
   variables?: string[];
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface EmailQueueItem {
@@ -213,18 +213,40 @@ export default function EmailManagement() {
 
   const handleSaveTemplate = async (template: EmailTemplate) => {
     try {
-      console.log('Saving template:', template);
+      console.log('=== SAVING TEMPLATE ===');
+      console.log('Template data:', JSON.stringify(template, null, 2));
+      
+      // Prepare template data for both create and update
+      const templateData = {
+        name: template.name,
+        subject: template.subject,
+        html_content: template.html_content || '',
+        text_content: template.text_content || '',
+        variables: template.variables || [],
+        category: template.category || 'general',
+        is_active: template.is_active !== undefined ? template.is_active : true
+      };
+      
+      console.log('Template data being sent:', JSON.stringify(templateData, null, 2));
       
       if (template.id) {
         // Update existing template
         console.log('Updating existing template with ID:', template.id);
-        const response = await apiService.updateEmailTemplate(template.id, template);
+        const response = await apiService.updateEmailTemplate(template.id, templateData);
         console.log('Update response:', response);
+        
+        if (!response.success) {
+          throw new Error(`Update failed: ${response.error}`);
+        }
       } else {
         // Create new template
         console.log('Creating new template');
-        const response = await apiService.createEmailTemplate(template);
+        const response = await apiService.createEmailTemplate(templateData);
         console.log('Create response:', response);
+        
+        if (!response.success) {
+          throw new Error(`Create failed: ${response.error}`);
+        }
       }
       
       console.log('Refreshing templates list...');
@@ -250,9 +272,9 @@ export default function EmailManagement() {
   };
 
   const handleDuplicateTemplate = async (template: EmailTemplate) => {
-    const duplicatedTemplate = {
+    const duplicatedTemplate: EmailTemplate = {
       ...template,
-      id: undefined,
+      id: undefined, // No ID for new template
       name: `${template.name} (Copy)`,
       created_at: undefined,
       updated_at: undefined
@@ -517,11 +539,12 @@ export default function EmailManagement() {
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button
-                              onClick={() => handleDeleteTemplate(template.id)}
+                              onClick={() => template.id && handleDeleteTemplate(template.id)}
                               variant="outline"
                               size="sm"
                               className="text-red-600 hover:text-red-800"
                               title="Delete Template"
+                              disabled={!template.id}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

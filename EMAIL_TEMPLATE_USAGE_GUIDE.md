@@ -1,4 +1,4 @@
-#i Email Template Usage Guide
+#i tried on one of th Email Template Usage Guide
 
 ## 🎯 **How to Use Templates to Send Emails**
 

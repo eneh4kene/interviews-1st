@@ -622,6 +622,7 @@ class ApiService {
         text_content?: string;
         variables?: string[];
         category?: string;
+        is_active?: boolean;
     }): Promise<ApiResponse<any>> {
         return this.request('/emails', {
             method: 'POST',
