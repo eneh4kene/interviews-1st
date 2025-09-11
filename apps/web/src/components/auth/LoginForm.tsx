@@ -49,7 +49,7 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
         if (user.role === 'WORKER' || user.role === 'MANAGER') {
           router.push('/dashboard');
         } else if (user.role === 'ADMIN') {
-          router.push('/admin');
+          router.push('/admin/dashboard');
         } else if (user.role === 'CLIENT') {
           router.push('/client');
         } else {
@@ -67,18 +67,18 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Logo size="lg" className="mx-auto mb-4" />
+          <Logo size="lg" className="mx-auto mb-6" />
           <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
           <p className="mt-2 text-sm text-gray-600">{description}</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign in to your account</CardTitle>
-            <CardDescription>
+        <Card className="shadow-xl border-0">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
+            <CardDescription className="text-center">
               Enter your credentials to access your dashboard
             </CardDescription>
           </CardHeader>
@@ -91,26 +91,32 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email address</Label>
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email address
+                </Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
+                  className="h-11"
                   required
                   disabled={isLoading}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
+                  className="h-11"
                   required
                   disabled={isLoading}
                 />
@@ -118,26 +124,13 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-11 text-base font-medium"
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Demo credentials for {userType}:
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Email: {userType === 'worker' ? 'worker1@interview-me.com' : 
-                       userType === 'admin' ? 'admin@interview-me.com' : 
-                       'client1@email.com'}
-              </p>
-              <p className="text-xs text-gray-500">
-                Password: {userType === 'worker' ? 'password@worker' : userType === 'admin' ? 'admin@admin' : 'password@client'}
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

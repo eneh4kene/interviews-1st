@@ -1,14 +1,72 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button } from '@interview-me/ui';
-import { Users, User, Shield, Home, ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Alert, AlertDescription } from '@interview-me/ui';
+import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Logo from '../../components/Logo';
+import { LoginRequest, LoginResponse } from '@interview-me/types';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const loginData: LoginRequest = { email, password };
+      
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginData),
+        credentials: 'include',
+      });
+
+      const result: LoginResponse = await response.json();
+
+      if (result.success && result.data) {
+        // Store access token and user data
+        localStorage.setItem('accessToken', result.data.accessToken);
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        
+        // Smart redirect based on user role
+        const user = result.data.user;
+        if (user.role === 'WORKER' || user.role === 'MANAGER') {
+          router.push('/dashboard');
+        } else if (user.role === 'ADMIN') {
+          router.push('/admin/dashboard');
+        } else if (user.role === 'CLIENT') {
+          router.push('/client');
+        } else {
+          // Fallback to role selection if role is unclear
+          router.push('/login/role-selection');
+        }
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setError('Network error. Please check your connection and try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <Link href="/">
@@ -19,87 +77,90 @@ export default function LoginPage() {
             </Link>
           </div>
           <Logo size="lg" className="mx-auto mb-6" />
-          <h1 className="text-4xl font-bold text-gray-900">Welcome to InterviewsFirst</h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Choose your role to access the platform
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Sign in to your InterviewsFirst account
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Worker Login */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
-              <CardTitle>Talent Managers</CardTitle>
-              <CardDescription>
-                Career coaches and recruiters managing talent portfolios
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Access your dashboard to manage talents, schedule interviews, and track placements.
-              </p>
-              <Link href="/login/worker">
-                <Button className="w-full">
-                  Sign in as Talent Manager
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+        {/* Login Form */}
+        <Card className="shadow-xl border-0">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
+            <CardDescription className="text-center">
+              Enter your credentials to access your dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-          {/* Client Login */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <User className="w-6 h-6 text-green-600" />
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  Email address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="pl-10 h-11"
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
               </div>
-              <CardTitle>Talents</CardTitle>
-              <CardDescription>
-                Job seekers looking for career opportunities
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                View your profile, manage applications, and respond to interview offers.
-              </p>
-              <Link href="/login/client">
-                <Button className="w-full">
-                  Sign in as Talent
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
 
-          {/* Admin Login */}
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                <Shield className="w-6 h-6 text-purple-600" />
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="pl-10 pr-10 h-11"
+                    required
+                    disabled={isLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
-              <CardTitle>Administrators</CardTitle>
-              <CardDescription>
-                System administrators and platform managers
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-sm text-gray-600 mb-4">
-                Manage users, monitor system performance, and configure platform settings.
-              </p>
-              <Link href="/login/admin">
-                <Button className="w-full">
-                  Sign in as Admin
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
 
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </form>
+
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-500">
             Need help? Contact support at{' '}
-            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 hover:underline">
+            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 hover:underline font-medium">
               support@interviewsfirst.com
             </a>
           </p>

@@ -4,8 +4,8 @@ export default function WorkerLoginPage() {
   return (
     <LoginForm
       userType="worker"
-      title="Worker Login"
-      description="Access your client management dashboard"
+      title="Talent Manager Login"
+      description="Access your talent management dashboard"
       redirectTo="/dashboard"
     />
   );
