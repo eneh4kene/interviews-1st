@@ -43,7 +43,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
   const [filters, setFilters] = useState({
     keywords: '',
     location: '',
-    aiApplicableOnly: false,
+    workType: '' as 'remote' | 'hybrid' | 'onsite' | '',
+    aiFilterType: 'all' as 'all' | 'ai_only' | 'manual_only' | 'high_confidence' | 'medium_confidence' | 'low_confidence',
     page: 1,
     limit: 20
   });
@@ -108,7 +109,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
     setFilters({
       keywords: '',
       location: '',
-      aiApplicableOnly: false,
+      workType: '',
+      aiFilterType: 'all',
       page: 1,
       limit: 20
     });
@@ -162,6 +164,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
         }
 
         // Create application
+        const getApplicationTypeLabel = (type: 'ai' | 'manual') => type === 'ai' ? 'AI' : 'Manual';
+        const applicationTypeLabel = getApplicationTypeLabel(applicationType);
         const applicationData = {
           clientId,
           jobId: job.id,
@@ -170,13 +174,13 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
           companyWebsite: job.company_website,
           applyUrl: job.apply_url,
           applicationType,
-          notes: `Applied via ${applicationType === 'ai' ? 'AI' : 'Manual'} application from job discovery`
+          notes: `Applied via ${applicationTypeLabel} application from job discovery`
         };
 
         const response = await apiService.createApplication(applicationData);
 
         if (response.success) {
-          alert(`Successfully applied to ${job.title} at ${job.company} via ${applicationType === 'ai' ? 'AI' : 'Manual'} application!`);
+          alert(`Successfully applied to ${job.title} at ${job.company} via ${applicationTypeLabel} application!`);
           
           // Refresh data to show updated stats
           await fetchData();
@@ -186,7 +190,7 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
             onJobApply(job, applicationType);
           }
         } else {
-          if (response.data?.isDuplicate) {
+          if ((response as any).data?.isDuplicate) {
             alert(`Application already exists: ${response.error}`);
           } else {
             alert(`Failed to apply: ${response.error}`);
@@ -208,7 +212,7 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
   // Load data on mount and when filters change
   useEffect(() => {
     fetchData();
-  }, [clientId, filters.aiApplicableOnly, filters.page]);
+  }, [clientId, filters.workType, filters.aiFilterType, filters.page]);
 
   // Get status color for AI applicability
   const getAiStatusColor = (isAiApplicable: boolean, confidenceScore: number) => {
@@ -325,7 +329,7 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
           <CardTitle className="text-base">Search & Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Keywords
@@ -350,26 +354,47 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div className="flex items-end">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={filters.aiApplicableOnly}
-                  onChange={(e) => handleFilterChange({ aiApplicableOnly: e.target.checked })}
-                  className="mr-2"
-                />
-                <span className="text-sm font-medium text-gray-700">AI Applicable Only</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Work Type
               </label>
+              <select
+                value={filters.workType}
+                onChange={(e) => handleFilterChange({ workType: e.target.value as 'remote' | 'hybrid' | 'onsite' | '' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Work Types</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">Onsite</option>
+              </select>
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSearch} className="flex-1">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-              <Button onClick={handleClearFilters} variant="outline">
-                Clear
-              </Button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                AI Filter
+              </label>
+              <select
+                value={filters.aiFilterType}
+                onChange={(e) => handleFilterChange({ aiFilterType: e.target.value as any })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Jobs</option>
+                <option value="ai_only">AI Applicable Only</option>
+                <option value="manual_only">Manual Only</option>
+                <option value="high_confidence">High Confidence AI</option>
+                <option value="medium_confidence">Medium Confidence AI</option>
+                <option value="low_confidence">Low Confidence AI</option>
+              </select>
             </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button onClick={handleSearch} className="flex-1">
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
+            <Button onClick={handleClearFilters} variant="outline">
+              Clear Filters
+            </Button>
           </div>
         </CardContent>
       </Card>
