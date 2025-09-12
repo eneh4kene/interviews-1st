@@ -53,6 +53,7 @@ export interface JobSearchFilters {
   workType?: 'remote' | 'hybrid' | 'onsite';
   source?: string;
   aiApplicableOnly?: boolean;
+  aiFilterType?: 'all' | 'ai_only' | 'manual_only' | 'high_confidence' | 'medium_confidence' | 'low_confidence';
 }
 
 export class JobDiscoveryService {
@@ -123,13 +124,10 @@ export class JobDiscoveryService {
           };
         });
 
-        // 6. Filter by AI applicability if requested
-        let filteredJobs = classifiedJobListings;
-        if (filters.aiApplicableOnly) {
-          filteredJobs = classifiedJobListings.filter(job => job.is_ai_applicable);
-        }
+        // Apply AI filtering
+        let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
 
-        // 7. Sort by match percentage and confidence score
+        // Sort by match percentage and confidence score
         filteredJobs.sort((a, b) => {
           // First by match percentage (descending)
           if (b.match_percentage !== a.match_percentage) {
@@ -139,7 +137,7 @@ export class JobDiscoveryService {
           return b.confidence_score - a.confidence_score;
         });
 
-        // 8. Apply pagination
+        // Apply pagination
         const page = filters.page || 1;
         const limit = filters.limit || 20;
         const startIndex = (page - 1) * limit;
@@ -148,21 +146,17 @@ export class JobDiscoveryService {
         return filteredJobs.slice(startIndex, endIndex);
       }
 
-      // 2. Build search filters based on client preferences
-      const searchFilters = this.buildSearchFiltersFromPreferences(clientPreferences, filters);
+      // 2. Fetch jobs for all preferred job titles
+      const allJobs = await this.fetchJobsForAllPreferences(clientPreferences, filters);
 
-      // 3. Search jobs using existing job aggregation service
-      const jobSearchResponse = await jobAggregationService.searchJobs(searchFilters);
-      const jobs = jobSearchResponse.jobs || [];
-
-      if (jobs.length === 0) {
+      if (allJobs.length === 0) {
         console.log(`No jobs found for client ${clientId}`);
         return [];
       }
 
-      // 4. Create classified job listings with match scores
-      const classifiedJobListings: ClassifiedJobListing[] = jobs.map(job => {
-        // Simple AI applicability check based on company website
+      // 3. Create classified job listings with enhanced match scores
+      const classifiedJobListings: ClassifiedJobListing[] = allJobs.map(job => {
+        // Enhanced AI applicability check
         const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
         const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
 
@@ -173,7 +167,7 @@ export class JobDiscoveryService {
           : ['No company website for email discovery'];
         const applicationMethod = hasApplyUrl ? 'form' : 'email';
 
-        const matchPercentage = this.calculateMatchPercentage(job, clientPreferences);
+        const matchPercentage = this.calculateEnhancedMatchPercentage(job, clientPreferences);
 
         return {
           id: job.id,
@@ -200,23 +194,29 @@ export class JobDiscoveryService {
         };
       });
 
-      // 6. Filter by AI applicability if requested
-      let filteredJobs = classifiedJobListings;
-      if (filters.aiApplicableOnly) {
-        filteredJobs = classifiedJobListings.filter(job => job.is_ai_applicable);
-      }
+      // 4. Apply AI filtering
+      let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
 
-      // 7. Sort by match percentage and confidence score
+      // 5. Sort by location priority and match percentage
       filteredJobs.sort((a, b) => {
-        // First by match percentage (descending)
+        // First by location priority (exact match > partial match > remote compatibility)
+        const locationScoreA = this.calculateLocationPriority(a, clientPreferences);
+        const locationScoreB = this.calculateLocationPriority(b, clientPreferences);
+
+        if (locationScoreB !== locationScoreA) {
+          return locationScoreB - locationScoreA;
+        }
+
+        // Then by match percentage (descending)
         if (b.match_percentage !== a.match_percentage) {
           return b.match_percentage - a.match_percentage;
         }
-        // Then by confidence score (descending)
+
+        // Finally by confidence score (descending)
         return b.confidence_score - a.confidence_score;
       });
 
-      // 8. Apply pagination
+      // 6. Apply pagination
       const page = filters.page || 1;
       const limit = filters.limit || 20;
       const startIndex = (page - 1) * limit;
@@ -465,6 +465,98 @@ export class JobDiscoveryService {
       console.error('Error getting applied job IDs:', error);
       return [];
     }
+  }
+
+  /**
+   * Fetch jobs for all client preferences
+   */
+  private async fetchJobsForAllPreferences(
+    preferences: ClientJobPreferences[],
+    filters: JobSearchFilters
+  ): Promise<any[]> {
+    const allJobs: any[] = [];
+    const seenJobIds = new Set<string>();
+
+    // Fetch jobs for each preference
+    for (const preference of preferences) {
+      const searchFilters = this.buildSearchFiltersFromPreferences([preference], filters);
+
+      try {
+        const jobSearchResponse = await jobAggregationService.searchJobs(searchFilters);
+        const jobs = jobSearchResponse.jobs || [];
+
+        // Add unique jobs only
+        for (const job of jobs) {
+          const jobKey = `${job.title}-${job.company}-${job.location}`;
+          if (!seenJobIds.has(jobKey)) {
+            seenJobIds.add(jobKey);
+            allJobs.push(job);
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching jobs for preference ${preference.id}:`, error);
+        // Continue with other preferences
+      }
+    }
+
+    return allJobs;
+  }
+
+  /**
+   * Apply AI filtering based on filter type
+   */
+  private applyAiFiltering(jobs: ClassifiedJobListing[], filters: JobSearchFilters): ClassifiedJobListing[] {
+    if (!filters.aiFilterType || filters.aiFilterType === 'all') {
+      return jobs;
+    }
+
+    switch (filters.aiFilterType) {
+      case 'ai_only':
+        return jobs.filter(job => job.is_ai_applicable);
+      case 'manual_only':
+        return jobs.filter(job => !job.is_ai_applicable);
+      case 'high_confidence':
+        return jobs.filter(job => job.is_ai_applicable && job.confidence_score >= 0.8);
+      case 'medium_confidence':
+        return jobs.filter(job => job.is_ai_applicable && job.confidence_score >= 0.6 && job.confidence_score < 0.8);
+      case 'low_confidence':
+        return jobs.filter(job => job.is_ai_applicable && job.confidence_score < 0.6);
+      default:
+        return jobs;
+    }
+  }
+
+  /**
+   * Calculate enhanced match percentage considering multiple preferences
+   */
+  private calculateEnhancedMatchPercentage(job: any, preferences: ClientJobPreferences[]): number {
+    let bestMatch = 0;
+
+    for (const preference of preferences) {
+      const match = this.calculateMatchPercentage(job, [preference]);
+      bestMatch = Math.max(bestMatch, match);
+    }
+
+    return bestMatch;
+  }
+
+  /**
+   * Calculate location priority score for sorting
+   */
+  private calculateLocationPriority(job: ClassifiedJobListing, preferences: ClientJobPreferences[]): number {
+    let bestLocationScore = 0;
+
+    for (const preference of preferences) {
+      const locationMatch = this.calculateLocationMatch(
+        preference.location,
+        job.location,
+        preference.work_type,
+        job.work_location
+      );
+      bestLocationScore = Math.max(bestLocationScore, locationMatch);
+    }
+
+    return bestLocationScore;
   }
 
   /**

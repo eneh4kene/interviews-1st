@@ -35,6 +35,7 @@ export async function GET(
         const workType = searchParams.get('workType') as 'remote' | 'hybrid' | 'onsite';
         const source = searchParams.get('source');
         const aiApplicableOnly = searchParams.get('aiApplicableOnly') === 'true';
+        const aiFilterType = searchParams.get('aiFilterType') as 'all' | 'ai_only' | 'manual_only' | 'high_confidence' | 'medium_confidence' | 'low_confidence';
 
         // Verify user has access to this client
         const { rows: clientRows } = await db.query(
@@ -69,7 +70,8 @@ export async function GET(
             salaryMax: salaryMax ? parseInt(salaryMax) : undefined,
             workType,
             source: source || undefined,
-            aiApplicableOnly
+            aiApplicableOnly,
+            aiFilterType: aiFilterType || 'all'
         };
 
         // Get filtered jobs
