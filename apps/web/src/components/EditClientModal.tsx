@@ -129,8 +129,8 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto modal">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-white">
           <div>
             <CardTitle>Edit Client</CardTitle>
             <CardDescription>
@@ -147,7 +147,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
           </Button>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="bg-white">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
