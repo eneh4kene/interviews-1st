@@ -268,6 +268,8 @@ export class JobAggregationService {
                 normalized.salaryCurrency = rawJob.salary_currency || 'GBP';
                 normalized.jobType = this.mapJobType(rawJob.contract_time || '') as any;
                 normalized.workLocation = this.mapWorkLocation(rawJob.contract_time || '') as any;
+                // Extract company website from company object or description
+                normalized.company_website = this.extractCompanyWebsite(rawJob);
                 break;
 
             case 'jooble':
@@ -281,6 +283,8 @@ export class JobAggregationService {
                 normalized.applyUrl = rawJob.link || '';
                 normalized.externalId = rawJob.id?.toString() || '';
                 normalized.jobType = this.mapJobType(rawJob.type || '') as any;
+                // Extract company website from company object or description
+                normalized.company_website = this.extractCompanyWebsite(rawJob);
                 // Extract salary range if available
                 if (rawJob.salary) {
                     const salaryMatch = rawJob.salary.match(/(\d+(?:,\d+)*)\s*-\s*(\d+(?:,\d+)*)\s*(\w+)/);
@@ -334,6 +338,60 @@ export class JobAggregationService {
             'work_from_home': 'remote'
         };
         return locationMap[aggregatorLocation] || undefined;
+    }
+
+    // Extract company website from job data
+    private extractCompanyWebsite(rawJob: any): string | undefined {
+        // Try to extract from company object first
+        if (rawJob.company?.website) {
+            return rawJob.company.website;
+        }
+
+        // Try to extract from company object display_name if it contains a domain
+        if (rawJob.company?.display_name) {
+            const domainMatch = rawJob.company.display_name.match(/([a-zA-Z0-9-]+\.(?:com|co\.uk|org|net|io|ai|tech|dev))/i);
+            if (domainMatch) {
+                return `https://${domainMatch[1]}`;
+            }
+        }
+
+        // Try to extract from description using regex patterns
+        const description = rawJob.description || rawJob.snippet || '';
+        const websitePatterns = [
+            // Look for explicit website mentions
+            /(?:visit|see|check|apply at|more info at|website:?)\s*([a-zA-Z0-9-]+\.(?:com|co\.uk|org|net|io|ai|tech|dev|co|uk))/gi,
+            // Look for www. patterns
+            /(?:www\.)([a-zA-Z0-9-]+\.(?:com|co\.uk|org|net|io|ai|tech|dev|co|uk))/gi,
+            // Look for full URLs
+            /(?:https?:\/\/)(?:www\.)?([a-zA-Z0-9-]+\.(?:com|co\.uk|org|net|io|ai|tech|dev|co|uk))/gi
+        ];
+
+        for (const pattern of websitePatterns) {
+            const match = pattern.exec(description);
+            if (match) {
+                let website = match[1];
+
+                // Validate that it looks like a real domain (not too short, not generic)
+                if (website.length < 4 || website.includes('example') || website.includes('test') || website.includes('localhost')) {
+                    continue;
+                }
+
+                if (!website.startsWith('http')) {
+                    website = `https://${website}`;
+                }
+
+                // Additional validation - check if it's not a common non-company domain
+                const commonNonCompanyDomains = ['google.com', 'linkedin.com', 'indeed.com', 'glassdoor.com', 'monster.com', 'ziprecruiter.com'];
+                if (commonNonCompanyDomains.some(domain => website.includes(domain))) {
+                    continue;
+                }
+
+                return website;
+            }
+        }
+
+        // No mock website generation - only return real websites found in the data
+        return undefined;
     }
 
     // Fetch jobs from Adzuna API
@@ -506,8 +564,8 @@ export class JobAggregationService {
 
         try {
             const values = jobs.map((job, index) => {
-                const offset = index * 15; // 15 fields per job
-                return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15})`;
+                const offset = index * 16; // 16 fields per job (added company_website)
+                return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15}, $${offset + 16})`;
             }).join(', ');
 
             const params: any[] = [];
@@ -520,6 +578,7 @@ export class JobAggregationService {
                     job.externalId,
                     job.title,
                     job.company,
+                    job.company_website || null, // Add company_website field
                     job.location,
                     job.salary,
                     job.descriptionSnippet,
@@ -537,13 +596,14 @@ export class JobAggregationService {
 
             const query = `
                 INSERT INTO jobs (
-                    external_id, title, company, location, salary, description_snippet,
+                    external_id, title, company, company_website, location, salary, description_snippet,
                     source, posted_date, apply_url, job_type, work_location,
                     salary_min, salary_max, salary_currency, auto_apply_status
                 ) VALUES ${values}
                 ON CONFLICT (external_id, source) DO UPDATE SET
                     title = EXCLUDED.title,
                     company = EXCLUDED.company,
+                    company_website = EXCLUDED.company_website,
                     location = EXCLUDED.location,
                     salary = EXCLUDED.salary,
                     description_snippet = EXCLUDED.description_snippet,
@@ -834,6 +894,7 @@ export class JobAggregationService {
                 salaryCurrency: row.salary_currency,
                 autoApplyStatus: row.auto_apply_status,
                 externalId: row.external_id,
+                company_website: row.company_website,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             }));
@@ -869,6 +930,7 @@ export class JobAggregationService {
                 id: 'mock-1',
                 title: 'Senior Software Engineer',
                 company: 'TechCorp Inc.',
+                // No company_website - will be classified as manual only
                 location: 'London, UK',
                 descriptionSnippet: 'We are looking for a Senior Software Engineer to join our growing team...',
                 salaryMin: 60000,
@@ -888,6 +950,7 @@ export class JobAggregationService {
                 id: 'mock-2',
                 title: 'Frontend Developer',
                 company: 'StartupXYZ',
+                // No company_website - will be classified as manual only
                 location: 'Remote',
                 descriptionSnippet: 'Join our innovative startup as a Frontend Developer. Work with React...',
                 salaryMin: 45000,
@@ -907,6 +970,7 @@ export class JobAggregationService {
                 id: 'mock-3',
                 title: 'DevOps Engineer',
                 company: 'CloudTech Solutions',
+                // No company_website - will be classified as manual only
                 location: 'Manchester, UK',
                 descriptionSnippet: 'We need a DevOps Engineer to help us scale our infrastructure...',
                 salaryMin: 55000,
@@ -926,6 +990,7 @@ export class JobAggregationService {
                 id: 'mock-4',
                 title: 'Data Scientist',
                 company: 'DataInsights Ltd',
+                // No company_website - will be classified as manual only
                 location: 'Bristol, UK',
                 descriptionSnippet: 'Looking for a Data Scientist to work on machine learning projects...',
                 salaryMin: 50000,
@@ -945,6 +1010,7 @@ export class JobAggregationService {
                 id: 'mock-5',
                 title: 'Product Manager',
                 company: 'InnovateCo',
+                // No company_website - will be classified as manual only
                 location: 'Edinburgh, UK',
                 descriptionSnippet: 'Join our product team as a Product Manager and help shape...',
                 salaryMin: 65000,
@@ -956,6 +1022,46 @@ export class JobAggregationService {
                 applyUrl: 'https://innovateco.com/careers/product-manager',
                 source: 'adzuna' as JobAggregator,
                 externalId: 'mock-5',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-6',
+                title: 'Software Engineer',
+                company: 'Microsoft',
+                company_website: 'https://microsoft.com',
+                location: 'London, UK',
+                descriptionSnippet: 'Join Microsoft as a Software Engineer working on cutting-edge technology...',
+                salaryMin: 70000,
+                salaryMax: 90000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'hybrid',
+                postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+                applyUrl: 'https://careers.microsoft.com/software-engineer',
+                source: 'adzuna' as JobAggregator,
+                externalId: 'mock-6',
+                autoApplyStatus: 'pending_review' as AutoApplyStatus,
+                createdAt: new Date(),
+                updatedAt: new Date()
+            },
+            {
+                id: 'mock-7',
+                title: 'Full Stack Developer',
+                company: 'Google',
+                company_website: 'https://google.com',
+                location: 'Remote',
+                descriptionSnippet: 'Work at Google as a Full Stack Developer on innovative projects...',
+                salaryMin: 80000,
+                salaryMax: 100000,
+                salaryCurrency: 'GBP',
+                jobType: 'full-time',
+                workLocation: 'remote',
+                postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                applyUrl: 'https://careers.google.com/full-stack-developer',
+                source: 'adzuna' as JobAggregator,
+                externalId: 'mock-7',
                 autoApplyStatus: 'pending_review' as AutoApplyStatus,
                 createdAt: new Date(),
                 updatedAt: new Date()
@@ -1035,6 +1141,7 @@ export class JobAggregationService {
                 salaryCurrency: row.salary_currency,
                 autoApplyStatus: row.auto_apply_status,
                 externalId: row.external_id,
+                company_website: row.company_website,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             }));
@@ -1122,6 +1229,7 @@ export class JobAggregationService {
                 salaryCurrency: row.salary_currency,
                 autoApplyStatus: row.auto_apply_status,
                 externalId: row.external_id,
+                company_website: row.company_website,
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             };

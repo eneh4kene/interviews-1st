@@ -239,6 +239,7 @@ export interface Job {
     id: string;
     title: string;
     company: string;
+    company_website?: string; // Required for AI applicability
     location: string;
     salary?: string;
     descriptionSnippet: string;
