@@ -21,14 +21,14 @@ export class ClientAssignmentService {
     // Get worker with least clients
     private async getWorkerWithLeastClients(): Promise<User | null> {
         const result = await db.query(`
-      SELECT u.*, COUNT(c.id) as client_count
-      FROM users u
-      LEFT JOIN clients c ON u.id = c.worker_id AND c.status = 'active'
-      WHERE u.role = 'WORKER' AND u.is_active = true
-      GROUP BY u.id
-      ORDER BY client_count ASC, u.last_login_at ASC
-      LIMIT 1
-    `);
+            SELECT u.*, COUNT(c.id) as client_count
+            FROM users u
+            LEFT JOIN clients c ON u.id = c.worker_id AND c.status = 'active'
+            WHERE u.role = 'WORKER' AND u.is_active = true
+            GROUP BY u.id
+            ORDER BY client_count ASC, u.last_login_at ASC
+            LIMIT 1
+        `);
 
         return result.rows[0] || null;
     }
