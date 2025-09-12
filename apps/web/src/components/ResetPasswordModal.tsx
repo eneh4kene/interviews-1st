@@ -96,8 +96,8 @@ export default function ResetPasswordModal({ isOpen, onClose, onSuccess, user }:
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <Card className="w-full max-w-md bg-white shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-white">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5" />
@@ -117,7 +117,7 @@ export default function ResetPasswordModal({ isOpen, onClose, onSuccess, user }:
           </Button>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="bg-white">
           {success ? (
             <div className="text-center py-6">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />

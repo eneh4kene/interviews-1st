@@ -115,11 +115,11 @@ export default function WorkerManagement() {
           setWorkers(response.data.workers);
           setPagination(response.data.pagination);
         } else {
-          setError(response.error || 'Failed to fetch workers');
+          setError(response.error || 'Failed to fetch talent managers');
         }
       } catch (err) {
-        console.error('Failed to fetch workers:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load workers');
+        console.error('Failed to fetch talent managers:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load talent managers');
       } finally {
         setLoading(false);
       } 
@@ -279,7 +279,7 @@ export default function WorkerManagement() {
                   <SearchInput
                     value={searchInput}
                     onChange={handleSearchChange}
-                    placeholder="Search workers by name or email..."
+                    placeholder="Search talent managers by name or email..."
                   />
                 </div>
                 <div className="flex gap-2">
@@ -314,7 +314,7 @@ export default function WorkerManagement() {
             <Card>
               <CardContent className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading workers...</p>
+                <p className="text-gray-600">Loading talent managers...</p>
               </CardContent>
             </Card>
           ) : workers.length === 0 ? (
@@ -445,7 +445,7 @@ export default function WorkerManagement() {
         {pagination && pagination.pages > 1 && (
           <div className="mt-6 flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} workers
+              Showing {((pagination.page - 1) * pagination.limit) + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} talent managers
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -496,7 +496,7 @@ export default function WorkerManagement() {
             setSelectedWorkerForReset(null);
           }}
           onSuccess={() => {
-            // Refresh the workers list
+            // Refresh the talent managers list
             setRefreshTrigger(prev => prev + 1);
           }}
           user={selectedWorkerForReset}

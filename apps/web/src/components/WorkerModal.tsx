@@ -141,11 +141,11 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
         onSuccess();
         onClose();
       } else {
-        setError(response.error || `Failed to ${isEdit ? 'update' : 'create'} worker`);
+        setError(response.error || `Failed to ${isEdit ? 'update' : 'create'} talent manager`);
       }
     } catch (err) {
-      console.error('Error saving worker:', err);
-      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} worker`);
+      console.error('Error saving talent manager:', err);
+      setError(err instanceof Error ? err.message : `Failed to ${isEdit ? 'update' : 'create'} talent manager`);
     } finally {
       setLoading(false);
     }
@@ -155,12 +155,12 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto modal">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white shadow-xl">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-white">
           <div>
-            <CardTitle>{isEdit ? 'Edit Worker' : 'Add New Worker'}</CardTitle>
+            <CardTitle>{isEdit ? 'Edit Talent Manager' : 'Add New Talent Manager'}</CardTitle>
             <CardDescription>
-              {isEdit ? 'Update worker information' : 'Create a new worker account'}
+              {isEdit ? 'Update talent manager information' : 'Create a new talent manager account'}
             </CardDescription>
           </div>
           <Button
@@ -173,7 +173,7 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
           </Button>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="bg-white">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3">
@@ -192,7 +192,7 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
                 id="name"
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Enter worker name"
+                placeholder="Enter talent manager name"
                 required
               />
             </div>
@@ -262,7 +262,7 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
                       background: 'white !important'
                     }}
                   >
-                    Worker
+                    Talent Manager
                   </SelectItem>
                   <SelectItem 
                     value="MANAGER" 
@@ -328,7 +328,7 @@ export default function WorkerModal({ isOpen, onClose, onSuccess, worker }: Work
                 ) : (
                   <>
                     <CheckCircle className="h-4 w-4" />
-                    {isEdit ? 'Update Worker' : 'Create Worker'}
+                    {isEdit ? 'Update Talent Manager' : 'Create Talent Manager'}
                   </>
                 )}
               </Button>
