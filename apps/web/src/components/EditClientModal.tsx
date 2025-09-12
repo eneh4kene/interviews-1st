@@ -56,7 +56,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
         status: client.status || "active",
         paymentStatus: client.payment_status || "pending"
       });
-      setSelectedWorkerId(client.worker_id || "");
+      setSelectedWorkerId(client.worker_id || "unassigned");
     }
   }, [client]);
 
@@ -69,9 +69,14 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
 
   const fetchWorkers = async () => {
     try {
+      console.log('Fetching workers...');
       const response = await apiService.getWorkers(1, 100);
+      console.log('Workers response:', response);
       if (response.success) {
         setWorkers(response.data.workers || []);
+        console.log('Workers set:', response.data.workers);
+      } else {
+        console.error('Failed to fetch workers:', response.error);
       }
     } catch (error) {
       console.error('Error fetching workers:', error);
@@ -100,10 +105,12 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
         linkedinUrl: formData.linkedinUrl,
         status: formData.status,
         paymentStatus: formData.paymentStatus,
-        workerId: selectedWorkerId || undefined
+        workerId: selectedWorkerId === "unassigned" ? null : selectedWorkerId || null
       };
 
+      console.log('Submitting client data:', clientData);
       const response = await apiService.updateAdminClient(client.id, clientData);
+      console.log('Update response:', response);
       
       if (response.success) {
         onSuccess();
@@ -245,7 +252,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                   <SelectValue placeholder="Select a worker" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {workers.map((worker) => (
                     <SelectItem key={worker.id} value={worker.id}>
                       {worker.name} ({worker.email})

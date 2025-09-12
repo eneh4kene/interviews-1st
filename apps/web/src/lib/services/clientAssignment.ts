@@ -105,8 +105,8 @@ export class ClientAssignmentService {
         try {
             // Verify new worker exists and is active
             const workerResult = await db.query(
-                'SELECT * FROM users WHERE id = $1 AND role = $2 AND is_active = $3',
-                [newWorkerId, 'WORKER', true]
+                'SELECT * FROM users WHERE id = $1 AND role IN ($2, $3) AND is_active = $4',
+                [newWorkerId, 'WORKER', 'MANAGER', true]
             );
 
             if (workerResult.rows.length === 0) {

@@ -160,6 +160,22 @@ export async function PUT(
             return NextResponse.json(response, { status: 400 });
         }
 
+        // Validate worker if provided
+        if (workerId) {
+            const workerCheck = await db.query(
+                'SELECT id FROM users WHERE id = $1 AND role IN ($2, $3) AND is_active = $4',
+                [workerId, 'WORKER', 'MANAGER', true]
+            );
+
+            if (workerCheck.rows.length === 0) {
+                const response: ApiResponse = {
+                    success: false,
+                    error: 'Invalid worker ID or worker not available',
+                };
+                return NextResponse.json(response, { status: 400 });
+            }
+        }
+
         // Update client
         await db.query(
             `UPDATE clients 
