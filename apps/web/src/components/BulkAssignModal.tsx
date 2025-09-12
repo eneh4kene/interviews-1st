@@ -69,11 +69,11 @@ export default function BulkAssignModal({
       if (response.success) {
         onSuccess();
       } else {
-        setError(response.error || 'Failed to assign clients');
+        setError(response.error || 'Failed to assign talent');
       }
     } catch (error) {
-      console.error('Error assigning clients:', error);
-      setError('Failed to assign clients');
+      console.error('Error assigning talent:', error);
+      setError('Failed to assign talent');
     } finally {
       setLoading(false);
     }
@@ -86,9 +86,9 @@ export default function BulkAssignModal({
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto modal">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <div>
-            <CardTitle>Assign Clients to Worker</CardTitle>
+            <CardTitle>Assign Talent to Worker</CardTitle>
             <CardDescription>
-              Assign {selectedClients.length} selected clients to a worker
+              Assign {selectedClients.length} selected talent to a worker
             </CardDescription>
           </div>
           <Button
@@ -158,7 +158,7 @@ export default function BulkAssignModal({
                 ) : (
                   <>
                     <UserPlus className="h-4 w-4" />
-                    Assign Clients
+                    Assign Talent
                   </>
                 )}
               </Button>

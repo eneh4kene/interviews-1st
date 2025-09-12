@@ -393,7 +393,7 @@ export default function ClientManagement() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Logo />
-              <h1 className="ml-4 text-xl font-semibold text-gray-900">Client Management</h1>
+              <h1 className="ml-4 text-xl font-semibold text-gray-900">Talent Management</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button
@@ -417,7 +417,7 @@ export default function ClientManagement() {
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add Client
+                Add Talent
               </Button>
             </div>
           </div>
@@ -435,7 +435,7 @@ export default function ClientManagement() {
                     <Users className="h-8 w-8 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Total Clients</p>
+                    <p className="text-sm font-medium text-gray-500">Total Talent</p>
                     <p className="text-2xl font-semibold text-gray-900">{stats.total_clients}</p>
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export default function ClientManagement() {
                     <CheckCircle className="h-8 w-8 text-green-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Active Clients</p>
+                    <p className="text-sm font-medium text-gray-500">Active Talent</p>
                     <p className="text-2xl font-semibold text-gray-900">{stats.active_clients}</p>
                   </div>
                 </div>
@@ -463,7 +463,7 @@ export default function ClientManagement() {
                     <UserCheck className="h-8 w-8 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Placed Clients</p>
+                    <p className="text-sm font-medium text-gray-500">Placed Talent</p>
                     <p className="text-2xl font-semibold text-gray-900">{stats.placed_clients}</p>
                   </div>
                 </div>
@@ -495,7 +495,7 @@ export default function ClientManagement() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <Input
-                      placeholder="Search clients..."
+                      placeholder="Search talent..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10"
@@ -581,7 +581,7 @@ export default function ClientManagement() {
                 </p>
                 <Button onClick={() => setShowCreateModal(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Client
+                  Add Talent
                 </Button>
               </CardContent>
             </Card>
@@ -607,7 +607,7 @@ export default function ClientManagement() {
                             onClick={() => handleSort('name')}
                           >
                             <div className="flex items-center gap-1">
-                              Client
+                              Talent
                               <ArrowUpDown className="h-4 w-4" />
                             </div>
                           </th>

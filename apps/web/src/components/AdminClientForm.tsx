@@ -69,7 +69,7 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
 
     try {
       if (!selectedWorkerId) {
-        throw new Error('Please select a worker to assign this client to');
+        throw new Error('Please select a worker to assign this talent to');
       }
 
       const response = await apiService.createClient({
@@ -101,8 +101,8 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Failed to create client:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create client');
+      console.error('Failed to create talent:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create talent');
     } finally {
       setLoading(false);
     }
@@ -115,8 +115,8 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Create New Client</h2>
-            <p className="text-gray-600">Create a new client profile and assign to a worker</p>
+            <h2 className="text-xl font-semibold text-gray-900">Create New Talent</h2>
+            <p className="text-gray-600">Create a new talent profile and assign to a worker</p>
           </div>
           <Button
             variant="ghost"
@@ -257,7 +257,7 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
               <Label htmlFor="worker">Assign to Worker *</Label>
               <Select value={selectedWorkerId} onValueChange={setSelectedWorkerId}>
                 <SelectTrigger className="bg-white border-gray-300">
-                  <SelectValue placeholder="Select a worker to assign this client to" />
+                  <SelectValue placeholder="Select a worker to assign this talent to" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 shadow-lg">
                   {workers.map((worker) => (
@@ -290,7 +290,7 @@ export default function AdminClientForm({ isOpen, onClose, onSuccess }: AdminCli
                   Creating...
                 </>
               ) : (
-                'Create Client'
+                'Create Talent'
               )}
             </Button>
           </div>

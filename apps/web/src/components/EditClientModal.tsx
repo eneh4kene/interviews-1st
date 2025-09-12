@@ -132,9 +132,9 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white shadow-xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 bg-white">
           <div>
-            <CardTitle>Edit Client</CardTitle>
+            <CardTitle>Edit Talent</CardTitle>
             <CardDescription>
-              Update client information
+              Update talent information
             </CardDescription>
           </div>
           <Button
@@ -284,7 +284,7 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
                 ) : (
                   <>
                     <Briefcase className="h-4 w-4" />
-                    Update Client
+                    Update Talent
                   </>
                 )}
               </Button>
