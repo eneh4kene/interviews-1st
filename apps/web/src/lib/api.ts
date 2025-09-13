@@ -450,12 +450,6 @@ class ApiService {
         return this.request(`/applications/${id}`);
     }
 
-    async createApplication(applicationData: any): Promise<ApiResponse<any>> {
-        return this.request('/applications', {
-            method: 'POST',
-            body: JSON.stringify(applicationData),
-        });
-    }
 
     async updateApplication(id: string, applicationData: any): Promise<ApiResponse<any>> {
         return this.request(`/applications/${id}`, {
@@ -779,38 +773,6 @@ class ApiService {
         return this.request(`/jobs/stats/${clientId}`);
     }
 
-    async classifyJob(job: any): Promise<ApiResponse<any>> {
-        return this.request('/jobs/classify', {
-            method: 'POST',
-            body: JSON.stringify({ job }),
-        });
-    }
-
-    async batchClassifyJobs(jobs: any[]): Promise<ApiResponse<any>> {
-        return this.request('/jobs/classify/batch', {
-            method: 'POST',
-            body: JSON.stringify({ jobs }),
-        });
-    }
-
-    async getAiApplicableJobs(limit: number = 50): Promise<ApiResponse<any>> {
-        return this.request(`/jobs/ai-applicable?limit=${limit}`);
-    }
-
-    async getClassificationStats(): Promise<ApiResponse<any>> {
-        return this.request('/jobs/classification-stats');
-    }
-
-    async getJobClassification(jobId: string): Promise<ApiResponse<any>> {
-        return this.request(`/jobs/classification/${jobId}`);
-    }
-
-    async updateJobClassification(jobId: string, classification: any): Promise<ApiResponse<any>> {
-        return this.request(`/jobs/classification/${jobId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ classification }),
-        });
-    }
 
     // Application Management Methods
     async checkDuplicateApplication(clientId: string, jobId: string): Promise<ApiResponse<any>> {

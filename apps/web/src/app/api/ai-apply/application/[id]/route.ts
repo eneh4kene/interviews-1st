@@ -1,7 +1,7 @@
 // AI Apply Single Application API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/utils/jwt';
 import { aiApplyService } from '@/lib/services/AiApplyService';
-import { authMiddleware } from '@/lib/middleware/auth-nextjs';
 
 export async function GET(
     request: NextRequest,
@@ -9,15 +9,16 @@ export async function GET(
 ) {
     try {
         // Authenticate user
-        const authResult = await authMiddleware(request);
-        if (!authResult.success) {
+        const authHeader = request.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
+                { success: false, error: 'No valid authorization token' },
                 { status: 401 }
             );
         }
 
-        const user = authResult.user;
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
         const { id } = params;
 
         // Get application
@@ -31,14 +32,14 @@ export async function GET(
         }
 
         // Check permissions
-        if (user.role === 'CLIENT' && user.id !== application.client_id) {
+        if (decoded.role === 'CLIENT' && decoded.userId !== application.client_id) {
             return NextResponse.json(
                 { success: false, error: 'Access denied' },
                 { status: 403 }
             );
         }
 
-        if (user.role === 'WORKER' && user.id !== application.worker_id) {
+        if (decoded.role === 'WORKER' && decoded.userId !== application.worker_id) {
             return NextResponse.json(
                 { success: false, error: 'Access denied' },
                 { status: 403 }

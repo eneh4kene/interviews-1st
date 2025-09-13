@@ -142,7 +142,7 @@ export class AiApplyService {
             }
 
             // Update with discovered email
-            await this.updateApplicationEmail(applicationId, emailResult.email, emailResult.confidence_score, emailResult.alternatives);
+            await this.updateApplicationEmail(applicationId, emailResult.email || '', emailResult.confidence_score || 0, emailResult.alternatives || []);
 
             // Step 2: Generate Content
             await this.updateApplicationStatus(applicationId, 'generating_content', 60);

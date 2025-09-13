@@ -109,7 +109,10 @@ export default function EditClientModal({ isOpen, onClose, onSuccess, client }: 
       };
 
       console.log('Submitting client data:', clientData);
-      const response = await apiService.updateAdminClient(client.id, clientData);
+      const response = await apiService.updateAdminClient(client.id, {
+        ...clientData,
+        workerId: clientData.workerId || undefined
+      });
       console.log('Update response:', response);
       
       if (response.success) {

@@ -1,47 +1,33 @@
 // Test Auth API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
-import { authMiddleware } from '@/lib/middleware/auth-nextjs';
+import { verifyToken } from '@/lib/utils/jwt';
 
 export async function GET(request: NextRequest) {
     try {
         console.log('🔍 Testing auth middleware...');
 
         // Test auth middleware
-        const authResult = await authMiddleware(request);
-
-        console.log('🔍 Auth result:', authResult);
-
-        if (!authResult.success) {
-            return NextResponse.json({
-                success: false,
-                error: authResult.error,
-                debug: {
-                    authHeader: request.headers.get('authorization'),
-                    hasToken: !!request.headers.get('authorization')
-                }
-            });
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return NextResponse.json(
+                { success: false, error: "No valid authorization token" },
+                { status: 401 }
+            );
         }
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
 
         return NextResponse.json({
             success: true,
-            user: authResult.user,
-            debug: {
-                authHeader: request.headers.get('authorization'),
-                hasToken: !!request.headers.get('authorization')
+            data: {
+                message: 'Auth test successful',
+                user: decoded
             }
         });
-
     } catch (error) {
-        console.error('❌ Test auth error:', error);
+        console.error('Test auth error:', error);
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Test auth failed',
-                debug: {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    stack: error instanceof Error ? error.stack : undefined
-                }
-            },
+            { success: false, error: 'Test auth failed' },
             { status: 500 }
         );
     }

@@ -67,7 +67,7 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
         throw new Error(response.error);
       }
 
-      const fetchedApplications = response.data.applications || [];
+      const fetchedApplications = (response.data as any)?.applications || [];
       setApplications(fetchedApplications);
 
       // Calculate stats

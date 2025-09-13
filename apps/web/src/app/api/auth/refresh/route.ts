@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
 
         // Generate new tokens using our secure JWT system
         const { accessToken: newAccessToken, refreshToken: newRefreshToken } = generateTokenPair({
-            userId: user.id,
-            email: user.email,
-            role: user.role,
+            userId: decoded.userId,
+            email: decoded.email,
+            role: decoded.role,
         });
 
         // Revoke old refresh token

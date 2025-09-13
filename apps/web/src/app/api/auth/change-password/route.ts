@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
         // Update password in database
         await db.query(
             'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
-            [newPasswordHash, user.id]
+            [newPasswordHash, decoded.userId]
         );
 
         const response: ApiResponse = {

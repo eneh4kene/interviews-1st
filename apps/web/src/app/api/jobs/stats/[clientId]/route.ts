@@ -4,6 +4,7 @@ import { db } from '@/lib/utils/database';
 import { jobDiscoveryService } from '@/lib/services/JobDiscoveryService';
 import { ApiResponse } from '@interview-me/types';
 
+// Get job discovery statistics for a client
 export async function GET(
     request: NextRequest,
     { params }: { params: { clientId: string } }
@@ -24,6 +25,13 @@ export async function GET(
 
         const { clientId } = params;
 
+        if (!clientId) {
+            return NextResponse.json({
+                success: false,
+                error: 'Client ID is required'
+            }, { status: 400 });
+        }
+
         // Verify user has access to this client
         const { rows: clientRows } = await db.query(
             'SELECT worker_id FROM clients WHERE id = $1',
@@ -31,23 +39,20 @@ export async function GET(
         );
 
         if (clientRows.length === 0) {
-            const response: ApiResponse = {
+            return NextResponse.json({
                 success: false,
-                error: 'Client not found',
-            };
-            return NextResponse.json(response, { status: 404 });
+                error: 'Client not found'
+            }, { status: 404 });
         }
 
         // Non-admin users can only access their own clients
         if (decoded.role !== 'ADMIN' && clientRows[0].worker_id !== decoded.userId) {
-            const response: ApiResponse = {
+            return NextResponse.json({
                 success: false,
-                error: 'Insufficient permissions',
-            };
-            return NextResponse.json(response, { status: 403 });
+                error: 'Insufficient permissions'
+            }, { status: 403 });
         }
 
-        // Get job statistics
         const stats = await jobDiscoveryService.getClientJobStats(clientId);
 
         const response: ApiResponse = {
@@ -58,10 +63,9 @@ export async function GET(
         return NextResponse.json(response);
     } catch (error) {
         console.error('Error getting job stats:', error);
-        const response: ApiResponse = {
+        return NextResponse.json({
             success: false,
-            error: 'Failed to get job statistics',
-        };
-        return NextResponse.json(response, { status: 500 });
+            error: 'Failed to get job statistics'
+        }, { status: 500 });
     }
 }

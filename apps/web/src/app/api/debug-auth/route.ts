@@ -1,6 +1,6 @@
 // Debug Auth API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
-import { authMiddleware } from '@/lib/middleware/auth-nextjs';
+import { verifyToken } from '@/lib/utils/jwt';
 
 export async function GET(request: NextRequest) {
     try {
@@ -8,33 +8,28 @@ export async function GET(request: NextRequest) {
         console.log('🔍 Request headers:', Object.fromEntries(request.headers.entries()));
 
         // Test auth middleware
-        const authResult = await authMiddleware(request);
-
-        console.log('🔍 Auth result:', authResult);
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return NextResponse.json(
+                { success: false, error: "No valid authorization token" },
+                { status: 401 }
+            );
+        }
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
 
         return NextResponse.json({
             success: true,
-            authResult,
-            headers: Object.fromEntries(request.headers.entries()),
-            debug: {
-                authHeader: request.headers.get('authorization'),
-                hasToken: !!request.headers.get('authorization'),
-                userAgent: request.headers.get('user-agent'),
-                referer: request.headers.get('referer')
+            data: {
+                message: 'Auth debug successful',
+                user: decoded,
+                headers: Object.fromEntries(request.headers.entries())
             }
         });
-
     } catch (error) {
-        console.error('❌ Debug auth error:', error);
+        console.error('Debug auth error:', error);
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Debug auth failed',
-                debug: {
-                    error: error instanceof Error ? error.message : 'Unknown error',
-                    stack: error instanceof Error ? error.stack : undefined
-                }
-            },
+            { success: false, error: 'Debug auth failed' },
             { status: 500 }
         );
     }

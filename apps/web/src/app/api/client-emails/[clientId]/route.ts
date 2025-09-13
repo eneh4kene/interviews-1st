@@ -1,7 +1,7 @@
+import { verifyToken } from "@/lib/utils/jwt";
 // Client Emails API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
 import { clientEmailService } from '@/lib/services/ClientEmailService';
-import { authMiddleware } from '@/lib/middleware/auth-nextjs';
 
 export async function GET(
     request: NextRequest,
@@ -9,19 +9,20 @@ export async function GET(
 ) {
     try {
         // Authenticate user
-        const authResult = await authMiddleware(request);
-        if (!authResult.success) {
+        // Authenticate user
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
+                { success: false, error: "No valid authorization token" },
                 { status: 401 }
             );
         }
-
-        const user = authResult.user;
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
         const { clientId } = params;
 
         // Check permissions
-        if (user.role === 'CLIENT' && user.id !== clientId) {
+        if (decoded.role === 'CLIENT' && decoded.userId !== clientId) {
             return NextResponse.json(
                 { success: false, error: 'Access denied' },
                 { status: 403 }
@@ -51,19 +52,20 @@ export async function POST(
 ) {
     try {
         // Authenticate user
-        const authResult = await authMiddleware(request);
-        if (!authResult.success) {
+        // Authenticate user
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
+                { success: false, error: "No valid authorization token" },
                 { status: 401 }
             );
         }
-
-        const user = authResult.user;
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
         const { clientId } = params;
 
         // Only workers and admins can create client emails
-        if (user.role !== 'WORKER' && user.role !== 'ADMIN') {
+        if (decoded.role !== 'WORKER' && decoded.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, error: 'Insufficient permissions' },
                 { status: 403 }

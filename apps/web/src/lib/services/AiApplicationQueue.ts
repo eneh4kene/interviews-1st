@@ -82,7 +82,7 @@ export class AiApplicationQueue {
             await aiApplyService.processApplication(nextItem.ai_application_id);
 
             // Update status to completed
-            await this.updateQueueItemStatus(nextItem.id, 'completed', null, new Date());
+            await this.updateQueueItemStatus(nextItem.id, 'completed', undefined, new Date());
 
         } catch (error) {
             console.error('Error processing queue item:', error);
@@ -90,7 +90,7 @@ export class AiApplicationQueue {
             // Mark as failed if we have the item
             if (error instanceof Error && error.message.includes('queue item')) {
                 const itemId = error.message.split(': ')[1];
-                await this.updateQueueItemStatus(itemId, 'failed', null, new Date(), error.message);
+                await this.updateQueueItemStatus(itemId, 'failed', undefined, new Date(), error.message);
             }
         }
     }

@@ -274,6 +274,7 @@ export interface JobSearchFilters {
     postedWithin?: '24h' | '7d' | '30d' | 'all';
     company?: string;
     autoApplyEligible?: boolean;
+    aiFilterType?: 'all' | 'ai_only' | 'manual_only' | 'high_confidence' | 'medium_confidence' | 'low_confidence';
     page?: number;
     limit?: number;
 }

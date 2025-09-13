@@ -1,5 +1,4 @@
 import { db } from '../utils/database';
-import { jobClassificationService, JobClassification } from './JobClassificationService';
 import { jobAggregationService } from './jobAggregation';
 
 export interface ClientJobPreferences {
@@ -92,7 +91,7 @@ export class JobDiscoveryService {
           const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
           const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
 
-          const isAiApplicable = hasCompanyWebsite;
+          const isAiApplicable = Boolean(hasCompanyWebsite);
           const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
           const classificationReasons = hasCompanyWebsite
             ? ['Has company website']
@@ -160,7 +159,7 @@ export class JobDiscoveryService {
         const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
         const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
 
-        const isAiApplicable = hasCompanyWebsite;
+        const isAiApplicable = Boolean(hasCompanyWebsite);
         const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
         const classificationReasons = hasCompanyWebsite
           ? ['Has company website']

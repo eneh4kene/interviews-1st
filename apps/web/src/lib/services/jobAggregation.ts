@@ -805,9 +805,16 @@ export class JobAggregationService {
 
             // Apply filters
             if (filters.keywords) {
-                query += ` AND to_tsvector('english', title || ' ' || company || ' ' || description_snippet) @@ plainto_tsquery('english', $${paramIndex})`;
-                params.push(filters.keywords);
-                paramIndex++;
+                // Split keywords and create OR query for better matching
+                const keywordTerms = filters.keywords.split(/\s+/).filter(term => term.length > 0);
+                if (keywordTerms.length > 0) {
+                    const orConditions = keywordTerms.map((_, index) =>
+                        `to_tsvector('english', title || ' ' || company || ' ' || description_snippet) @@ plainto_tsquery('english', $${paramIndex + index})`
+                    ).join(' OR ');
+                    query += ` AND (${orConditions})`;
+                    keywordTerms.forEach(term => params.push(term));
+                    paramIndex += keywordTerms.length;
+                }
             }
 
             if (filters.location) {
@@ -850,6 +857,21 @@ export class JobAggregationService {
                 query += ` AND auto_apply_status = $${paramIndex}`;
                 params.push(filters.autoApplyEligible ? 'eligible' : 'ineligible');
                 paramIndex++;
+            }
+
+            // Add AI filter type support - simplified to just check for company website
+            if (filters.aiFilterType && filters.aiFilterType !== 'all') {
+                switch (filters.aiFilterType) {
+                    case 'ai_only':
+                    case 'high_confidence':
+                    case 'medium_confidence':
+                    case 'low_confidence':
+                        query += ` AND company_website IS NOT NULL AND company_website != ''`;
+                        break;
+                    case 'manual_only':
+                        query += ` AND (company_website IS NULL OR company_website = '')`;
+                        break;
+                }
             }
 
             // Apply posted date filter

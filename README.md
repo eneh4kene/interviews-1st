@@ -17,9 +17,9 @@ A modern B2B SaaS platform for career coaches, recruiters, and job placement pro
 
 ## 🏗️ **Architecture**
 
-- **Single Service**: Next.js 14 with API routes (no Docker required)
+- **Single Service**: Next.js 14 with API routes (no separate backend required)
 - **Frontend**: Next.js 14 with App Router, Tailwind CSS, shadcn/ui
-- **Backend**: Next.js API routes with TypeScript
+- **Backend**: Next.js API routes with TypeScript (consolidated from Express.js)
 - **Database**: PostgreSQL (Neon in production)
 - **Cache**: Redis (optional - uses mock if not available)
 - **Authentication**: JWT-based with refresh tokens
@@ -33,12 +33,15 @@ interview-me/
 │   └── web/                    # Next.js single service application
 │       ├── src/
 │       │   ├── app/
-│       │   │   ├── api/        # Next.js API routes (backend)
+│       │   │   ├── api/        # Next.js API routes (consolidated backend)
+│       │   │   │   ├── jobs/   # Job discovery and classification APIs
+│       │   │   │   ├── emails/ # Email management APIs
+│       │   │   │   └── ...     # Other API endpoints
 │       │   │   ├── dashboard/  # Worker dashboard
 │       │   │   ├── login/      # Login pages
 │       │   │   └── page.tsx    # Home page
 │       │   ├── components/     # React components
-│       │   └── lib/           # Utilities and API client
+│       │   └── lib/           # Services and utilities
 │       ├── .env.local         # Environment variables
 │       └── package.json       # Dependencies
 ├── packages/

@@ -1,23 +1,24 @@
+import { verifyToken } from "@/lib/utils/jwt";
 // AI Apply Submit API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
 import { aiApplyService, ApplicationSubmissionData } from '@/lib/services/AiApplyService';
-import { authMiddleware } from '@/lib/middleware/auth-nextjs';
 
 export async function POST(request: NextRequest) {
     try {
         // Authenticate user
-        const authResult = await authMiddleware(request);
-        if (!authResult.success) {
+        // Authenticate user
+        const authHeader = request.headers.get("authorization");
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
+                { success: false, error: "No valid authorization token" },
                 { status: 401 }
             );
         }
-
-        const user = authResult.user;
+        const token = authHeader.substring(7);
+        const decoded = verifyToken(token);
 
         // Only workers and admins can submit AI applications
-        if (user.role !== 'WORKER' && user.role !== 'ADMIN') {
+        if (decoded.role !== 'WORKER' && decoded.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, error: 'Insufficient permissions' },
                 { status: 403 }
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         // Prepare application data
         const applicationData: ApplicationSubmissionData = {
             client_id,
-            worker_id: user.id,
+            worker_id: decoded.userId,
             job_id,
             job_title,
             company_name,

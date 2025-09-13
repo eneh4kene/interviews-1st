@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { generateTokenPair } from '@/lib/utils/jwt';
-import { auditLog, logAuthEvent, logSecurityEvent } from '@/lib/middleware/audit';
+// Audit logging removed - using console.log for now
 import { db } from '@/lib/utils/database';
 import {
     User,
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (rows.length === 0) {
-            logSecurityEvent('LOGIN_FAILED_USER_NOT_FOUND', { email, ip: request.ip });
+            console.log('Login failed - user not found:', { email, ip: request.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         const dbUser = rows[0];
 
         if (!dbUser.is_active) {
-            logSecurityEvent('LOGIN_FAILED_ACCOUNT_DISABLED', { email, userId: dbUser.id, ip: request.ip });
+            console.log('Login failed - account disabled:', { email, userId: dbUser.id, ip: request.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Account disabled',
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         const passwordHash: string = dbUser.password_hash;
         const isValid = passwordHash && await bcrypt.compare(password, passwordHash);
         if (!isValid) {
-            logSecurityEvent('LOGIN_FAILED_INVALID_PASSWORD', { email, userId: dbUser.id, ip: request.ip });
+            console.log('Login failed - invalid password:', { email, userId: dbUser.id, ip: request.ip });
             const response: LoginResponse = {
                 success: false,
                 error: 'Invalid credentials',
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
 
         // Log successful login
-        logAuthEvent('LOGIN_SUCCESS', user.id, user.email, true);
+        console.log('Login successful:', { userId: user.id, email: user.email });
 
         const response: LoginResponse = {
             success: true,

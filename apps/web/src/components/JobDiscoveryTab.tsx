@@ -71,13 +71,13 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
         throw new Error(jobsResponse.error);
       }
 
-      setJobs(jobsResponse.data.jobs || []);
+      setJobs((jobsResponse.data as any)?.jobs || []);
 
       // Fetch stats
       const statsResponse = await apiService.get(`/jobs/stats/${clientId}`);
       console.log('🔍 Stats response:', statsResponse);
       if (statsResponse.success) {
-        setStats(statsResponse.data);
+        setStats(statsResponse.data as JobStats);
       }
     } catch (err) {
       console.error('❌ Failed to fetch job data:', err);

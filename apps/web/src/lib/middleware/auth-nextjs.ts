@@ -23,7 +23,7 @@ export async function authMiddleware(request: NextRequest): Promise<AuthResult> 
         const authHeader = request.headers.get('authorization');
         console.log('🔍 Auth header:', authHeader);
 
-        const token = extractTokenFromHeader(authHeader);
+        const token = extractTokenFromHeader(authHeader || undefined);
         console.log('🔍 Extracted token:', token ? 'Present' : 'Missing');
 
         if (!token) {

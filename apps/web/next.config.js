@@ -14,7 +14,7 @@ const nextConfig = {
         formats: ['image/webp', 'image/avif'],
     },
 
-    // Headers for performance
+    // Security headers
     async headers() {
         return [
             {
@@ -36,6 +36,10 @@ const nextConfig = {
                         key: 'Referrer-Policy',
                         value: 'origin-when-cross-origin',
                     },
+                    {
+                        key: 'Strict-Transport-Security',
+                        value: 'max-age=31536000; includeSubDomains',
+                    },
                 ],
             },
             {
@@ -55,6 +59,16 @@ const nextConfig = {
                         value: 'public, max-age=31536000, immutable',
                     },
                 ],
+            },
+        ];
+    },
+
+    // API configuration
+    async rewrites() {
+        return [
+            {
+                source: '/api/jobs/filtered/:clientId',
+                destination: '/api/jobs/filtered/:clientId',
             },
         ];
     },

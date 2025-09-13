@@ -43,11 +43,11 @@ export async function POST(request: NextRequest) {
             name,
             email,
             phone: phone || null,
-            location: location || null,
             linkedinUrl: linkedinUrl || null,
-            company: company || null,
-            position: position || null,
-            profilePicture: null
+            status: 'active',
+            paymentStatus: 'pending',
+            totalInterviews: 0,
+            totalPaid: 0
         });
 
         if (!result.success) {
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
 
         const response: ApiResponse = {
             success: true,
-            data: result.client,
-            message: result.message || 'Client auto-assigned successfully',
+            data: { clientId: result.clientId },
+            message: 'Client auto-assigned successfully',
         };
 
         return NextResponse.json(response, { status: 201 });
