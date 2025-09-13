@@ -221,6 +221,11 @@ class ApiService {
         };
     }
 
+    // Job Statistics
+    async getAggregatorStats(): Promise<ApiResponse<any[]>> {
+        return this.request('/jobs/aggregator-stats');
+    }
+
     // Interviews
     async getInterviews(clientId?: string): Promise<ApiResponse<any[]>> {
         const params = clientId ? `?clientId=${clientId}` : '';

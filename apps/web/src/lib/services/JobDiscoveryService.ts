@@ -1,5 +1,6 @@
 import { db } from '../utils/database';
 import { jobAggregationService } from './jobAggregation';
+import { jobStatisticsService } from './JobStatisticsService';
 
 export interface ClientJobPreferences {
   id: string;
@@ -569,19 +570,7 @@ export class JobDiscoveryService {
   }> {
     try {
       const jobs = await this.getFilteredJobsForClient(clientId, { limit: 1000 });
-
-      const aiApplicableJobs = jobs.filter(job => job.is_ai_applicable).length;
-      const manualOnlyJobs = jobs.filter(job => !job.is_ai_applicable).length;
-      const averageMatch = jobs.length > 0
-        ? jobs.reduce((sum, job) => sum + job.match_percentage, 0) / jobs.length
-        : 0;
-
-      return {
-        total_jobs_found: jobs.length,
-        ai_applicable_jobs: aiApplicableJobs,
-        manual_only_jobs: manualOnlyJobs,
-        average_match_percentage: Math.round(averageMatch)
-      };
+      return await jobStatisticsService.getClientJobStats(jobs);
     } catch (error) {
       console.error('Error getting client job stats:', error);
       throw error;

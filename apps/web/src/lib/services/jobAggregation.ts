@@ -14,11 +14,6 @@ import dotenv from 'dotenv';
 // Load environment variables at the top
 dotenv.config();
 
-// Debug environment variables
-console.log('🔍 Job Aggregation Environment Variables Debug:');
-console.log('ADZUNA_APP_ID:', process.env.ADZUNA_APP_ID);
-console.log('ADZUNA_APP_KEY:', process.env.ADZUNA_APP_KEY ? '***SET***' : 'NOT SET');
-console.log('JOOBLE_API_KEY:', process.env.JOOBLE_API_KEY ? '***SET***' : 'NOT SET');
 
 // Aggregator configurations
 const aggregatorConfigs: Record<JobAggregator, AggregatorConfig> = {
@@ -28,7 +23,7 @@ const aggregatorConfigs: Record<JobAggregator, AggregatorConfig> = {
         appId: process.env.ADZUNA_APP_ID || '00287061',
         baseUrl: process.env.ADZUNA_BASE_URL || 'https://api.adzuna.com/v1/api',
         rateLimit: {
-            requestsPerMinute: parseInt(process.env.ADZUNA_RATE_LIMIT_PER_MINUTE || '25'),
+            requestsPerMinute: 25,
             requestsPerDay: 250
         },
         enabled: true
@@ -38,52 +33,16 @@ const aggregatorConfigs: Record<JobAggregator, AggregatorConfig> = {
         apiKey: process.env.JOOBLE_API_KEY || '6e9517d9-6fa7-4d0c-aa3f-16a3483a0452',
         baseUrl: process.env.JOOBLE_BASE_URL || 'https://jooble.org/api',
         rateLimit: {
-            requestsPerMinute: parseInt(process.env.JOOBLE_RATE_LIMIT_PER_MINUTE || '60'),
+            requestsPerMinute: 60,
             requestsPerDay: 500
         },
         enabled: true
     },
-    indeed: {
-        name: 'indeed',
-        apiKey: '',
-        baseUrl: '',
-        rateLimit: { requestsPerMinute: 0, requestsPerDay: 0 },
-        enabled: false
-    },
-    ziprecruiter: {
-        name: 'ziprecruiter',
-        apiKey: '',
-        baseUrl: '',
-        rateLimit: { requestsPerMinute: 0, requestsPerDay: 0 },
-        enabled: false
-    },
-    workable: {
-        name: 'workable',
-        apiKey: '',
-        baseUrl: '',
-        rateLimit: { requestsPerMinute: 0, requestsPerDay: 0 },
-        enabled: false
-    },
-    greenhouse: {
-        name: 'greenhouse',
-        apiKey: '',
-        baseUrl: '',
-        rateLimit: { requestsPerMinute: 0, requestsPerDay: 0 },
-        enabled: false
-    }
 };
 
-// Debug aggregator configs
-console.log('🔍 Job Aggregation Configs:');
-console.log('Adzuna enabled:', aggregatorConfigs.adzuna.enabled);
-console.log('Adzuna has API key:', !!aggregatorConfigs.adzuna.apiKey);
-console.log('Adzuna has App ID:', !!aggregatorConfigs.adzuna.appId);
-console.log('Jooble enabled:', aggregatorConfigs.jooble.enabled);
-console.log('Jooble has API key:', !!aggregatorConfigs.jooble.apiKey);
 
 export class JobAggregationService {
     private cacheTTL = parseInt(process.env.JOB_CACHE_TTL_SECONDS || '1800'); // 30 minutes
-    private storageTTLDays = parseInt(process.env.JOB_STORAGE_TTL_DAYS || '30');
 
     // Strip HTML tags from text
     private stripHtmlTags(text: string): string {
@@ -623,21 +582,6 @@ export class JobAggregationService {
         }
     }
 
-    // Clean up old jobs (older than TTL)
-    private async cleanupOldJobs(): Promise<void> {
-        try {
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - this.storageTTLDays);
-
-            await db.query(
-                'DELETE FROM jobs WHERE posted_date < $1',
-                [cutoffDate]
-            );
-        } catch (error) {
-            console.error('Error cleaning up old jobs:', error);
-        }
-    }
-
     // Search jobs with caching and aggregation
     async searchJobs(filters: JobSearchFilters): Promise<JobSearchResponse> {
         const cacheKey = `job_search:${JSON.stringify(filters)}`;
@@ -648,48 +592,37 @@ export class JobAggregationService {
             return JSON.parse(cached);
         }
 
-        // Check database first for fresh jobs (cost-saving strategy)
-        console.log('🔍 Checking database for fresh jobs first...');
-        const storedJobsResponse = await this.getStoredJobs(filters);
-        const storedJobs = storedJobsResponse.jobs;
-        const isStoredDataFresh = this.isStoredDataFresh(storedJobs);
+        // Fetch from external APIs
+        const aggregatorResults = await this.fetchFromAggregators(filters);
 
-        let deduplicatedJobs: Job[] = [];
-        let aggregatorResults: JobAggregatorResponse[] = [];
+        // Combine and deduplicate jobs
+        const allJobs = aggregatorResults
+            .filter(result => result.success)
+            .flatMap(result => result.jobs);
 
-        if (isStoredDataFresh && storedJobs.length > 0) {
-            // Use fresh database jobs, skip expensive API calls
-            console.log(`🔍 Using fresh database jobs (${storedJobs.length} jobs) - skipping API calls to save costs`);
-            deduplicatedJobs = storedJobs;
-        } else {
-            // Database is stale or empty, fetch from APIs
-            console.log('🔍 Database is stale or empty, fetching from external APIs...');
-            aggregatorResults = await this.fetchFromAggregators(filters);
+        const deduplicatedJobs = this.deduplicateJobs(allJobs);
 
-            // Combine and deduplicate jobs
-            const allJobs = aggregatorResults
-                .filter(result => result.success)
-                .flatMap(result => result.jobs);
-
-            deduplicatedJobs = this.deduplicateJobs(allJobs);
-
-            // Store fresh jobs in database for future queries
-            if (deduplicatedJobs.length > 0) {
-                await this.storeJobs(deduplicatedJobs);
-            }
+        // Store fresh jobs in database for future queries
+        if (deduplicatedJobs.length > 0) {
+            await this.storeJobs(deduplicatedJobs);
         }
 
         // Use the jobs we determined above
         let jobsToFilter = deduplicatedJobs;
 
-        // If no jobs from either source, generate mock jobs for development
+        // If no jobs found, return empty result
         if (jobsToFilter.length === 0) {
-            console.log('🔍 No jobs found anywhere, generating mock jobs for development...');
-            jobsToFilter = this.generateMockJobs(filters);
+            return {
+                jobs: [],
+                totalCount: 0,
+                page: filters.page || 1,
+                totalPages: 0,
+                aggregatorResults: {}
+            };
         }
 
-        // Apply additional filters to jobs
-        const filteredJobs = await this.applyFilters(jobsToFilter, filters);
+        // Apply basic filtering
+        const filteredJobs = jobsToFilter;
 
         // Paginate results
         const page = filters.page || 1;
@@ -717,513 +650,6 @@ export class JobAggregationService {
         await redis.set(cacheKey, JSON.stringify(response), this.cacheTTL);
 
         return response;
-    }
-
-    // Apply additional filters to jobs
-    private async applyFilters(jobs: Job[], filters: JobSearchFilters): Promise<Job[]> {
-        let filteredJobs = jobs;
-
-        // Filter by job type
-        if (filters.jobType && filters.jobType.length > 0) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.jobType && filters.jobType!.includes(job.jobType as any)
-            );
-        }
-
-        // Filter by work location
-        if (filters.workLocation && filters.workLocation.length > 0) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.workLocation && filters.workLocation!.includes(job.workLocation as any)
-            );
-        }
-
-        // Filter by salary range
-        if (filters.salaryMin) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.salaryMin && job.salaryMin >= filters.salaryMin!
-            );
-        }
-
-        if (filters.salaryMax) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.salaryMax && job.salaryMax <= filters.salaryMax!
-            );
-        }
-
-        // Filter by posted date
-        if (filters.postedWithin && filters.postedWithin !== 'all') {
-            const cutoffDate = new Date();
-            switch (filters.postedWithin) {
-                case '24h':
-                    cutoffDate.setDate(cutoffDate.getDate() - 1);
-                    break;
-                case '7d':
-                    cutoffDate.setDate(cutoffDate.getDate() - 7);
-                    break;
-                case '30d':
-                    cutoffDate.setDate(cutoffDate.getDate() - 30);
-                    break;
-            }
-            filteredJobs = filteredJobs.filter(job =>
-                new Date(job.postedDate) >= cutoffDate
-            );
-        }
-
-        // Filter by company
-        if (filters.company) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.company.toLowerCase().includes(filters.company!.toLowerCase())
-            );
-        }
-
-        // Filter by auto-apply eligibility
-        if (filters.autoApplyEligible !== undefined) {
-            filteredJobs = filteredJobs.filter(job =>
-                filters.autoApplyEligible ? job.autoApplyStatus === 'eligible' : job.autoApplyStatus !== 'eligible'
-            );
-        }
-
-        // Sort by posted date (newest first)
-        filteredJobs.sort((a, b) => new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime());
-
-        return filteredJobs;
-    }
-
-    // Get jobs from database (for stored jobs)
-    async getStoredJobs(filters: JobSearchFilters): Promise<JobSearchResponse> {
-        try {
-            // If no specific filters are applied, use the optimized view for better performance
-            if (!filters.keywords && !filters.location && !filters.jobType && !filters.workLocation &&
-                !filters.salaryMin && !filters.salaryMax && !filters.company &&
-                filters.autoApplyEligible === undefined && (!filters.postedWithin || filters.postedWithin === 'all')) {
-                return this.getRecentJobsFromView(filters);
-            }
-
-            let query = 'SELECT * FROM jobs WHERE 1=1';
-            const params: any[] = [];
-            let paramIndex = 1;
-
-            // Apply filters
-            if (filters.keywords) {
-                // Split keywords and create OR query for better matching
-                const keywordTerms = filters.keywords.split(/\s+/).filter(term => term.length > 0);
-                if (keywordTerms.length > 0) {
-                    const orConditions = keywordTerms.map((_, index) =>
-                        `to_tsvector('english', title || ' ' || company || ' ' || description_snippet) @@ plainto_tsquery('english', $${paramIndex + index})`
-                    ).join(' OR ');
-                    query += ` AND (${orConditions})`;
-                    keywordTerms.forEach(term => params.push(term));
-                    paramIndex += keywordTerms.length;
-                }
-            }
-
-            if (filters.location) {
-                query += ` AND location ILIKE $${paramIndex}`;
-                params.push(`%${filters.location}%`);
-                paramIndex++;
-            }
-
-            if (filters.jobType && filters.jobType.length > 0) {
-                query += ` AND job_type = ANY($${paramIndex})`;
-                params.push(filters.jobType);
-                paramIndex++;
-            }
-
-            if (filters.workLocation && filters.workLocation.length > 0) {
-                query += ` AND work_location = ANY($${paramIndex})`;
-                params.push(filters.workLocation);
-                paramIndex++;
-            }
-
-            if (filters.salaryMin) {
-                query += ` AND salary_min >= $${paramIndex}`;
-                params.push(filters.salaryMin);
-                paramIndex++;
-            }
-
-            if (filters.salaryMax) {
-                query += ` AND salary_max <= $${paramIndex}`;
-                params.push(filters.salaryMax);
-                paramIndex++;
-            }
-
-            if (filters.company) {
-                query += ` AND company ILIKE $${paramIndex}`;
-                params.push(`%${filters.company}%`);
-                paramIndex++;
-            }
-
-            if (filters.autoApplyEligible !== undefined) {
-                query += ` AND auto_apply_status = $${paramIndex}`;
-                params.push(filters.autoApplyEligible ? 'eligible' : 'ineligible');
-                paramIndex++;
-            }
-
-            // Add AI filter type support - simplified to just check for company website
-            if (filters.aiFilterType && filters.aiFilterType !== 'all') {
-                switch (filters.aiFilterType) {
-                    case 'ai_only':
-                    case 'high_confidence':
-                    case 'medium_confidence':
-                    case 'low_confidence':
-                        query += ` AND company_website IS NOT NULL AND company_website != ''`;
-                        break;
-                    case 'manual_only':
-                        query += ` AND (company_website IS NULL OR company_website = '')`;
-                        break;
-                }
-            }
-
-            // Apply posted date filter
-            if (filters.postedWithin && filters.postedWithin !== 'all') {
-                const cutoffDate = new Date();
-                switch (filters.postedWithin) {
-                    case '24h':
-                        cutoffDate.setDate(cutoffDate.getDate() - 1);
-                        break;
-                    case '7d':
-                        cutoffDate.setDate(cutoffDate.getDate() - 7);
-                        break;
-                    case '30d':
-                        cutoffDate.setDate(cutoffDate.getDate() - 30);
-                        break;
-                }
-                query += ` AND posted_date >= $${paramIndex}`;
-                params.push(cutoffDate);
-                paramIndex++;
-            }
-
-            // Order by posted date
-            query += ' ORDER BY posted_date DESC';
-
-            // Apply pagination
-            const page = filters.page || 1;
-            const limit = filters.limit || 20;
-            const offset = (page - 1) * limit;
-            query += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-            params.push(limit, offset);
-
-            const result = await db.query(query, params);
-            const jobs = result.rows.map((row: any) => ({
-                ...row,
-                postedDate: row.posted_date,
-                descriptionSnippet: row.description_snippet,
-                applyUrl: row.apply_url,
-                jobType: row.job_type,
-                workLocation: row.work_location,
-                salaryMin: row.salary_min,
-                salaryMax: row.salary_max,
-                salaryCurrency: row.salary_currency,
-                autoApplyStatus: row.auto_apply_status,
-                externalId: row.external_id,
-                company_website: row.company_website,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at
-            }));
-
-            // Get total count for pagination
-            const countQuery = query.replace(/SELECT \*/, 'SELECT COUNT(*)').replace(/ORDER BY.*LIMIT.*OFFSET.*/, '');
-            const countResult = await db.query(countQuery, params.slice(0, -2));
-            const totalCount = parseInt(countResult.rows[0].count);
-
-            return {
-                jobs,
-                totalCount,
-                page,
-                totalPages: Math.ceil(totalCount / limit),
-                aggregatorResults: {}
-            };
-        } catch (error) {
-            console.error('Error getting stored jobs:', error);
-            return {
-                jobs: [],
-                totalCount: 0,
-                page: 1,
-                totalPages: 0,
-                aggregatorResults: {}
-            };
-        }
-    }
-
-    // Generate mock jobs for development when no real data is available
-    private generateMockJobs(filters: JobSearchFilters): Job[] {
-        const mockJobs: Job[] = [
-            {
-                id: 'mock-1',
-                title: 'Senior Software Engineer',
-                company: 'TechCorp Inc.',
-                // No company_website - will be classified as manual only
-                location: 'London, UK',
-                descriptionSnippet: 'We are looking for a Senior Software Engineer to join our growing team...',
-                salaryMin: 60000,
-                salaryMax: 80000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'hybrid',
-                postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-                applyUrl: 'https://techcorp.com/careers/senior-software-engineer',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-1',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-2',
-                title: 'Frontend Developer',
-                company: 'StartupXYZ',
-                // No company_website - will be classified as manual only
-                location: 'Remote',
-                descriptionSnippet: 'Join our innovative startup as a Frontend Developer. Work with React...',
-                salaryMin: 45000,
-                salaryMax: 65000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'remote',
-                postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-                applyUrl: 'https://startupxyz.com/jobs/frontend-developer',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-2',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-3',
-                title: 'DevOps Engineer',
-                company: 'CloudTech Solutions',
-                // No company_website - will be classified as manual only
-                location: 'Manchester, UK',
-                descriptionSnippet: 'We need a DevOps Engineer to help us scale our infrastructure...',
-                salaryMin: 55000,
-                salaryMax: 75000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'onsite',
-                postedDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-                applyUrl: 'https://cloudtech.com/careers/devops-engineer',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-3',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-4',
-                title: 'Data Scientist',
-                company: 'DataInsights Ltd',
-                // No company_website - will be classified as manual only
-                location: 'Bristol, UK',
-                descriptionSnippet: 'Looking for a Data Scientist to work on machine learning projects...',
-                salaryMin: 50000,
-                salaryMax: 70000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'hybrid',
-                postedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
-                applyUrl: 'https://datainsights.com/jobs/data-scientist',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-4',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-5',
-                title: 'Product Manager',
-                company: 'InnovateCo',
-                // No company_website - will be classified as manual only
-                location: 'Edinburgh, UK',
-                descriptionSnippet: 'Join our product team as a Product Manager and help shape...',
-                salaryMin: 65000,
-                salaryMax: 85000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'hybrid',
-                postedDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-                applyUrl: 'https://innovateco.com/careers/product-manager',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-5',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-6',
-                title: 'Software Engineer',
-                company: 'Microsoft',
-                company_website: 'https://microsoft.com',
-                location: 'London, UK',
-                descriptionSnippet: 'Join Microsoft as a Software Engineer working on cutting-edge technology...',
-                salaryMin: 70000,
-                salaryMax: 90000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'hybrid',
-                postedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-                applyUrl: 'https://careers.microsoft.com/software-engineer',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-6',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            },
-            {
-                id: 'mock-7',
-                title: 'Full Stack Developer',
-                company: 'Google',
-                company_website: 'https://google.com',
-                location: 'Remote',
-                descriptionSnippet: 'Work at Google as a Full Stack Developer on innovative projects...',
-                salaryMin: 80000,
-                salaryMax: 100000,
-                salaryCurrency: 'GBP',
-                jobType: 'full-time',
-                workLocation: 'remote',
-                postedDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-                applyUrl: 'https://careers.google.com/full-stack-developer',
-                source: 'adzuna' as JobAggregator,
-                externalId: 'mock-7',
-                autoApplyStatus: 'pending_review' as AutoApplyStatus,
-                createdAt: new Date(),
-                updatedAt: new Date()
-            }
-        ];
-
-        // Filter mock jobs based on search criteria
-        let filteredJobs = mockJobs;
-
-        if (filters.keywords) {
-            const keywords = filters.keywords.toLowerCase();
-            filteredJobs = filteredJobs.filter(job =>
-                job.title.toLowerCase().includes(keywords) ||
-                job.company.toLowerCase().includes(keywords) ||
-                job.descriptionSnippet.toLowerCase().includes(keywords)
-            );
-        }
-
-        if (filters.location) {
-            const location = filters.location.toLowerCase();
-            filteredJobs = filteredJobs.filter(job =>
-                job.location.toLowerCase().includes(location)
-            );
-        }
-
-        if (filters.jobType && filters.jobType.length > 0) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.jobType && filters.jobType!.includes(job.jobType as any)
-            );
-        }
-
-        if (filters.workLocation && filters.workLocation.length > 0) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.workLocation && filters.workLocation!.includes(job.workLocation as any)
-            );
-        }
-
-        if (filters.salaryMin) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.salaryMin && job.salaryMin >= filters.salaryMin!
-            );
-        }
-
-        if (filters.salaryMax) {
-            filteredJobs = filteredJobs.filter(job =>
-                job.salaryMax && job.salaryMax <= filters.salaryMax!
-            );
-        }
-
-        return filteredJobs;
-    }
-
-    // Get recent jobs from optimized view for better performance
-    private async getRecentJobsFromView(filters: JobSearchFilters): Promise<JobSearchResponse> {
-        try {
-            const page = filters.page || 1;
-            const limit = filters.limit || 20;
-            const offset = (page - 1) * limit;
-
-            // Query the optimized view
-            const query = `
-                SELECT * FROM recent_jobs_view 
-                WHERE row_num > $1 AND row_num <= $2
-                ORDER BY posted_date DESC
-            `;
-
-            const result = await db.query(query, [offset, offset + limit]);
-            const jobs = result.rows.map((row: any) => ({
-                ...row,
-                postedDate: row.posted_date,
-                descriptionSnippet: row.description_snippet,
-                applyUrl: row.apply_url,
-                jobType: row.job_type,
-                workLocation: row.work_location,
-                salaryMin: row.salary_min,
-                salaryMax: row.salary_max,
-                salaryCurrency: row.salary_currency,
-                autoApplyStatus: row.auto_apply_status,
-                externalId: row.external_id,
-                company_website: row.company_website,
-                createdAt: row.created_at,
-                updatedAt: row.updated_at
-            }));
-
-            // Get total count from view
-            const countResult = await db.query('SELECT COUNT(*) FROM recent_jobs_view');
-            const totalCount = parseInt(countResult.rows[0].count);
-
-            return {
-                jobs,
-                totalCount,
-                page,
-                totalPages: Math.ceil(totalCount / limit),
-                aggregatorResults: {}
-            };
-        } catch (error) {
-            console.error('Error getting recent jobs from view:', error);
-            return {
-                jobs: [],
-                totalCount: 0,
-                page: 1,
-                totalPages: 0,
-                aggregatorResults: {}
-            };
-        }
-    }
-
-    // Update auto-apply status for a job
-    async updateAutoApplyStatus(jobId: string, status: AutoApplyStatus, notes?: string): Promise<boolean> {
-        try {
-            await db.query(
-                'UPDATE jobs SET auto_apply_status = $1, auto_apply_notes = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
-                [status, notes, jobId]
-            );
-            return true;
-        } catch (error) {
-            console.error('Error updating auto-apply status:', error);
-            return false;
-        }
-    }
-
-    // Get aggregator statistics
-    async getAggregatorStats(): Promise<any> {
-        try {
-            const result = await db.query(`
-                SELECT
-                    source,
-                    COUNT(*) as total_jobs,
-                    COUNT(CASE WHEN auto_apply_status = 'eligible' THEN 1 END) as eligible_jobs,
-                    COUNT(CASE WHEN posted_date >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_jobs,
-                    AVG(CASE WHEN salary_min IS NOT NULL THEN salary_min END) as avg_salary_min,
-                    AVG(CASE WHEN salary_max IS NOT NULL THEN salary_max END) as avg_salary_max
-                FROM jobs
-                GROUP BY source
-            `);
-            return result.rows;
-        } catch (error) {
-            console.error('Error getting aggregator stats:', error);
-            return [];
-        }
     }
 
     // Get job by ID
@@ -1261,13 +687,6 @@ export class JobAggregationService {
         }
     }
 
-    // Initialize cleanup job (run periodically)
-    async initializeCleanup(): Promise<void> {
-        // Run cleanup every 24 hours
-        setInterval(async () => {
-            await this.cleanupOldJobs();
-        }, 24 * 60 * 60 * 1000);
-    }
 }
 
 export const jobAggregationService = new JobAggregationService(); 

@@ -221,7 +221,7 @@ export interface DashboardStats {
 }
 
 // Job Aggregation Types
-export type JobAggregator = 'adzuna' | 'jooble' | 'indeed' | 'ziprecruiter' | 'workable' | 'greenhouse';
+export type JobAggregator = 'adzuna' | 'jooble';
 
 export type JobType = 'full-time' | 'part-time' | 'contract' | 'internship' | 'temporary' | 'freelance';
 
