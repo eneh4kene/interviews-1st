@@ -1,4 +1,4 @@
-import { db } from '../utils/database';
+import { db, redis } from '../utils/database';
 import { jobAggregationService } from './jobAggregation';
 import { jobStatisticsService } from './JobStatisticsService';
 
@@ -50,7 +50,7 @@ export interface JobSearchFilters {
   limit?: number;
   salaryMin?: number;
   salaryMax?: number;
-  workType?: 'remote' | 'hybrid' | 'onsite';
+  workType?: 'remote' | 'hybrid' | 'onsite' | 'all';
   source?: string;
   aiApplicableOnly?: boolean;
   aiFilterType?: 'all' | 'ai_only' | 'manual_only' | 'high_confidence' | 'medium_confidence' | 'low_confidence';
@@ -59,106 +59,88 @@ export interface JobSearchFilters {
 export class JobDiscoveryService {
   /**
    * Get filtered jobs for a specific client based on their preferences
+   * Now optimized with database-level filtering and caching
    */
   async getFilteredJobsForClient(clientId: string, filters: JobSearchFilters = {}): Promise<ClassifiedJobListing[]> {
+    // Check cache first
+    const cacheKey = `client_jobs:${clientId}:${JSON.stringify(filters)}`;
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      console.log(`📦 Cache hit for client ${clientId}`);
+      return JSON.parse(cached);
+    }
+
+    console.log(`🔍 Cache miss, fetching jobs for client ${clientId}`);
+    const result = await this.getFilteredJobsForClientFromDB(clientId, filters);
+
+    // Cache result for 5 minutes
+    await redis.set(cacheKey, JSON.stringify(result), 300);
+    return result;
+  }
+
+  /**
+   * Check if stored jobs are fresh (less than 24 hours old)
+   */
+  private async areJobsFresh(): Promise<boolean> {
     try {
-      // 1. Get client preferences
+      const result = await db.query(`
+        SELECT COUNT(*) as count, MAX(posted_date) as latest_job_date
+        FROM jobs 
+        WHERE posted_date >= NOW() - INTERVAL '24 hours'
+      `);
+
+      const { count, latest_job_date } = result.rows[0];
+      const hasRecentJobs = parseInt(count) > 0;
+
+      console.log(`🔍 Job freshness check: ${count} jobs in last 24 hours, latest: ${latest_job_date}`);
+      return hasRecentJobs;
+    } catch (error) {
+      console.error('Error checking job freshness:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get filtered jobs directly from database with optimized queries and external API fallback
+   */
+  private async getFilteredJobsForClientFromDB(clientId: string, filters: JobSearchFilters = {}): Promise<ClassifiedJobListing[]> {
+    try {
+      // 1. Check if we have fresh jobs in database (less than 24 hours old)
+      const hasFreshJobs = await this.areJobsFresh();
+
+      if (!hasFreshJobs) {
+        console.log(`🔄 No fresh jobs in database, fetching from external APIs for client ${clientId}`);
+        return await this.fetchJobsFromExternalAPIs(clientId, filters);
+      }
+
+      // 2. Get client preferences
       const clientPreferences = await this.getClientPreferences(clientId);
 
       if (clientPreferences.length === 0) {
         console.log(`No preferences found for client ${clientId}, using default search`);
-        // Use default search parameters if no preferences
-        const defaultSearchFilters = {
-          keywords: filters.keywords || 'software engineer',
-          location: filters.location || 'London',
-          workType: filters.workType || 'onsite',
-          salaryMin: filters.salaryMin,
-          salaryMax: filters.salaryMax,
-          limit: filters.limit || 20
-        };
-
-        // Search with default parameters
-        const jobSearchResponse = await jobAggregationService.searchJobs(defaultSearchFilters);
-        const jobs = jobSearchResponse.jobs || [];
-
-        if (jobs.length === 0) {
-          console.log(`No jobs found with default search`);
-          return [];
-        }
-
-        // Create classified job listings with basic match scores
-        const classifiedJobListings: ClassifiedJobListing[] = jobs.map(job => {
-          // Simple AI applicability check based on company website
-          const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
-          const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
-
-          const isAiApplicable = Boolean(hasCompanyWebsite);
-          const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
-          const classificationReasons = hasCompanyWebsite
-            ? ['Has company website']
-            : ['No company website for email discovery'];
-          const applicationMethod = hasApplyUrl ? 'form' : 'email';
-
-          return {
-            id: job.id,
-            title: job.title,
-            company: job.company,
-            company_website: job.company_website,
-            location: job.location,
-            salary: job.salary,
-            salary_min: job.salaryMin,
-            salary_max: job.salaryMax,
-            description: job.descriptionSnippet || '',
-            apply_url: job.applyUrl,
-            source: job.source,
-            posted_date: new Date(job.postedDate),
-            job_type: job.jobType,
-            work_location: job.workLocation,
-            requirements: job.requirements,
-            benefits: job.benefits,
-            is_ai_applicable: isAiApplicable,
-            confidence_score: confidenceScore,
-            classification_reasons: classificationReasons,
-            application_method: applicationMethod,
-            match_percentage: 50 // Default match percentage for jobs without preferences
-          };
-        });
-
-        // Apply AI filtering
-        let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
-
-        // Sort by match percentage and confidence score
-        filteredJobs.sort((a, b) => {
-          // First by match percentage (descending)
-          if (b.match_percentage !== a.match_percentage) {
-            return b.match_percentage - a.match_percentage;
-          }
-          // Then by confidence score (descending)
-          return b.confidence_score - a.confidence_score;
-        });
-
-        // Apply pagination
-        const page = filters.page || 1;
-        const limit = filters.limit || 20;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-
-        return filteredJobs.slice(startIndex, endIndex);
+        return await this.getDefaultJobsFromDB(filters);
       }
 
-      // 2. Fetch jobs for all preferred job titles
-      const allJobs = await this.fetchJobsForAllPreferences(clientPreferences, filters);
+      // 3. Build optimized database query based on client preferences
+      let jobs = await this.queryJobsFromDB(clientPreferences, filters);
 
-      if (allJobs.length === 0) {
-        console.log(`No jobs found for client ${clientId}`);
-        return [];
+      // If no jobs found with preferences, try a broader search
+      if (jobs.length === 0) {
+        console.log(`No jobs found with preferences, trying broader search for client ${clientId}`);
+        jobs = await this.getDefaultJobsFromDB(filters);
+      }
+
+      // 4. If still no jobs found in database, fall back to external APIs
+      if (jobs.length === 0) {
+        console.log(`No jobs found in database, fetching from external APIs for client ${clientId}`);
+        return await this.fetchJobsFromExternalAPIs(clientId, filters);
       }
 
       // 3. Create classified job listings with enhanced match scores
-      const classifiedJobListings: ClassifiedJobListing[] = allJobs.map(job => {
+      const classifiedJobListings: ClassifiedJobListing[] = jobs.map(job => {
         // Enhanced AI applicability check
         const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
-        const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
+        const hasApplyUrl = job.apply_url && job.apply_url.length > 0;
 
         const isAiApplicable = Boolean(hasCompanyWebsite);
         const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
@@ -176,14 +158,14 @@ export class JobDiscoveryService {
           company_website: job.company_website,
           location: job.location,
           salary: job.salary,
-          salary_min: job.salaryMin,
-          salary_max: job.salaryMax,
-          description: job.descriptionSnippet || '',
-          apply_url: job.applyUrl,
+          salary_min: job.salary_min,
+          salary_max: job.salary_max,
+          description: job.description_snippet || '',
+          apply_url: job.apply_url,
           source: job.source,
-          posted_date: new Date(job.postedDate),
-          job_type: job.jobType,
-          work_location: job.workLocation,
+          posted_date: new Date(job.posted_date),
+          job_type: job.job_type,
+          work_location: job.work_location,
           requirements: job.requirements,
           benefits: job.benefits,
           is_ai_applicable: isAiApplicable,
@@ -197,22 +179,14 @@ export class JobDiscoveryService {
       // 4. Apply AI filtering
       let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
 
-      // 5. Sort by location priority and match percentage
+      // 5. Sort by match percentage and confidence score
       filteredJobs.sort((a, b) => {
-        // First by location priority (exact match > partial match > remote compatibility)
-        const locationScoreA = this.calculateLocationPriority(a, clientPreferences);
-        const locationScoreB = this.calculateLocationPriority(b, clientPreferences);
-
-        if (locationScoreB !== locationScoreA) {
-          return locationScoreB - locationScoreA;
-        }
-
-        // Then by match percentage (descending)
+        // First by match percentage (descending)
         if (b.match_percentage !== a.match_percentage) {
           return b.match_percentage - a.match_percentage;
         }
 
-        // Finally by confidence score (descending)
+        // Then by confidence score (descending)
         return b.confidence_score - a.confidence_score;
       });
 
@@ -224,9 +198,225 @@ export class JobDiscoveryService {
 
       return filteredJobs.slice(startIndex, endIndex);
     } catch (error) {
-      console.error('Error getting filtered jobs for client:', error);
+      console.error('Error getting filtered jobs from DB:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get default jobs from database when no client preferences exist
+   */
+  private async getDefaultJobsFromDB(filters: JobSearchFilters = {}): Promise<ClassifiedJobListing[]> {
+    const keywords = filters.keywords || 'software engineer';
+    const location = filters.location || 'London';
+    const workType = filters.workType;
+    const limit = filters.limit || 20;
+
+    // Build search conditions
+    const conditions = [];
+    const params = [];
+    let paramCount = 0;
+
+    if (keywords) {
+      paramCount++;
+      conditions.push(`(to_tsvector('english', title) @@ plainto_tsquery('english', $${paramCount}) OR to_tsvector('english', company) @@ plainto_tsquery('english', $${paramCount}))`);
+      params.push(keywords);
+    }
+
+    if (location) {
+      paramCount++;
+      conditions.push(`(to_tsvector('english', location) @@ plainto_tsquery('english', $${paramCount}) OR work_location = 'remote')`);
+      params.push(location);
+    }
+
+    if (workType && workType !== 'all') {
+      paramCount++;
+      conditions.push(`work_location = $${paramCount}`);
+      params.push(workType);
+    }
+
+    // Add AI applicability filter if requested
+    if (filters.aiApplicableOnly) {
+      conditions.push(`company_website IS NOT NULL AND company_website != ''`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    paramCount++;
+    params.push(limit);
+
+    const query = `
+      SELECT 
+        id, title, company, company_website, location, salary, salary_min, salary_max,
+        description_snippet, apply_url, source, posted_date, job_type, work_location,
+        requirements, benefits, auto_apply_status
+      FROM jobs 
+      ${whereClause}
+      ORDER BY 
+        CASE WHEN search_vector IS NOT NULL THEN 1 ELSE 2 END,
+        posted_date DESC, 
+        auto_apply_status DESC
+      LIMIT $${paramCount}
+    `;
+
+    const result = await db.query(query, params);
+    const jobs = result.rows;
+
+    if (jobs.length === 0) {
+      console.log(`No jobs found with default search`);
+      return [];
+    }
+
+    // Create classified job listings with basic match scores
+    return jobs.map((job: any) => {
+      const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
+      const hasApplyUrl = job.apply_url && job.apply_url.length > 0;
+
+      const isAiApplicable = Boolean(hasCompanyWebsite);
+      const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
+      const classificationReasons = hasCompanyWebsite
+        ? ['Has company website']
+        : ['No company website for email discovery'];
+      const applicationMethod = hasApplyUrl ? 'form' : 'email';
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        company_website: job.company_website,
+        location: job.location,
+        salary: job.salary,
+        salary_min: job.salary_min,
+        salary_max: job.salary_max,
+        description: job.description_snippet || '',
+        apply_url: job.apply_url,
+        source: job.source,
+        posted_date: new Date(job.posted_date),
+        job_type: job.job_type,
+        work_location: job.work_location,
+        requirements: job.requirements,
+        benefits: job.benefits,
+        is_ai_applicable: isAiApplicable,
+        confidence_score: confidenceScore,
+        classification_reasons: classificationReasons,
+        application_method: applicationMethod,
+        match_percentage: 50 // Default match percentage for jobs without preferences
+      };
+    });
+  }
+
+
+  /**
+   * Query jobs from database with optimized filtering based on client preferences
+   */
+  private async queryJobsFromDB(clientPreferences: ClientJobPreferences[], filters: JobSearchFilters = {}): Promise<any[]> {
+    // Build search conditions based on client preferences
+    const conditions = [];
+    const params = [];
+    let paramCount = 0;
+
+    // Create a more flexible query that uses OR logic for better matching
+    const preferenceConditions = [];
+
+    if (clientPreferences.length > 0) {
+      // For each preference, create a condition that matches title OR location OR work type
+      for (const pref of clientPreferences) {
+        const prefConditions = [];
+
+        // Title matching using FTS
+        if (pref.title) {
+          paramCount++;
+          params.push(pref.title);
+          prefConditions.push(`to_tsvector('english', title) @@ plainto_tsquery('english', $${paramCount})`);
+        }
+
+        // Location matching using FTS
+        if (pref.location) {
+          paramCount++;
+          params.push(pref.location);
+          prefConditions.push(`to_tsvector('english', location) @@ plainto_tsquery('english', $${paramCount})`);
+        }
+
+        // Work type matching
+        if (pref.work_type) {
+          paramCount++;
+          params.push(pref.work_type);
+          prefConditions.push(`work_location = $${paramCount}`);
+        }
+
+        // Salary range matching
+        if (pref.salary_min || pref.salary_max) {
+          if (pref.salary_min) {
+            paramCount++;
+            params.push(pref.salary_min);
+            prefConditions.push(`salary_min >= $${paramCount}`);
+          }
+          if (pref.salary_max) {
+            paramCount++;
+            params.push(pref.salary_max);
+            prefConditions.push(`salary_max <= $${paramCount}`);
+          }
+        }
+
+        // If we have any conditions for this preference, add them
+        if (prefConditions.length > 0) {
+          preferenceConditions.push(`(${prefConditions.join(' OR ')})`);
+        }
+      }
+    }
+
+    // Add preference-based conditions
+    if (preferenceConditions.length > 0) {
+      conditions.push(`(${preferenceConditions.join(' OR ')})`);
+    }
+
+    // Add AI applicability filter if requested
+    if (filters.aiApplicableOnly) {
+      conditions.push(`company_website IS NOT NULL AND company_website != ''`);
+    }
+
+    // Add additional filters
+    if (filters.keywords) {
+      paramCount++;
+      conditions.push(`(to_tsvector('english', title) @@ plainto_tsquery('english', $${paramCount}) OR to_tsvector('english', company) @@ plainto_tsquery('english', $${paramCount}))`);
+      params.push(filters.keywords);
+    }
+
+    if (filters.location) {
+      paramCount++;
+      conditions.push(`(to_tsvector('english', location) @@ plainto_tsquery('english', $${paramCount}) OR work_location = 'remote')`);
+      params.push(filters.location);
+    }
+
+    if (filters.workType && filters.workType !== 'all') {
+      paramCount++;
+      conditions.push(`work_location = $${paramCount}`);
+      params.push(filters.workType);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    paramCount++;
+    params.push(filters.limit || 100); // Get more results for better filtering
+
+    const query = `
+      SELECT 
+        id, title, company, company_website, location, salary, salary_min, salary_max,
+        description_snippet, apply_url, source, posted_date, job_type, work_location,
+        requirements, benefits, auto_apply_status
+      FROM jobs 
+      ${whereClause}
+      ORDER BY 
+        CASE WHEN search_vector IS NOT NULL THEN 1 ELSE 2 END,
+        posted_date DESC, 
+        auto_apply_status DESC
+      LIMIT $${paramCount}
+    `;
+
+    console.log('🔍 Executing query:', query);
+    console.log('🔍 With params:', params);
+
+    const result = await db.query(query, params);
+    console.log(`🔍 Query returned ${result.rows.length} jobs`);
+    return result.rows;
   }
 
   /**
@@ -450,57 +640,115 @@ export class JobDiscoveryService {
     return 0.3; // Default partial match
   }
 
-  /**
-   * Get applied job IDs for a client to filter them out
-   */
-  async getAppliedJobIds(clientId: string): Promise<string[]> {
-    try {
-      const result = await db.query(
-        'SELECT job_id FROM applications WHERE client_id = $1 AND job_id IS NOT NULL',
-        [clientId]
-      );
 
-      return result.rows.map(row => row.job_id);
+  /**
+   * Fetch jobs from external APIs and store them in database
+   */
+  private async fetchJobsFromExternalAPIs(clientId: string, filters: JobSearchFilters): Promise<ClassifiedJobListing[]> {
+    try {
+      console.log(`🌐 Fetching jobs from external APIs for client ${clientId}`);
+
+      // Get client preferences to build search filters
+      const clientPreferences = await this.getClientPreferences(clientId);
+
+      let searchFilters: JobSearchFilters;
+
+      if (clientPreferences.length > 0) {
+        // Use client preferences to build search filters
+        searchFilters = this.buildSearchFiltersFromPreferences(clientPreferences, filters);
+      } else {
+        // Use default search filters
+        searchFilters = {
+          keywords: filters.keywords || 'software engineer',
+          location: filters.location || 'London',
+          workType: filters.workType,
+          page: 1,
+          limit: filters.limit || 50, // Fetch more jobs from external APIs
+          ...filters
+        };
+      }
+
+      // Fetch jobs from external APIs
+      const jobSearchResponse = await jobAggregationService.searchJobs(searchFilters);
+      const externalJobs = jobSearchResponse.jobs || [];
+
+      console.log(`🌐 Fetched ${externalJobs.length} jobs from external APIs`);
+
+      if (externalJobs.length === 0) {
+        console.log(`No jobs found from external APIs for client ${clientId}`);
+        return [];
+      }
+
+      // Convert external jobs to classified job listings
+      const classifiedJobListings: ClassifiedJobListing[] = externalJobs.map((job: any) => {
+        const hasCompanyWebsite = job.company_website && job.company_website.length > 0;
+        const hasApplyUrl = job.applyUrl && job.applyUrl.length > 0;
+
+        const isAiApplicable = Boolean(hasCompanyWebsite);
+        const confidenceScore = hasCompanyWebsite ? (hasApplyUrl ? 0.8 : 0.6) : 0.1;
+        const classificationReasons = hasCompanyWebsite
+          ? ['Has company website']
+          : ['No company website for email discovery'];
+        const applicationMethod = hasApplyUrl ? 'form' : 'email';
+
+        // Calculate match percentage based on client preferences
+        const matchPercentage = clientPreferences.length > 0
+          ? this.calculateEnhancedMatchPercentage(job, clientPreferences)
+          : 50; // Default match percentage for jobs without preferences
+
+        return {
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          company_website: job.company_website,
+          location: job.location,
+          salary: job.salary,
+          salary_min: job.salaryMin,
+          salary_max: job.salaryMax,
+          description: job.descriptionSnippet || '',
+          apply_url: job.applyUrl,
+          source: job.source,
+          posted_date: new Date(job.postedDate || new Date()),
+          job_type: job.jobType,
+          work_location: job.workLocation,
+          requirements: job.requirements,
+          benefits: job.benefits,
+          is_ai_applicable: isAiApplicable,
+          confidence_score: confidenceScore,
+          classification_reasons: classificationReasons,
+          application_method: applicationMethod,
+          match_percentage: matchPercentage
+        };
+      });
+
+      // Apply AI filtering if requested
+      let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
+
+      // Sort by match percentage and confidence score
+      filteredJobs.sort((a, b) => {
+        if (b.match_percentage !== a.match_percentage) {
+          return b.match_percentage - a.match_percentage;
+        }
+        return b.confidence_score - a.confidence_score;
+      });
+
+      // Apply pagination
+      const page = filters.page || 1;
+      const limit = filters.limit || 20;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+
+      const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
+
+      console.log(`✅ Returning ${paginatedJobs.length} classified jobs from external APIs`);
+      return paginatedJobs;
+
     } catch (error) {
-      console.error('Error getting applied job IDs:', error);
+      console.error(`Error fetching jobs from external APIs for client ${clientId}:`, error);
       return [];
     }
   }
 
-  /**
-   * Fetch jobs for all client preferences
-   */
-  private async fetchJobsForAllPreferences(
-    preferences: ClientJobPreferences[],
-    filters: JobSearchFilters
-  ): Promise<any[]> {
-    const allJobs: any[] = [];
-    const seenJobIds = new Set<string>();
-
-    // Fetch jobs for each preference
-    for (const preference of preferences) {
-      const searchFilters = this.buildSearchFiltersFromPreferences([preference], filters);
-
-      try {
-        const jobSearchResponse = await jobAggregationService.searchJobs(searchFilters);
-        const jobs = jobSearchResponse.jobs || [];
-
-        // Add unique jobs only
-        for (const job of jobs) {
-          const jobKey = `${job.title}-${job.company}-${job.location}`;
-          if (!seenJobIds.has(jobKey)) {
-            seenJobIds.add(jobKey);
-            allJobs.push(job);
-          }
-        }
-      } catch (error) {
-        console.error(`Error fetching jobs for preference ${preference.id}:`, error);
-        // Continue with other preferences
-      }
-    }
-
-    return allJobs;
-  }
 
   /**
    * Apply AI filtering based on filter type

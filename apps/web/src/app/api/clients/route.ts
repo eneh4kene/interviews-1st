@@ -3,10 +3,40 @@ import { verifyToken } from '@/lib/utils/jwt';
 import { db } from '@/lib/utils/database';
 import { ApiResponse, Client } from '@interview-me/types';
 
+// Retry mechanism for database operations
+async function retryDatabaseOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 1000
+): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔄 Database operation attempt ${attempt}/${maxRetries}`);
+            return await operation();
+        } catch (error) {
+            lastError = error as Error;
+            console.error(`❌ Database operation attempt ${attempt} failed:`, error);
+
+            if (attempt < maxRetries) {
+                console.log(`⏳ Waiting ${delay}ms before retry...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Exponential backoff
+            }
+        }
+    }
+
+    throw lastError!;
+}
+
 export async function GET(request: NextRequest) {
     try {
+        console.log('🔍 API: Starting clients request');
+
         const authHeader = request.headers.get('authorization');
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('❌ API: No valid authorization token');
             const response: ApiResponse = {
                 success: false,
                 error: 'No valid authorization token',
@@ -16,6 +46,7 @@ export async function GET(request: NextRequest) {
 
         const token = authHeader.substring(7);
         const decoded = verifyToken(token);
+        console.log('✅ API: Token verified for user:', decoded.userId, 'role:', decoded.role);
 
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
@@ -27,6 +58,7 @@ export async function GET(request: NextRequest) {
         // If no workerId in query and user is not admin, use their own ID
         if (!targetWorkerId) {
             if (decoded.role === 'ADMIN') {
+                console.log('❌ API: Admin user missing workerId parameter');
                 const response: ApiResponse = {
                     success: false,
                     error: 'Worker ID is required for admin users',
@@ -38,6 +70,7 @@ export async function GET(request: NextRequest) {
 
         // Non-admin users can only access their own data
         if (decoded.role !== 'ADMIN' && targetWorkerId !== decoded.userId) {
+            console.log('❌ API: Insufficient permissions for user:', decoded.userId);
             const response: ApiResponse = {
                 success: false,
                 error: 'Insufficient permissions',
@@ -45,40 +78,49 @@ export async function GET(request: NextRequest) {
             return NextResponse.json(response, { status: 403 });
         }
 
-        let query = `
-            SELECT 
-                c.id,
-                c.worker_id as "workerId",
-                c.name,
-                c.email,
-                c.phone,
-                c.linkedin_url as "linkedinUrl",
-                c.status,
-                c.payment_status as "paymentStatus",
-                c.total_interviews as "totalInterviews",
-                c.total_paid as "totalPaid",
-                c.is_new as "isNew",
-                c.assigned_at as "assignedAt",
-                c.created_at as "createdAt",
-                c.updated_at as "updatedAt",
-                u.name as "workerName",
-                u.email as "workerEmail"
-            FROM clients c
-            LEFT JOIN users u ON c.worker_id = u.id
-            WHERE c.worker_id = $1
-        `;
-        const params = [targetWorkerId];
+        console.log('🔍 API: Fetching clients for worker:', targetWorkerId);
 
-        if (status && status !== 'all') {
-            query += ` AND c.status = $2`;
-            params.push(status);
-        }
+        // Use retry mechanism for database query
+        const result = await retryDatabaseOperation(async () => {
+            let query = `
+                SELECT 
+                    c.id,
+                    c.worker_id as "workerId",
+                    c.name,
+                    c.email,
+                    c.phone,
+                    c.linkedin_url as "linkedinUrl",
+                    c.status,
+                    c.payment_status as "paymentStatus",
+                    c.total_interviews as "totalInterviews",
+                    c.total_paid as "totalPaid",
+                    c.is_new as "isNew",
+                    c.assigned_at as "assignedAt",
+                    c.created_at as "createdAt",
+                    c.updated_at as "updatedAt",
+                    u.name as "workerName",
+                    u.email as "workerEmail"
+                FROM clients c
+                LEFT JOIN users u ON c.worker_id = u.id
+                WHERE c.worker_id = $1
+            `;
+            const params = [targetWorkerId];
 
-        query += ` ORDER BY c.created_at DESC`;
+            if (status && status !== 'all') {
+                query += ` AND c.status = $2`;
+                params.push(status);
+            }
 
-        const { rows } = await db.query(query, params);
+            query += ` ORDER BY c.created_at DESC`;
 
-        const clients: Client[] = rows.map((row: any) => ({
+            console.log('🔍 API: Executing query with params:', { targetWorkerId, status });
+            const { rows } = await db.query(query, params);
+            console.log('✅ API: Query successful, found', rows.length, 'clients');
+
+            return rows;
+        });
+
+        const clients: Client[] = result.map((row: any) => ({
             id: row.id,
             workerId: row.workerId,
             name: row.name,
@@ -95,6 +137,8 @@ export async function GET(request: NextRequest) {
             updatedAt: row.updatedAt,
         }));
 
+        console.log('✅ API: Successfully returning', clients.length, 'clients');
+
         const response: ApiResponse<Client[]> = {
             success: true,
             data: clients,
@@ -103,10 +147,15 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error('Get clients error:', error);
+        console.error('❌ API: Get clients error:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+        });
+
         const response: ApiResponse = {
             success: false,
-            error: 'Failed to retrieve clients',
+            error: error instanceof Error ? error.message : 'Failed to retrieve clients',
         };
         return NextResponse.json(response, { status: 500 });
     }

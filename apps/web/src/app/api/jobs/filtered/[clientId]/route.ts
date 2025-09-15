@@ -10,9 +10,14 @@ export async function GET(
     { params }: { params: { clientId: string } }
 ) {
     try {
+        console.log('🔍 API: Starting jobs filtered request');
+
         // Authentication
         const authHeader = request.headers.get('authorization');
+        console.log('🔍 API: Auth header present:', !!authHeader);
+
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            console.log('❌ API: No valid authorization token');
             const response: ApiResponse = {
                 success: false,
                 error: 'No valid authorization token',
@@ -21,7 +26,9 @@ export async function GET(
         }
 
         const token = authHeader.substring(7);
+        console.log('🔍 API: Verifying token...');
         const decoded = verifyToken(token);
+        console.log('🔍 API: Token verified:', !!decoded);
 
         const { clientId } = params;
         const { searchParams } = new URL(request.url);
@@ -82,7 +89,9 @@ export async function GET(
         };
 
         // Get filtered jobs
+        console.log('🔍 API: Calling jobDiscoveryService...');
         const jobs = await jobDiscoveryService.getFilteredJobsForClient(clientId, filters);
+        console.log('🔍 API: Jobs returned:', jobs.length);
 
         const response: ApiResponse = {
             success: true,
@@ -99,9 +108,15 @@ export async function GET(
         return NextResponse.json(response);
     } catch (error) {
         console.error('Error getting filtered jobs:', error);
+        console.error('Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            clientId,
+            filters
+        });
         return NextResponse.json({
             success: false,
-            error: 'Failed to get filtered jobs'
+            error: error instanceof Error ? error.message : 'Failed to get filtered jobs'
         }, { status: 500 });
     }
 }

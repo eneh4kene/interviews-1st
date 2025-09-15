@@ -18,7 +18,11 @@ const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/jobplace',
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+    connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
+    query_timeout: 30000, // Query timeout of 30 seconds
+    statement_timeout: 30000, // Statement timeout of 30 seconds
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 0,
 });
 
 // Function to validate database connection
@@ -126,16 +130,34 @@ pgPool.on('error', (err, client) => {
 
 // Database utility functions
 export const db = {
-    // Execute a query with parameters
+    // Execute a query with parameters and timeout protection
     query: async (text: string, params?: any[]) => {
         const start = Date.now();
+        const timeout = 30000; // 30 second timeout
+
         try {
-            const res = await pgPool.query(text, params);
+            // Create a timeout promise
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Query timeout after 30 seconds')), timeout);
+            });
+
+            // Race between query and timeout
+            const res = await Promise.race([
+                pgPool.query(text, params),
+                timeoutPromise
+            ]) as any;
+
             const duration = Date.now() - start;
-            console.log('Executed query', { text, duration, rows: res.rowCount });
+            console.log('Executed query', { text: text.substring(0, 100) + '...', duration, rows: res.rowCount });
             return res;
         } catch (error) {
-            console.error('Database query error:', error);
+            const duration = Date.now() - start;
+            console.error('Database query error:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                query: text.substring(0, 100) + '...',
+                duration,
+                params: params?.length || 0
+            });
             throw error;
         }
     },
@@ -201,17 +223,48 @@ export const redis = {
 // Health check function
 export const checkDatabaseHealth = async () => {
     try {
+        console.log('🔍 Checking database health...');
+
         // Validate database connection first
         await validateDatabaseConnection();
+        console.log('✅ PostgreSQL connection healthy');
 
         // Check Redis
         await redisClient.ping();
+        console.log('✅ Redis connection healthy');
 
         return { status: 'healthy', postgres: 'connected', redis: 'connected' };
     } catch (error) {
-        console.error('Database health check failed:', error);
-        return { status: 'unhealthy', error: error instanceof Error ? error.message : 'Unknown error' };
+        console.error('❌ Database health check failed:', error);
+        return {
+            status: 'unhealthy',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            postgres: 'disconnected',
+            redis: 'disconnected'
+        };
     }
+};
+
+// Test database connection with timeout
+export const testDatabaseConnection = async (timeoutMs: number = 5000) => {
+    return new Promise<boolean>((resolve) => {
+        const timeout = setTimeout(() => {
+            console.error('❌ Database connection test timed out');
+            resolve(false);
+        }, timeoutMs);
+
+        validateDatabaseConnection()
+            .then(() => {
+                clearTimeout(timeout);
+                console.log('✅ Database connection test successful');
+                resolve(true);
+            })
+            .catch((error) => {
+                clearTimeout(timeout);
+                console.error('❌ Database connection test failed:', error);
+                resolve(false);
+            });
+    });
 };
 
 // Graceful shutdown
