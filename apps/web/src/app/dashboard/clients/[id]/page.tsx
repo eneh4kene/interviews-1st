@@ -19,7 +19,8 @@ import {
   FileText,
   Briefcase,
   Users,
-  TrendingUp
+  TrendingUp,
+  Mail
 } from "lucide-react";
 import { apiService } from '../../../../lib/api';
 import EditClientForm from '../../../../components/EditClientForm';
@@ -29,6 +30,7 @@ import ViewApplicationsModal from '../../../../components/ViewApplicationsModal'
 import ApplicationModal from '../../../../components/ApplicationModal';
 import JobDiscoveryTab from '../../../../components/JobDiscoveryTab';
 import AiApplicationsTab from '../../../../components/AiApplicationsTab';
+import EmailManagementTab from '../../../../components/EmailManagementTab';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
   const [client, setClient] = useState<Client | null>(null);
@@ -37,7 +39,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery' | 'ai-applications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery' | 'ai-applications' | 'emails'>('overview');
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEditResumeModal, setShowEditResumeModal] = useState(false);
@@ -471,6 +473,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
                 { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
                 { id: 'ai-applications', label: 'AI Applications', icon: CheckCircle },
+                { id: 'emails', label: 'Emails', icon: Mail },
               ].map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -779,6 +782,14 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                   // Optional: Handle additional post-application logic
                   console.log('AI application updated:', application);
                 }}
+              />
+            )}
+
+            {/* Emails Tab */}
+            {activeTab === 'emails' && (
+              <EmailManagementTab 
+                clientId={params.id}
+                clientName={client?.name || 'Unknown Client'}
               />
             )}
           </div>
