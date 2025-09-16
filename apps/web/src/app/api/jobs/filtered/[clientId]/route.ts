@@ -111,8 +111,7 @@ export async function GET(
         console.error('Error details:', {
             message: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
-            clientId,
-            filters
+            clientId: params.clientId
         });
         return NextResponse.json({
             success: false,

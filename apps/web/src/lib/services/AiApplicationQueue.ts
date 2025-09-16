@@ -229,7 +229,7 @@ export class AiApplicationQueue {
         LIMIT $1 OFFSET $2
       `, [limit, offset]);
 
-            return result.rows.map(row => this.mapRowToQueueItem(row));
+            return result.rows.map((row: any) => this.mapRowToQueueItem(row));
         } catch (error) {
             console.error('Error getting queue items:', error);
             return [];

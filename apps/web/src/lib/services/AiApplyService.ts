@@ -260,7 +260,7 @@ export class AiApplyService {
             query += ' ORDER BY created_at DESC';
 
             const result = await db.query(query, params);
-            return result.rows.map(row => this.mapRowToApplicationStatus(row));
+            return result.rows.map((row: any) => this.mapRowToApplicationStatus(row));
         } catch (error) {
             console.error('Error getting client applications:', error);
             return [];
@@ -283,7 +283,7 @@ export class AiApplyService {
             query += ' ORDER BY created_at DESC';
 
             const result = await db.query(query, params);
-            return result.rows.map(row => this.mapRowToApplicationStatus(row));
+            return result.rows.map((row: any) => this.mapRowToApplicationStatus(row));
         } catch (error) {
             console.error('Error getting worker applications:', error);
             return [];

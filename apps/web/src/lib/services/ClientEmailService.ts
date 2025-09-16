@@ -194,7 +194,7 @@ export class ClientEmailService {
         ORDER BY created_at DESC
       `, [clientId]);
 
-            return result.rows.map(row => this.mapRowToClientEmailInfo(row));
+            return result.rows.map((row: any) => this.mapRowToClientEmailInfo(row));
         } catch (error) {
             console.error('Error getting client emails:', error);
             return [];

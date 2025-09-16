@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Send, Save, Paperclip, Eye, EyeOff } from 'lucide-react';
 
 interface EmailModalProps {
@@ -116,10 +116,10 @@ export default function EmailModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <h2 className="text-xl font-semibold">
-            {mode === 'compose' && 'Compose Email'}
-            {mode === 'reply' && 'Reply'}
-            {mode === 'forward' && 'Forward'}
-            {mode === 'review' && 'Review Application Email'}
+            {mode === 'compose' ? 'Compose Email' : 
+             mode === 'reply' ? 'Reply' : 
+             mode === 'forward' ? 'Forward' : 
+             mode === 'review' ? 'Review Application Email' : 'Email'}
           </h2>
           <div className="flex items-center gap-2">
             <button
@@ -281,20 +281,22 @@ export default function EmailModal({
         <div className="flex items-center justify-between p-4 border-t bg-gray-50">
           <div className="flex items-center gap-2">
             {!readOnly && (
-              <input
-                type="file"
-                id="attachment"
-                onChange={(e) => e.target.files?.[0] && addAttachment(e.target.files[0])}
-                className="hidden"
-                multiple
-              />
-              <label
-                htmlFor="attachment"
-                className="flex items-center gap-2 px-3 py-2 text-sm border rounded hover:bg-gray-100 cursor-pointer"
-              >
-                <Paperclip size={16} />
-                Attach
-              </label>
+              <>
+                <input
+                  type="file"
+                  id="attachment"
+                  onChange={(e) => e.target.files?.[0] && addAttachment(e.target.files[0])}
+                  className="hidden"
+                  multiple
+                />
+                <label
+                  htmlFor="attachment"
+                  className="flex items-center gap-2 px-3 py-2 text-sm border rounded hover:bg-gray-100 cursor-pointer"
+                >
+                  <Paperclip size={16} />
+                  Attach
+                </label>
+              </>
             )}
           </div>
 

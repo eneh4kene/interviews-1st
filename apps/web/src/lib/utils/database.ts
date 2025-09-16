@@ -20,10 +20,10 @@ const pgPool = new Pool({
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
     connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
-    query_timeout: 30000, // Query timeout of 30 seconds
-    statement_timeout: 30000, // Statement timeout of 30 seconds
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 0,
+    // query_timeout: 30000, // Query timeout of 30 seconds - not supported in PoolConfig
+    // statement_timeout: 30000, // Statement timeout of 30 seconds - not supported in PoolConfig
+    // keepAlive: true, // not supported in PoolConfig
+    // keepAliveInitialDelayMillis: 0, // not supported in PoolConfig
 });
 
 // Function to validate database connection
