@@ -112,26 +112,26 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
     setIsEmailModalOpen(true);
   };
 
-  const handleReplyEmail = (email: Email) => {
+  const handleReplyEmail = (emailData: any) => {
     setSelectedEmail({
-      ...email,
-      to: email.from,
-      from: email.to,
-      subject: `Re: ${email.subject}`,
-      body: `\n\n--- Original Message ---\nFrom: ${email.from}\nTo: ${email.to}\nSubject: ${email.subject}\n\n${email.body}`
+      ...emailData,
+      to: emailData.from,
+      from: emailData.to,
+      subject: `Re: ${emailData.subject}`,
+      body: `\n\n--- Original Message ---\nFrom: ${emailData.from}\nTo: ${emailData.to}\nSubject: ${emailData.subject}\n\n${emailData.body}`
     });
-    setModalMode('reply');
+    setModalMode('compose');
     setIsEmailModalOpen(true);
   };
 
-  const handleForwardEmail = (email: Email) => {
+  const handleForwardEmail = (emailData: any) => {
     setSelectedEmail({
-      ...email,
+      ...emailData,
       to: '',
-      subject: `Fwd: ${email.subject}`,
-      body: `\n\n--- Forwarded Message ---\nFrom: ${email.from}\nTo: ${email.to}\nSubject: ${email.subject}\n\n${email.body}`
+      subject: `Fwd: ${emailData.subject}`,
+      body: `\n\n--- Forwarded Message ---\nFrom: ${emailData.from}\nTo: ${emailData.to}\nSubject: ${emailData.subject}\n\n${emailData.body}`
     });
-    setModalMode('forward');
+    setModalMode('compose');
     setIsEmailModalOpen(true);
   };
 
@@ -383,6 +383,8 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
         onClose={() => setIsEmailModalOpen(false)}
         onSend={handleSendEmail}
         onSaveDraft={handleSaveDraft}
+        onReply={handleReplyEmail}
+        onForward={handleForwardEmail}
         initialData={selectedEmail || undefined}
         mode={modalMode}
         readOnly={modalMode === 'review'}

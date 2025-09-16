@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Send, Save, Paperclip, Eye, EyeOff } from 'lucide-react';
 
 interface EmailModalProps {
@@ -6,6 +6,8 @@ interface EmailModalProps {
   onClose: () => void;
   onSend: (emailData: EmailData) => Promise<void>;
   onSaveDraft?: (emailData: EmailData) => Promise<void>;
+  onReply?: (emailData: EmailData) => void;
+  onForward?: (emailData: EmailData) => void;
   initialData?: Partial<EmailData>;
   mode?: 'compose' | 'reply' | 'forward' | 'review';
   readOnly?: boolean;
@@ -34,6 +36,8 @@ export default function EmailModal({
   onClose,
   onSend,
   onSaveDraft,
+  onReply,
+  onForward,
   initialData = {},
   mode = 'compose',
   readOnly = false
@@ -49,9 +53,14 @@ export default function EmailModal({
     ...initialData
   });
 
-  const [isPreview, setIsPreview] = useState(false);
+  const [isPreview, setIsPreview] = useState(mode === 'review');
   const [isSending, setIsSending] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Update preview state when mode changes
+  useEffect(() => {
+    setIsPreview(mode === 'review');
+  }, [mode]);
 
   const handleSend = async () => {
     setIsSending(true);
@@ -305,10 +314,29 @@ export default function EmailModal({
               onClick={onClose}
               className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
             >
-              Cancel
+              {mode === 'review' ? 'Close' : 'Cancel'}
             </button>
             
-            {onSaveDraft && !readOnly && (
+            {/* Reply and Forward buttons for received emails */}
+            {mode === 'review' && !readOnly && onReply && onForward && (
+              <>
+                <button
+                  onClick={() => onReply(emailData)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border rounded hover:bg-gray-100"
+                >
+                  Reply
+                </button>
+                <button
+                  onClick={() => onForward(emailData)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm border rounded hover:bg-gray-100"
+                >
+                  Forward
+                </button>
+              </>
+            )}
+            
+            {/* Save Draft button for compose mode */}
+            {mode === 'compose' && onSaveDraft && !readOnly && (
               <button
                 onClick={handleSaveDraft}
                 disabled={isSaving}
@@ -319,14 +347,17 @@ export default function EmailModal({
               </button>
             )}
             
-            <button
-              onClick={handleSend}
-              disabled={isSending || !emailData.to || !emailData.subject}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              <Send size={16} />
-              {isSending ? 'Sending...' : 'Send'}
-            </button>
+            {/* Send button only for compose mode */}
+            {mode === 'compose' && !readOnly && (
+              <button
+                onClick={handleSend}
+                disabled={isSending || !emailData.to || !emailData.subject}
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Send size={16} />
+                {isSending ? 'Sending...' : 'Send'}
+              </button>
+            )}
           </div>
         </div>
       </div>
