@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/utils/jwt';
 import { db } from '@/lib/utils/database';
 import { ApiResponse } from '@interview-me/types';
-import { promises as fs } from 'fs';
+import { put } from '@vercel/blob';
 import path from 'path';
 
 export async function GET(request: NextRequest) {
@@ -156,15 +156,13 @@ export async function POST(request: NextRequest) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         const fileExtension = path.extname(file.name);
         const filename = `resume-${uniqueSuffix}${fileExtension}`;
-        const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-        const filePath = path.join(uploadDir, filename);
 
-        // Ensure upload directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
-
-        // Save file
+        // Upload to Vercel Blob
         const bytes = await file.arrayBuffer();
-        await fs.writeFile(filePath, Buffer.from(bytes));
+        const blob = await put(filename, bytes, {
+            access: 'public',
+            addRandomSuffix: false,
+        });
 
         // Check if this is the first resume for this client
         const existingResumesResult = await db.query(
@@ -184,7 +182,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Save resume record to database (store only filename, not full path)
+        // Save resume record to database (store Vercel Blob URL)
         const { rows } = await db.query(`
       INSERT INTO resumes (
         client_id,
@@ -203,7 +201,7 @@ export async function POST(request: NextRequest) {
     `, [
             clientId,
             file.name,
-            filename, // Store only filename, not full path
+            blob.url, // Store Vercel Blob URL
             shouldBeDefault
         ]);
 

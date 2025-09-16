@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/utils/database';
 import { ApiResponse } from '@interview-me/types';
+import { put } from '@vercel/blob';
 
 const jobPreferenceSchema = z.object({
     title: z.string().min(1, 'Job title is required'),
@@ -148,31 +149,25 @@ export async function POST(request: NextRequest) {
         // Handle resume file upload if provided
         if (resumeFile && resumeFile.size > 0) {
             try {
-                // Create uploads directory if it doesn't exist
-                const fs = require('fs');
-                const path = require('path');
-                const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
-
-                if (!fs.existsSync(uploadsDir)) {
-                    fs.mkdirSync(uploadsDir, { recursive: true });
-                }
-
                 // Generate unique filename
                 const timestamp = Date.now();
                 const randomId = Math.floor(Math.random() * 1000000000);
+                const path = require('path');
                 const fileExtension = path.extname(resumeFile.name);
                 const fileName = `resume-${timestamp}-${randomId}${fileExtension}`;
-                const filePath = path.join(uploadsDir, fileName);
 
-                // Save file
+                // Upload to Vercel Blob
                 const buffer = Buffer.from(await resumeFile.arrayBuffer());
-                fs.writeFileSync(filePath, buffer);
+                const blob = await put(fileName, buffer, {
+                    access: 'public',
+                    addRandomSuffix: false,
+                });
 
                 // Create resume record in database
                 await db.query(`
                     INSERT INTO resumes (client_id, name, file_url, is_default)
                     VALUES ($1, $2, $3, true)
-                `, [clientId, resumeFile.name, fileName]);
+                `, [clientId, resumeFile.name, blob.url]);
             } catch (fileError) {
                 console.error('Error uploading resume file:', fileError);
                 // Don't fail the registration if file upload fails

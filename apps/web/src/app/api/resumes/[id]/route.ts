@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/utils/jwt';
 import { db } from '@/lib/utils/database';
 import { ApiResponse } from '@interview-me/types';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 export async function GET(
     request: NextRequest,
@@ -222,14 +220,15 @@ export async function DELETE(
             return NextResponse.json(response, { status: 403 });
         }
 
-        // Delete the file from filesystem
-        try {
-            const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-            const fullFilePath = path.join(uploadDir, resumeRows[0].file_url);
-            await fs.unlink(fullFilePath);
-        } catch (fileError) {
-            console.warn('Could not delete file from filesystem:', fileError);
-            // Continue with database deletion even if file deletion fails
+        // Delete the file from Vercel Blob (if it's a blob URL)
+        if (resumeRows[0].file_url && resumeRows[0].file_url.startsWith('https://')) {
+            try {
+                const { del } = await import('@vercel/blob');
+                await del(resumeRows[0].file_url);
+            } catch (blobError) {
+                console.warn('Could not delete file from Vercel Blob:', blobError);
+                // Continue with database deletion even if blob deletion fails
+            }
         }
 
         // Delete the resume record from database

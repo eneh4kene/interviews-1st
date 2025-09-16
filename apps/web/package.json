@@ -13,6 +13,7 @@
         "@interview-me/types": "*",
         "@interview-me/ui": "*",
         "@sendgrid/mail": "^8.1.5",
+        "@vercel/blob": "^2.0.0",
         "autoprefixer": "^10.4.16",
         "bcryptjs": "^3.0.2",
         "dotenv": "^17.2.2",

@@ -1,9 +1,10 @@
 import { Pool, PoolClient } from 'pg';
 import { createClient } from 'redis';
 import dotenv from "dotenv";
+import path from 'path';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from root directory
+dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
 // console.log('Database URL:', process.env.DATABASE_URL);
 // console.log('Redis URL:', process.env.REDIS_URL);

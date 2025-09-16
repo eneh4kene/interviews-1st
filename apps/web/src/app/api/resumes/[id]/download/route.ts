@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/utils/jwt';
 import { db } from '@/lib/utils/database';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 export async function GET(
     request: NextRequest,
@@ -49,48 +47,8 @@ export async function GET(
             );
         }
 
-        // Construct full file path from filename
-        const uploadDir = path.join(process.cwd(), 'uploads', 'resumes');
-        const fullFilePath = path.join(uploadDir, rows[0].file_url);
-
-        // Check if file exists
-        try {
-            await fs.access(fullFilePath);
-        } catch (error) {
-            return NextResponse.json(
-                { success: false, error: 'File not found on server' },
-                { status: 404 }
-            );
-        }
-
-        // Read the file
-        const fileBuffer = await fs.readFile(fullFilePath);
-
-        // Determine content type based on file extension
-        const fileExtension = path.extname(rows[0].name).toLowerCase();
-        let contentType = 'application/octet-stream';
-
-        switch (fileExtension) {
-            case '.pdf':
-                contentType = 'application/pdf';
-                break;
-            case '.doc':
-                contentType = 'application/msword';
-                break;
-            case '.docx':
-                contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                break;
-        }
-
-        // Return the file
-        return new NextResponse(new Uint8Array(fileBuffer), {
-            status: 200,
-            headers: {
-                'Content-Type': contentType,
-                'Content-Disposition': `attachment; filename="${rows[0].name}"`,
-                'Content-Length': fileBuffer.length.toString(),
-            },
-        });
+        // Redirect to Vercel Blob URL
+        return NextResponse.redirect(rows[0].file_url);
     } catch (error) {
         console.error('Download resume error:', error);
         return NextResponse.json(
