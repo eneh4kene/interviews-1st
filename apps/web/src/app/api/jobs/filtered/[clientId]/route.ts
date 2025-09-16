@@ -85,7 +85,7 @@ export async function GET(
             workType,
             source: source || undefined,
             aiApplicableOnly,
-            aiFilterType: aiFilterType || 'all'
+            aiFilterType: aiFilterType || 'all' // Default to all jobs for better UX
         };
 
         // Get filtered jobs

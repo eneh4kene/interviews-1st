@@ -215,10 +215,18 @@ export default function Dashboard() {
     router.push('/jobs');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call the logout API to clear server-side session
+      await apiService.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with client-side cleanup even if API fails
+    }
+    
     // Clear user data from localStorage
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
     
     // Redirect to login page
     router.push('/login');

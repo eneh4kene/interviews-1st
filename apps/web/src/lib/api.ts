@@ -44,6 +44,56 @@ export interface ApiSuccess<T> {
 export type ApiResponse<T = any> = ApiSuccess<T> | ApiError;
 
 class ApiService {
+    private isRefreshing = false;
+    private refreshPromise: Promise<string | null> | null = null;
+
+    private async refreshAccessToken(): Promise<string | null> {
+        if (this.isRefreshing && this.refreshPromise) {
+            return this.refreshPromise;
+        }
+
+        this.isRefreshing = true;
+        this.refreshPromise = this.performTokenRefresh();
+
+        try {
+            const newToken = await this.refreshPromise;
+            return newToken;
+        } finally {
+            this.isRefreshing = false;
+            this.refreshPromise = null;
+        }
+    }
+
+    private async performTokenRefresh(): Promise<string | null> {
+        try {
+            console.log('🔄 Attempting to refresh access token...');
+            const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Include cookies for refresh token
+            });
+
+            if (!response.ok) {
+                console.error('❌ Token refresh failed:', response.status);
+                return null;
+            }
+
+            const data = await response.json();
+            if (data.success && data.data?.accessToken) {
+                console.log('✅ Token refreshed successfully');
+                localStorage.setItem('accessToken', data.data.accessToken);
+                return data.data.accessToken;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('❌ Token refresh error:', error);
+            return null;
+        }
+    }
+
     private async request<T>(
         endpoint: string,
         options: RequestInit = {}
@@ -53,7 +103,7 @@ class ApiService {
             console.log('🌐 Making API request to:', url);
 
             // Get access token from localStorage
-            const token = localStorage.getItem('accessToken');
+            let token = localStorage.getItem('accessToken');
             const authHeaders: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
 
             const response = await fetch(url, {
@@ -69,11 +119,48 @@ class ApiService {
 
             console.log('📡 API Response status:', response.status);
 
+            // Handle 401 Unauthorized - try to refresh token
+            if (response.status === 401 && token) {
+                console.log('🔄 Token expired, attempting refresh...');
+                const newToken = await this.refreshAccessToken();
+
+                if (newToken) {
+                    // Retry the request with new token
+                    console.log('🔄 Retrying request with new token...');
+                    const retryResponse = await fetch(url, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache',
+                            'Authorization': `Bearer ${newToken}`,
+                            ...(options.headers as Record<string, string>),
+                        },
+                        ...options,
+                    });
+
+                    if (retryResponse.ok) {
+                        const data = await retryResponse.json();
+                        console.log('✅ API Success after token refresh:', data.success);
+                        return convertDates(data);
+                    }
+                }
+
+                // If refresh failed, redirect to login
+                console.log('❌ Token refresh failed, redirecting to login');
+                localStorage.removeItem('user');
+                localStorage.removeItem('accessToken');
+                window.location.href = '/login';
+                return {
+                    success: false,
+                    error: 'Authentication required',
+                };
+            }
+
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ API Error Response:', errorText);
 
-                // Handle 401 Unauthorized - redirect to login
+                // Handle other 401 cases (no token)
                 if (response.status === 401) {
                     localStorage.removeItem('user');
                     localStorage.removeItem('accessToken');

@@ -3,7 +3,7 @@ import { redis } from './database';
 
 // JWT Configuration
 const JWT_ALGORITHM = 'HS256';
-const ACCESS_TOKEN_EXPIRY = '15m'; // 15 minutes
+const ACCESS_TOKEN_EXPIRY = '45m'; // 45 minutes
 const REFRESH_TOKEN_EXPIRY = '30d'; // 30 days
 
 // HS256 secrets from env

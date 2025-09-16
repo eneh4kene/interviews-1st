@@ -235,8 +235,12 @@ export class JobDiscoveryService {
       params.push(workType);
     }
 
-    // Add AI applicability filter if requested
-    if (filters.aiApplicableOnly) {
+    // Default to AI-applicable jobs only when no preferences exist
+    // This ensures the system focuses on jobs that can be automatically applied to
+    const shouldFilterAiOnly = filters.aiApplicableOnly !== false &&
+      (filters.aiFilterType === 'ai_only' || filters.aiFilterType === undefined);
+
+    if (shouldFilterAiOnly) {
       conditions.push(`company_website IS NOT NULL AND company_website != ''`);
     }
 
@@ -721,8 +725,21 @@ export class JobDiscoveryService {
         };
       });
 
+      // Filter to AI-applicable jobs only when no client preferences exist
+      // This ensures the system focuses on jobs that can be automatically applied to
+      let jobsToFilter = classifiedJobListings;
+      if (clientPreferences.length === 0) {
+        const shouldFilterAiOnly = filters.aiApplicableOnly !== false &&
+          (filters.aiFilterType === 'ai_only' || filters.aiFilterType === undefined);
+
+        if (shouldFilterAiOnly) {
+          jobsToFilter = classifiedJobListings.filter(job => job.is_ai_applicable);
+          console.log(`🔍 Filtered to ${jobsToFilter.length} AI-applicable jobs from ${classifiedJobListings.length} total jobs`);
+        }
+      }
+
       // Apply AI filtering if requested
-      let filteredJobs = this.applyAiFiltering(classifiedJobListings, filters);
+      let filteredJobs = this.applyAiFiltering(jobsToFilter, filters);
 
       // Sort by match percentage and confidence score
       filteredJobs.sort((a, b) => {

@@ -14,9 +14,17 @@ const refreshTokenSchema = z.object({
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const validatedData = refreshTokenSchema.parse(body);
-        const { refreshToken } = validatedData as RefreshTokenRequest;
+        // Try to get refresh token from cookie first, then from body
+        const refreshTokenFromCookie = request.cookies.get('refreshToken')?.value;
+        let refreshToken: string;
+
+        if (refreshTokenFromCookie) {
+            refreshToken = refreshTokenFromCookie;
+        } else {
+            const body = await request.json();
+            const validatedData = refreshTokenSchema.parse(body);
+            refreshToken = validatedData.refreshToken;
+        }
 
         // Verify refresh token using our secure JWT system
         const decoded = await verifyRefreshToken(refreshToken);

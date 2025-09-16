@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { apiService } from '../../lib/api';
 
-interface AdminLayoutProps {
+interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const checkAdminAuth = async () => {
+    const checkAuth = async () => {
       try {
         // Check if we have a token in localStorage
         const token = localStorage.getItem('accessToken');
@@ -27,16 +27,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         // Verify the token by calling the /me endpoint
         const response = await apiService.getCurrentUser();
         
-        if (response.success && response.data.role === 'ADMIN') {
+        if (response.success) {
           setIsAuthenticated(true);
         } else {
-          // Token is invalid or user is not admin, clear it and redirect to login
+          // Token is invalid, clear it and redirect to login
           localStorage.removeItem('accessToken');
           localStorage.removeItem('user');
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Admin auth check failed:', error);
+        console.error('Auth check failed:', error);
         // Clear invalid tokens
         localStorage.removeItem('accessToken');
         localStorage.removeItem('user');
@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       }
     };
 
-    checkAdminAuth();
+    checkAuth();
   }, []);
 
   // Show loading spinner while checking authentication
@@ -55,13 +55,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verifying admin access...</p>
+          <p className="mt-4 text-gray-600">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated or not admin
+  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     const currentPath = window.location.pathname;
     const loginUrl = `/login?redirect=${encodeURIComponent(currentPath)}`;
@@ -69,6 +69,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return null;
   }
 
-  // Render the admin content if authenticated
+  // Render the dashboard content if authenticated
   return <>{children}</>;
 }

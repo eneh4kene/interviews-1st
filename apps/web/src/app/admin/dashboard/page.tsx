@@ -155,7 +155,15 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, [isAuthenticated]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call the logout API to clear server-side session
+      await apiService.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with client-side cleanup even if API fails
+    }
+    
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
     router.push('/login');
