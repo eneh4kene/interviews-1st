@@ -3,6 +3,7 @@ import { db } from '../utils/database';
 import sgMail from '@sendgrid/mail';
 import dotenv from 'dotenv';
 import path from 'path';
+import { clientDomainService } from './ClientDomainService';
 
 // Load environment variables from parent directory
 dotenv.config({ path: path.join(process.cwd(), '../../.env') });
@@ -254,6 +255,82 @@ export class EmailService {
       return result.rows[0].id;
     } catch (error) {
       console.error('Error queuing email:', error);
+      throw error;
+    }
+  }
+
+  // Queue direct email (for compose functionality)
+  async queueDirectEmail(emailData: {
+    to_email: string;
+    to_name: string;
+    from_email: string;
+    from_name: string;
+    subject: string;
+    html_content: string;
+    text_content: string;
+    cc?: string;
+    bcc?: string;
+    attachments?: any[];
+    client_id?: string;
+  }): Promise<string> {
+    try {
+      // Get client-specific sender email if client_id is provided
+      let senderEmail = emailData.from_email;
+      console.log(`Original sender email: ${senderEmail}, Client ID: ${emailData.client_id}`);
+
+      if (emailData.client_id) {
+        try {
+          console.log(`Attempting to get client-specific sender email for client: ${emailData.client_id}`);
+          const clientSenderEmail = await clientDomainService.getSenderEmail(emailData.client_id);
+          console.log(`Client sender email retrieved: ${clientSenderEmail}`);
+          senderEmail = clientSenderEmail;
+          console.log(`Using client-specific sender email: ${senderEmail} for client ${emailData.client_id}`);
+        } catch (error) {
+          console.error('Error getting client sender email, using provided email:', error);
+        }
+      } else {
+        console.log('No client_id provided, using original sender email');
+      }
+
+      const result = await db.query(`
+        INSERT INTO email_queue (
+          to_email, to_name, from_email, from_name, subject,
+          html_content, text_content, cc, bcc, attachments, priority, scheduled_at, status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), 'pending')
+        RETURNING id
+      `, [
+        emailData.to_email,
+        emailData.to_name,
+        senderEmail, // Use client-specific sender email
+        emailData.from_name,
+        emailData.subject,
+        emailData.html_content,
+        emailData.text_content,
+        emailData.cc || '',
+        emailData.bcc || '',
+        JSON.stringify(emailData.attachments || []),
+        0 // Normal priority
+      ]);
+
+      // Create client-email relationship if client_id is provided
+      if (emailData.client_id) {
+        await db.query(`
+          INSERT INTO client_email_relationships (client_id, email_queue_id, relationship_type)
+          VALUES ($1, $2, 'sent')
+        `, [emailData.client_id, result.rows[0].id]);
+      }
+
+      // Process the email queue immediately
+      try {
+        await this.processQueue();
+      } catch (error) {
+        console.error('Error processing email queue:', error);
+        // Don't fail the request if queue processing fails
+      }
+
+      return result.rows[0].id;
+    } catch (error) {
+      console.error('Error queuing direct email:', error);
       throw error;
     }
   }

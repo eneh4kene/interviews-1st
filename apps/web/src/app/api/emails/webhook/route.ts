@@ -41,15 +41,19 @@ export async function POST(request: NextRequest) {
         // Generate thread ID based on subject or create new one
         const threadId = `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
 
-        // Try to find associated client
+        // Try to find associated client by sender_email
         let clientId = null;
         if (toEmail) {
+            console.log(`🔍 Looking up client for recipient: ${toEmail}`);
             const clientResult = await db.query(
-                'SELECT id FROM clients WHERE email = $1',
+                'SELECT id, name FROM clients WHERE sender_email = $1',
                 [toEmail]
             );
             if (clientResult.rows.length > 0) {
                 clientId = clientResult.rows[0].id;
+                console.log(`✅ Found client: ${clientResult.rows[0].name} (${clientId})`);
+            } else {
+                console.log(`❌ No client found for sender_email: ${toEmail}`);
             }
         }
 

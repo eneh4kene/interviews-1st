@@ -62,6 +62,21 @@ export default function EmailModal({
     setIsPreview(mode === 'review');
   }, [mode]);
 
+  // Update emailData when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setEmailData({
+        to: initialData.to || '',
+        cc: initialData.cc || '',
+        bcc: initialData.bcc || '',
+        subject: initialData.subject || '',
+        body: initialData.body || '',
+        attachments: initialData.attachments || [],
+        from: initialData.from || ''
+      });
+    }
+  }, [initialData?.to, initialData?.cc, initialData?.bcc, initialData?.subject, initialData?.body, initialData?.attachments, initialData?.from]);
+
   const handleSend = async () => {
     setIsSending(true);
     try {
@@ -317,8 +332,8 @@ export default function EmailModal({
               {mode === 'review' ? 'Close' : 'Cancel'}
             </button>
             
-            {/* Reply and Forward buttons for received emails */}
-            {mode === 'review' && !readOnly && onReply && onForward && (
+            {/* Reply and Forward buttons for review mode */}
+            {mode === 'review' && onReply && onForward && (
               <>
                 <button
                   onClick={() => onReply(emailData)}

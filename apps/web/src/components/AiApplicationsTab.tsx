@@ -17,10 +17,12 @@ import {
   Eye,
   Check,
   X,
-  Loader2
+  Loader2,
+  Mail
 } from 'lucide-react';
 import { AiApplicationStatus } from '@/lib/services/AiApplyService';
 import { apiService } from '@/lib/api';
+import EmailModal from './EmailModal';
 
 interface AiApplicationsTabProps {
   clientId: string;
@@ -48,6 +50,9 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
   });
   const [selectedApplication, setSelectedApplication] = useState<AiApplicationStatus | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [emailModalMode, setEmailModalMode] = useState<'compose' | 'reply' | 'forward' | 'review'>('compose');
+  const [selectedEmailData, setSelectedEmailData] = useState<any>(null);
 
   // Fetch applications and stats
   const fetchData = async () => {
@@ -168,6 +173,71 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
     setShowReviewModal(true);
   };
 
+  const handleComposeEmail = (application: AiApplicationStatus) => {
+    const emailData = {
+      to: application.target_email || '',
+      cc: '',
+      bcc: '',
+      subject: `Application for ${application.job_title} at ${application.company_name}`,
+      body: `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${application.job_title} position at ${application.company_name}...`,
+      attachments: [],
+      from: 'worker@interviewsfirst.com'
+    };
+    setSelectedEmailData(emailData);
+    setEmailModalMode('compose');
+    setIsEmailModalOpen(true);
+  };
+
+  const handleSendEmail = async (emailData: any) => {
+    try {
+      console.log('Sending email:', emailData);
+      
+      // Get auth token
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Send email via API
+      const response = await fetch('/api/emails/send-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          to: emailData.to,
+          cc: emailData.cc,
+          bcc: emailData.bcc,
+          subject: emailData.subject,
+          body: emailData.body,
+          from: emailData.from,
+          attachments: emailData.attachments || [],
+          clientId: clientId
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+
+      console.log('Email sent successfully:', result.data);
+      alert('Email sent successfully!');
+      setIsEmailModalOpen(false);
+      
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleSaveDraft = async (emailData: any) => {
+    // TODO: Implement actual draft saving
+    console.log('Saving draft:', emailData);
+  };
+
   // Get status badge
   const getStatusBadge = (status: string, progress: number) => {
     const statusConfig = {
@@ -210,6 +280,15 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
             >
               <Eye className="h-3 w-3" />
               Review
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleComposeEmail(application)}
+              className="flex items-center gap-1"
+            >
+              <Mail className="h-3 w-3" />
+              Compose
             </Button>
             <Button
               size="sm"
@@ -473,6 +552,17 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
           </div>
         </div>
       )}
+
+      {/* Email Modal */}
+      <EmailModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        onSend={handleSendEmail}
+        onSaveDraft={handleSaveDraft}
+        initialData={selectedEmailData || undefined}
+        mode={emailModalMode}
+        readOnly={false}
+      />
     </div>
   );
 }

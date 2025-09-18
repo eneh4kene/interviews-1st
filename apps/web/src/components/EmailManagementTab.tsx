@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, RefreshCw, Mail, Send, Archive, Trash2, Eye, Edit } from 'lucide-react';
 import EmailModal from './EmailModal';
 
+interface EmailData {
+  to: string;
+  cc?: string;
+  bcc?: string;
+  subject: string;
+  body: string;
+  attachments: Attachment[];
+  from?: string;
+}
+
 interface Email {
   id: string;
   subject: string;
@@ -35,53 +45,47 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
   const [statusFilter, setStatusFilter] = useState<'all' | 'sent' | 'received' | 'draft' | 'failed'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [selectedEmail, setSelectedEmail] = useState<EmailData | null>(null);
   const [modalMode, setModalMode] = useState<'compose' | 'reply' | 'forward' | 'review'>('compose');
 
-  // Mock data - replace with actual API calls
+  // Fetch emails from database
   useEffect(() => {
-    const mockEmails: Email[] = [
-      {
-        id: '1',
-        subject: 'Application for Senior Software Engineer Position',
-        from: 'john.smith.123456@interviewsfirst.com',
-        to: 'hiring@google.com',
-        body: 'Dear Hiring Manager,\n\nI am writing to express my strong interest in the Senior Software Engineer position at Google...',
-        status: 'sent',
-        createdAt: '2025-01-15T10:30:00Z',
-        attachments: [{
-          id: 'att1',
-          name: 'John_Smith_Resume_Google.pdf',
-          url: 'https://blob.vercel-storage.com/resume-google.pdf',
-          size: 245760,
-          type: 'application/pdf'
-        }],
-        isRead: true
-      },
-      {
-        id: '2',
-        subject: 'Thank you for your application',
-        from: 'hiring@google.com',
-        to: 'john.smith.123456@interviewsfirst.com',
-        body: 'Thank you for your interest in Google. We have received your application and will review it...',
-        status: 'received',
-        createdAt: '2025-01-15T14:20:00Z',
-        isRead: false
-      },
-      {
-        id: '3',
-        subject: 'Follow-up on Application',
-        from: 'worker@interviewsfirst.com',
-        to: 'hiring@microsoft.com',
-        body: 'Dear Hiring Team,\n\nI wanted to follow up on the application submitted last week...',
-        status: 'draft',
-        createdAt: '2025-01-16T09:15:00Z',
-        isRead: true
+    const fetchEmails = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get auth token
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+          console.error('No authentication token found');
+          return;
+        }
+
+        // Fetch emails from API (both sent and received)
+        const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            // The API already returns emails in the correct format
+            setEmails(result.data);
+            setFilteredEmails(result.data);
+          }
+        } else {
+          console.error('Failed to fetch emails:', response.statusText);
+        }
+      } catch (error) {
+        console.error('Error fetching emails:', error);
+      } finally {
+        setIsLoading(false);
       }
-    ];
-    
-    setEmails(mockEmails);
-    setFilteredEmails(mockEmails);
+    };
+
+    fetchEmails();
   }, [clientId]);
 
   // Filter emails based on search and status
@@ -107,7 +111,15 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
   }, [emails, searchTerm, statusFilter]);
 
   const handleComposeEmail = () => {
-    setSelectedEmail(null);
+    setSelectedEmail({
+      to: '',
+      cc: '',
+      bcc: '',
+      subject: '',
+      body: '',
+      attachments: [],
+      from: 'worker@interviewsfirst.com'
+    });
     setModalMode('compose');
     setIsEmailModalOpen(true);
   };
@@ -136,29 +148,91 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
   };
 
   const handleViewEmail = (email: Email) => {
-    setSelectedEmail(email);
+    // Transform Email to EmailData format
+    const emailData = {
+      to: email.to,
+      cc: '',
+      bcc: '',
+      subject: email.subject,
+      body: email.body,
+      attachments: email.attachments || [],
+      from: email.from
+    };
+    setSelectedEmail(emailData);
     setModalMode('review');
     setIsEmailModalOpen(true);
   };
 
   const handleSendEmail = async (emailData: any) => {
-    // TODO: Implement actual email sending
-    console.log('Sending email:', emailData);
-    
-    // Mock sending
-    const newEmail: Email = {
-      id: Math.random().toString(36).substr(2, 9),
-      subject: emailData.subject,
-      from: emailData.from,
-      to: emailData.to,
-      body: emailData.body,
-      status: 'sent',
-      createdAt: new Date().toISOString(),
-      attachments: emailData.attachments || [],
-      isRead: true
-    };
+    try {
+      console.log('Sending email:', emailData);
+      
+      // Get auth token
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
 
-    setEmails(prev => [newEmail, ...prev]);
+      // Send email via API
+      const response = await fetch('/api/emails/send-direct', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          to: emailData.to,
+          cc: emailData.cc,
+          bcc: emailData.bcc,
+          subject: emailData.subject,
+          body: emailData.body,
+          from: emailData.from,
+          attachments: emailData.attachments || [],
+          clientId: clientId
+        })
+      });
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send email');
+      }
+
+      console.log('Email sent successfully:', result.data);
+      
+      // Refresh emails list to show the new email
+      const fetchEmails = async () => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          if (!token) return;
+
+          const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              setEmails(result.data);
+              setFilteredEmails(result.data);
+            }
+          }
+        } catch (error) {
+          console.error('Error refreshing emails:', error);
+        }
+      };
+
+      await fetchEmails();
+      
+      // Show success message
+      alert('Email sent successfully!');
+      
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const handleSaveDraft = async (emailData: any) => {
@@ -180,16 +254,82 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
     setEmails(prev => [draftEmail, ...prev]);
   };
 
-  const handleDeleteEmails = (emailIds: string[]) => {
-    setEmails(prev => prev.filter(email => !emailIds.includes(email.id)));
-    setSelectedEmails([]);
+  const handleDeleteEmails = async (emailIds: string[]) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      // Delete emails from database
+      for (const emailId of emailIds) {
+        // Check if it's a sent email (from email_queue) or received email (from email_inbox)
+        const email = emails.find(e => e.id === emailId);
+        if (email) {
+          if (email.status === 'sent' || email.status === 'failed' || email.status === 'draft') {
+            // Delete from email_queue
+            await fetch(`/api/emails/queue/${emailId}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          } else if (email.status === 'received') {
+            // Delete from email_inbox
+            await fetch(`/api/emails/inbox/${emailId}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+          }
+        }
+      }
+
+      // Update local state
+      setEmails(prev => prev.filter(email => !emailIds.includes(email.id)));
+      setFilteredEmails(prev => prev.filter(email => !emailIds.includes(email.id)));
+      setSelectedEmails([]);
+    } catch (error) {
+      console.error('Error deleting emails:', error);
+      alert('Failed to delete emails');
+    }
   };
 
-  const handleMarkAsRead = (emailIds: string[]) => {
-    setEmails(prev => prev.map(email => 
-      emailIds.includes(email.id) ? { ...email, isRead: true } : email
-    ));
-    setSelectedEmails([]);
+  const handleMarkAsRead = async (emailIds: string[]) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+
+      // Update emails in database
+      for (const emailId of emailIds) {
+        const email = emails.find(e => e.id === emailId);
+        if (email) {
+          if (email.status === 'received') {
+            // Update in email_inbox
+            await fetch(`/api/emails/inbox/${emailId}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ is_read: true })
+            });
+          }
+          // Note: Sent emails are already marked as read by default
+        }
+      }
+
+      // Update local state
+      setEmails(prev => prev.map(email => 
+        emailIds.includes(email.id) ? { ...email, isRead: true } : email
+      ));
+      setFilteredEmails(prev => prev.map(email => 
+        emailIds.includes(email.id) ? { ...email, isRead: true } : email
+      ));
+      setSelectedEmails([]);
+    } catch (error) {
+      console.error('Error marking emails as read:', error);
+      alert('Failed to mark emails as read');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -219,7 +359,32 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
         <h2 className="text-xl font-semibold">Email Management</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setIsLoading(true)}
+            onClick={async () => {
+              setIsLoading(true);
+              // Refresh emails using the same endpoint as initial load
+              const token = localStorage.getItem('accessToken');
+              if (!token) return;
+
+              try {
+                const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+
+                if (response.ok) {
+                  const result = await response.json();
+                  if (result.success && result.data) {
+                    setEmails(result.data);
+                    setFilteredEmails(result.data);
+                  }
+                }
+              } catch (error) {
+                console.error('Error refreshing emails:', error);
+              } finally {
+                setIsLoading(false);
+              }
+            }}
             className="p-2 hover:bg-gray-100 rounded"
             title="Refresh"
           >
