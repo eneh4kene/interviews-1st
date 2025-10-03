@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
                 ei.from_email as from,
                 c.sender_email as to,
                 ei.subject,
-                ei.html_content as body,
+                ei.content as body,
                 ei.content as text_content,
                 'received' as status,
                 ei.received_at as created_at,

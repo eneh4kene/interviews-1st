@@ -18,6 +18,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { processEmailContent } from '@/lib/utils/htmlSanitizer';
 
 interface Email {
   id: string;
@@ -225,7 +226,7 @@ export default function EmailInbox() {
                         {email.subject}
                       </p>
                       <p className="text-sm text-gray-500 truncate">
-                        {email.content.substring(0, 100)}...
+                        {processEmailContent(email.content).textContent.substring(0, 100)}...
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-gray-400">
@@ -264,7 +265,7 @@ export default function EmailInbox() {
                       {email.subject}
                     </p>
                     <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {email.content}
+                      {processEmailContent(email.content).textContent}
                     </div>
                   </CardContent>
                 </Card>

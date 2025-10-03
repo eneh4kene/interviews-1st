@@ -1,7 +1,7 @@
 import { verifyToken } from "@/lib/utils/jwt";
 // AI Apply Submit API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
-import { aiApplyService, ApplicationSubmissionData } from '@/lib/services/AiApplyService';
+import { aiApplyN8nBridge } from '@/lib/services/AiApplyN8nBridge';
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,46 +33,50 @@ export async function POST(request: NextRequest) {
             job_title,
             company_name,
             company_website,
+            description_snippet,
+            resume,
             wait_for_approval,
             worker_notes
         } = body;
 
         // Validate required fields
-        if (!client_id || !job_id || !job_title || !company_name) {
+        if (!client_id || !job_id || !job_title || !company_name || !description_snippet || !resume?.id || !resume?.file_url) {
             return NextResponse.json(
                 { success: false, error: 'Missing required fields' },
                 { status: 400 }
             );
         }
 
-        // Prepare application data
-        const applicationData: ApplicationSubmissionData = {
-            client_id,
-            worker_id: decoded.userId,
-            job_id,
-            job_title,
-            company_name,
-            company_website,
-            wait_for_approval: wait_for_approval || false,
-            worker_notes
-        };
+        try {
+            // Create application, queue, and forward to n8n
+            const result = await aiApplyN8nBridge.startAiApply({
+                client_id,
+                worker_id: decoded.userId,
+                job_id,
+                job_title,
+                company_name,
+                company_website,
+                description_snippet,
+                resume,
+                wait_for_approval: wait_for_approval ?? true,
+                worker_notes
+            });
 
-        // Submit application
-        const result = await aiApplyService.submitApplication(applicationData);
-
-        if (result.success) {
             return NextResponse.json({
                 success: true,
                 data: {
-                    application_id: result.application_id,
-                    message: 'AI application submitted successfully'
+                    application_id: result.ai_application_id,
+                    message: 'AI application submitted and forwarded to n8n'
                 }
             });
-        } else {
-            return NextResponse.json(
-                { success: false, error: result.error },
-                { status: 400 }
-            );
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Unknown error';
+            // Duplicate handling
+            if (message.toLowerCase().includes('already exists')) {
+                return NextResponse.json({ success: false, error: message }, { status: 409 });
+            }
+            console.error('AI apply submit error:', e);
+            return NextResponse.json({ success: false, error: message }, { status: 500 });
         }
 
     } catch (error) {

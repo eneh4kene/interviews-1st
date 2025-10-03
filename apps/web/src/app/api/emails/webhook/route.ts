@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // Process email content - prefer text over HTML for storage
+        let emailContent = text || '';
+        if (!emailContent && html) {
+            // If no text content, use HTML but clean it up
+            emailContent = html;
+        }
+
         // Store the email in inbox
         const result = await db.query(`
             INSERT INTO email_inbox (
@@ -68,7 +75,7 @@ export async function POST(request: NextRequest) {
             fromEmail,
             fromName,
             subject,
-            text || html || '',
+            emailContent,
             toEmail,
             clientId,
             threadId,

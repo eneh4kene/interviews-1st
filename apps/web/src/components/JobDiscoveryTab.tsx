@@ -40,6 +40,7 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
   const [stats, setStats] = useState<JobStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [defaultResume, setDefaultResume] = useState<{ id: string; file_url: string; name: string } | null>(null);
   const [filters, setFilters] = useState({
     keywords: '',
     location: '',
@@ -104,6 +105,26 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
     fetchData();
   };
 
+  // Load default resume for this client on demand
+  const loadDefaultResume = async (): Promise<{ id: string; file_url: string; name: string } | null> => {
+    try {
+      const res = await apiService.get('/resumes', { params: { clientId } });
+      if (res.success) {
+        const items = (res.data as any[]) || [];
+        const chosen = items.find((r: any) => r.isDefault) || items[0];
+        if (chosen) {
+          const resume = { id: chosen.id, file_url: chosen.fileUrl, name: chosen.name };
+          setDefaultResume(resume);
+          return resume;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load default resume', e);
+    }
+    setDefaultResume(null);
+    return null;
+  };
+
   // Clear filters
   const handleClearFilters = () => {
     setFilters({
@@ -127,6 +148,24 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
       setApplyingJobs(prev => new Set(prev).add(job.id));
 
       if (applicationType === 'ai') {
+        // Prevent duplicate AI applications for the same job
+        if (job.id) {
+          try {
+            const duplicateCheck = await apiService.checkDuplicateApplication(clientId, job.id);
+            if (duplicateCheck.success && (duplicateCheck.data as any).isDuplicate) {
+              alert(`Application already exists: ${(duplicateCheck.data as any).message || 'This job already has an application for this client.'}`);
+              return;
+            }
+          } catch (_) {
+            // If duplicate check fails, fall through and let server validate
+          }
+        }
+        // Ensure default resume is available
+        const resumeToUse = defaultResume || (await loadDefaultResume());
+        if (!resumeToUse) {
+          alert('Please upload/select a resume for this client before using AI Apply.');
+          return;
+        }
         // Use AI Apply service for AI applications
         const response = await apiService.post('/ai-apply/submit', {
           client_id: clientId,
@@ -134,6 +173,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
           job_title: job.title,
           company_name: job.company,
           company_website: job.company_website,
+          description_snippet: job.description,
+          resume: resumeToUse,
           wait_for_approval: true, // Always wait for approval for now
           worker_notes: `AI application from job discovery`
         });

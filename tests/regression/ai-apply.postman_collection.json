@@ -1,0 +1,174 @@
+{
+    "info": {
+        "name": "AI Apply + n8n Regression",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Regression collection covering AI apply submission and n8n callback flows"
+    },
+    "item": [
+        {
+            "name": "Auth - Worker Login",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{base_url}}/api/auth/login",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"email\": \"worker1@interview-me.com\",\n  \"password\": \"password@worker1\"\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                            "const json = pm.response.json();",
+                            "pm.test('JWT exists', function () { pm.expect(json.token).to.exist; });",
+                            "pm.environment.set('worker_jwt', json.token);"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "AI Apply - Submit Success",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{worker_jwt}}"
+                    }
+                ],
+                "url": "{{base_url}}/api/ai-apply/submit",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"job_id\": \"job-123\",\n  \"job_title\": \"Software Engineer\",\n  \"company_name\": \"Test Corp\",\n  \"company_website\": \"https://test.corp\",\n  \"description_snippet\": \"Great opportunity\",\n  \"resume\": { \n    \"id\": \"{{resume_id}}\", \n    \"file_url\": \"https://example.com/resume.pdf\", \n    \"name\": \"resume.pdf\" \n  },\n  \"wait_for_approval\": true\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                            "const json = pm.response.json();",
+                            "pm.test('Success true', function () { pm.expect(json.success).to.be.true; });",
+                            "pm.environment.set('ai_application_id', json.data.application_id);"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "AI Apply - Submit Missing Fields",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{worker_jwt}}"
+                    }
+                ],
+                "url": "{{base_url}}/api/ai-apply/submit",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"client_id\": \"{{client_id}}\"\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status 400', function () { pm.response.to.have.status(400); });",
+                            "pm.test('Missing fields error', function () { pm.expect(pm.response.json().error).to.include('Missing required fields'); });"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "n8n - Success Callback",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "x-webhook-secret",
+                        "value": "{{n8n_webhook_secret}}"
+                    }
+                ],
+                "url": "{{base_url}}/api/n8n/ai-apply",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"status\": \"success\",\n  \"ai_application_id\": \"{{ai_application_id}}\",\n  \"client_id\": \"{{client_id}}\",\n  \"job_id\": \"job-123\",\n  \"ai_generated_content\": {\n    \"email_subject\": \"Application for Software Engineer\",\n    \"email_body\": \"Dear Hiring Manager...\",\n    \"resume_content\": {\n      \"summary\": \"...\"\n    }\n  },\n  \"discovery\": {\n    \"primary_email\": \"hr@testcorp.com\",\n    \"confidence_score\": 0.95,\n    \"alternative_emails\": [\"talent@testcorp.com\"]\n  }\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                            "pm.test('OK true', function () { pm.expect(pm.response.json().ok).to.be.true; });"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "n8n - Error Callback",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "x-webhook-secret",
+                        "value": "{{n8n_webhook_secret}}"
+                    }
+                ],
+                "url": "{{base_url}}/api/n8n/ai-apply",
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"status\": \"error\",\n  \"ai_application_id\": \"{{ai_application_id}}\",\n  \"error\": {\n    \"code\": \"AI_GENERATION_FAILED\",\n    \"message\": \"Failed to generate content\"\n  }\n}"
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                            "pm.test('OK true', function () { pm.expect(pm.response.json().ok).to.be.true; });"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ]
+        }
+    ]
+}
