@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, RefreshCw, Mail, Send, Archive, Trash2, Eye, Edit } from 'lucide-react';
 import EmailModal from './EmailModal';
+import { processEmailContent } from '@/lib/utils/htmlSanitizer';
 
 interface EmailData {
   to: string;
@@ -487,6 +488,9 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
                             setSelectedEmails(prev => prev.filter(id => id !== email.id));
                           }
                         }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                         className="mr-2"
                       />
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(email.status)}`}>
@@ -499,7 +503,9 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
                     <p className="text-sm text-gray-600 truncate">
                       {email.status === 'received' ? `From: ${email.from}` : `To: ${email.to}`}
                     </p>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{email.body}</p>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                      {processEmailContent(email.body).textContent}
+                    </p>
                     {email.attachments && email.attachments.length > 0 && (
                       <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
                         <span>📎 {email.attachments.length} attachment(s)</span>

@@ -1,0 +1,23 @@
+# Railway TOML for n8n-only deployment
+
+[build]
+image = "n8nio/n8n:latest"
+
+[deploy]
+start = "n8n"
+
+[env]
+# Match app expectations
+N8N_PORT = "5678"
+N8N_PROTOCOL = "http"
+N8N_EDITOR_BASE_URL = "${RAILWAY_PUBLIC_DOMAIN}"
+N8N_HOST = "0.0.0.0"
+# Disable onboarding for headless deploys
+N8N_USER_MANAGEMENT_DISABLED = "true"
+# Ensure webhook urls are correct
+WEBHOOK_URL = "https://${RAILWAY_PUBLIC_DOMAIN}"
+
+# Optional: auto-import workflow via API on first deploy
+# You can add a postdeploy script step in Railway to curl the workflow import endpoint
+# using workflows/ai-apply.webhook.json from your repo artifacts.
+

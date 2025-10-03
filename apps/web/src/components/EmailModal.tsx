@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Send, Save, Paperclip, Eye, EyeOff } from 'lucide-react';
+import { X, Send, Save, Paperclip, Eye, EyeOff, MoreVertical, Reply, Forward, Archive, Trash2, Clock } from 'lucide-react';
+import { processEmailContent } from '@/lib/utils/htmlSanitizer';
 
 interface EmailModalProps {
   isOpen: boolean;
@@ -135,122 +136,155 @@ export default function EmailModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-xl font-semibold">
-            {mode === 'compose' ? 'Compose Email' : 
-             mode === 'reply' ? 'Reply' : 
-             mode === 'forward' ? 'Forward' : 
-             mode === 'review' ? 'Review Application Email' : 'Email'}
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsPreview(!isPreview)}
-              className="p-2 hover:bg-gray-100 rounded"
-              title={isPreview ? 'Edit' : 'Preview'}
-            >
-              {isPreview ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+        {/* Header - Gmail Style */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+              {mode === 'compose' ? '✉️' : mode === 'review' ? '👁️' : '📧'}
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {mode === 'compose' ? 'New Message' : 
+                 mode === 'reply' ? 'Reply' : 
+                 mode === 'forward' ? 'Forward' : 
+                 mode === 'review' ? 'Email Preview' : 'Email'}
+              </h2>
+              {mode === 'review' && (
+                <p className="text-sm text-gray-500">Review email content before sending</p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1">
+            {mode !== 'review' && (
+              <button
+                onClick={() => setIsPreview(!isPreview)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                title={isPreview ? 'Edit' : 'Preview'}
+              >
+                {isPreview ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            )}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             >
-              <X size={20} />
+              <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Email Form */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
           {!isPreview ? (
             <>
-              {/* Recipients */}
-              <div className="p-4 border-b space-y-3">
-                <div className="flex items-center gap-2">
-                  <label className="w-16 text-sm font-medium">From:</label>
-                  <input
-                    type="email"
-                    value={emailData.from || ''}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, from: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="sender@interviewsfirst.com"
-                    readOnly={readOnly}
-                  />
+              {/* Recipients - Gmail Style */}
+              <div className="bg-white border-b border-gray-200">
+                {/* From Field */}
+                <div className="flex items-center px-6 py-3 border-b border-gray-100">
+                  <div className="w-16 text-sm font-medium text-gray-600">From</div>
+                  <div className="flex-1">
+                    <input
+                      type="email"
+                      value={emailData.from || ''}
+                      onChange={(e) => setEmailData(prev => ({ ...prev, from: e.target.value }))}
+                      className="w-full px-0 py-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400"
+                      placeholder="sender@interviewsfirst.com"
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <label className="w-16 text-sm font-medium">To:</label>
-                  <input
-                    type="email"
-                    value={emailData.to}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, to: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="recipient@company.com"
-                    readOnly={readOnly}
-                  />
+                {/* To Field */}
+                <div className="flex items-center px-6 py-3 border-b border-gray-100">
+                  <div className="w-16 text-sm font-medium text-gray-600">To</div>
+                  <div className="flex-1">
+                    <input
+                      type="email"
+                      value={emailData.to}
+                      onChange={(e) => setEmailData(prev => ({ ...prev, to: e.target.value }))}
+                      className="w-full px-0 py-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400"
+                      placeholder="recipient@company.com"
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <label className="w-16 text-sm font-medium">CC:</label>
-                  <input
-                    type="email"
-                    value={emailData.cc || ''}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, cc: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="cc@company.com"
-                    readOnly={readOnly}
-                  />
-                </div>
+                {/* CC Field - Collapsible */}
+                {(emailData.cc || !readOnly) && (
+                  <div className="flex items-center px-6 py-3 border-b border-gray-100">
+                    <div className="w-16 text-sm font-medium text-gray-600">Cc</div>
+                    <div className="flex-1">
+                      <input
+                        type="email"
+                        value={emailData.cc || ''}
+                        onChange={(e) => setEmailData(prev => ({ ...prev, cc: e.target.value }))}
+                        className="w-full px-0 py-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400"
+                        placeholder="cc@company.com"
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2">
-                  <label className="w-16 text-sm font-medium">BCC:</label>
-                  <input
-                    type="email"
-                    value={emailData.bcc || ''}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, bcc: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="bcc@company.com"
-                    readOnly={readOnly}
-                  />
-                </div>
+                {/* BCC Field - Collapsible */}
+                {(emailData.bcc || !readOnly) && (
+                  <div className="flex items-center px-6 py-3 border-b border-gray-100">
+                    <div className="w-16 text-sm font-medium text-gray-600">Bcc</div>
+                    <div className="flex-1">
+                      <input
+                        type="email"
+                        value={emailData.bcc || ''}
+                        onChange={(e) => setEmailData(prev => ({ ...prev, bcc: e.target.value }))}
+                        className="w-full px-0 py-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400"
+                        placeholder="bcc@company.com"
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-2">
-                  <label className="w-16 text-sm font-medium">Subject:</label>
-                  <input
-                    type="text"
-                    value={emailData.subject}
-                    onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    placeholder="Email subject"
-                    readOnly={readOnly}
-                  />
+                {/* Subject Field */}
+                <div className="flex items-center px-6 py-3">
+                  <div className="w-16 text-sm font-medium text-gray-600">Subject</div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={emailData.subject}
+                      onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                      className="w-full px-0 py-1 text-sm border-0 outline-none bg-transparent placeholder-gray-400 font-medium"
+                      placeholder="Email subject"
+                      readOnly={readOnly}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Attachments */}
               {emailData.attachments.length > 0 && (
-                <div className="p-4 border-b">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Paperclip size={16} />
-                    <span className="text-sm font-medium">Attachments</span>
+                <div className="bg-white border-b border-gray-200 px-6 py-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Paperclip size={16} className="text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Attachments</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
                     {emailData.attachments.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">{attachment.name}</span>
-                          <span className="text-xs text-gray-500">
-                            ({formatFileSize(attachment.size)})
+                      <div key={attachment.id} className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                        <Paperclip size={14} className="text-blue-600" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-blue-900">{attachment.name}</span>
+                          <span className="text-xs text-blue-600">
+                            {formatFileSize(attachment.size)}
                           </span>
                         </div>
                         {!readOnly && (
                           <button
                             onClick={() => removeAttachment(attachment.id)}
-                            className="text-red-500 hover:text-red-700"
+                            className="text-blue-400 hover:text-blue-600 transition-colors"
                           >
-                            <X size={16} />
+                            <X size={14} />
                           </button>
                         )}
                       </div>
@@ -259,51 +293,96 @@ export default function EmailModal({
                 </div>
               )}
 
-              {/* Body */}
-              <div className="flex-1 p-4">
-                <textarea
-                  value={emailData.body}
-                  onChange={(e) => setEmailData(prev => ({ ...prev, body: e.target.value }))}
-                  className="w-full h-full resize-none border-0 outline-none"
-                  placeholder="Compose your email..."
-                  readOnly={readOnly}
-                />
+              {/* Body - Gmail Style */}
+              <div className="flex-1 bg-white">
+                <div className="px-6 py-4">
+                  <textarea
+                    value={emailData.body}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, body: e.target.value }))}
+                    className="w-full h-full min-h-[300px] resize-none border-0 outline-none text-sm leading-relaxed placeholder-gray-400"
+                    placeholder="Compose your email..."
+                    readOnly={readOnly}
+                  />
+                </div>
               </div>
             </>
           ) : (
-            /* Preview Mode */
-            <div className="flex-1 p-4 overflow-auto">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="space-y-2 mb-4">
-                  <div><strong>From:</strong> {emailData.from}</div>
-                  <div><strong>To:</strong> {emailData.to}</div>
-                  {emailData.cc && <div><strong>CC:</strong> {emailData.cc}</div>}
-                  {emailData.bcc && <div><strong>BCC:</strong> {emailData.bcc}</div>}
-                  <div><strong>Subject:</strong> {emailData.subject}</div>
-                </div>
-                
-                {emailData.attachments.length > 0 && (
-                  <div className="mb-4">
-                    <strong>Attachments:</strong>
-                    <ul className="list-disc list-inside ml-4">
-                      {emailData.attachments.map((att) => (
-                        <li key={att.id}>{att.name} ({formatFileSize(att.size)})</li>
-                      ))}
-                    </ul>
+            /* Preview Mode - Gmail Style */
+            <div className="flex-1 bg-white overflow-auto">
+              {/* Email Header */}
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white font-semibold text-xs">
+                      {emailData.from?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">{emailData.from}</span>
+                        <span className="text-sm text-gray-500">to me</span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {new Date().toLocaleString()}
+                      </div>
+                    </div>
                   </div>
-                )}
+                  
+                  <div className="text-lg font-medium text-gray-900">
+                    {emailData.subject}
+                  </div>
+                  
+                  {emailData.cc && (
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Cc:</span> {emailData.cc}
+                    </div>
+                  )}
+                  
+                  {emailData.bcc && (
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium">Bcc:</span> {emailData.bcc}
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Attachments */}
+              {emailData.attachments.length > 0 && (
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Paperclip size={16} className="text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Attachments</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {emailData.attachments.map((attachment) => (
+                      <div key={attachment.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        <Paperclip size={14} className="text-gray-600" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{attachment.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {formatFileSize(attachment.size)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                <div className="whitespace-pre-wrap border-t pt-4">
-                  {emailData.body}
+              {/* Email Body */}
+              <div className="px-6 py-6">
+                <div className="prose prose-sm max-w-none">
+                  <div className="whitespace-pre-wrap text-gray-900 leading-relaxed">
+                    {processEmailContent(emailData.body).textContent}
+                  </div>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t bg-gray-50">
-          <div className="flex items-center gap-2">
+        {/* Footer - Gmail Style Action Bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+          <div className="flex items-center gap-1">
             {!readOnly && (
               <>
                 <input
@@ -315,64 +394,83 @@ export default function EmailModal({
                 />
                 <label
                   htmlFor="attachment"
-                  className="flex items-center gap-2 px-3 py-2 text-sm border rounded hover:bg-gray-100 cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
                 >
                   <Paperclip size={16} />
                   Attach
                 </label>
               </>
             )}
+            
+            {/* More options for review mode */}
+            {mode === 'review' && (
+              <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <MoreVertical size={16} />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm border rounded hover:bg-gray-100"
-            >
-              {mode === 'review' ? 'Close' : 'Cancel'}
-            </button>
-            
-            {/* Reply and Forward buttons for review mode */}
+            {/* Review mode actions */}
             {mode === 'review' && onReply && onForward && (
               <>
                 <button
                   onClick={() => onReply(emailData)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border rounded hover:bg-gray-100"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
+                  <Reply size={16} />
                   Reply
                 </button>
                 <button
                   onClick={() => onForward(emailData)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm border rounded hover:bg-gray-100"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
+                  <Forward size={16} />
                   Forward
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Archive size={16} />
+                  Archive
+                </button>
+                <button className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                  <Trash2 size={16} />
+                  Delete
                 </button>
               </>
             )}
             
-            {/* Save Draft button for compose mode */}
-            {mode === 'compose' && onSaveDraft && !readOnly && (
-              <button
-                onClick={handleSaveDraft}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 text-sm border rounded hover:bg-gray-100 disabled:opacity-50"
-              >
-                <Save size={16} />
-                {isSaving ? 'Saving...' : 'Save Draft'}
-              </button>
+            {/* Compose mode actions */}
+            {mode === 'compose' && !readOnly && (
+              <>
+                {onSaveDraft && (
+                  <button
+                    onClick={handleSaveDraft}
+                    disabled={isSaving}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    <Save size={16} />
+                    {isSaving ? 'Saving...' : 'Save Draft'}
+                  </button>
+                )}
+                
+                <button
+                  onClick={handleSend}
+                  disabled={isSending || !emailData.to || !emailData.subject}
+                  className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
+                >
+                  <Send size={16} />
+                  {isSending ? 'Sending...' : 'Send'}
+                </button>
+              </>
             )}
             
-            {/* Send button only for compose mode */}
-            {mode === 'compose' && !readOnly && (
-              <button
-                onClick={handleSend}
-                disabled={isSending || !emailData.to || !emailData.subject}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Send size={16} />
-                {isSending ? 'Sending...' : 'Send'}
-              </button>
-            )}
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {mode === 'review' ? 'Close' : 'Cancel'}
+            </button>
           </div>
         </div>
       </div>
