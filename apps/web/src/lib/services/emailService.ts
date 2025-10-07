@@ -39,6 +39,7 @@ export interface EmailQueueItem {
   html_content?: string;
   text_content?: string;
   variables?: Record<string, any>;
+  attachments?: any[] | string; // Can be array or JSON string from DB
   status: 'pending' | 'sending' | 'sent' | 'failed' | 'bounced' | 'delivered';
   priority: number;
   scheduled_at: Date;
@@ -226,11 +227,27 @@ export class EmailService {
   ): Promise<string> {
     try {
       const template = await this.getTemplate(templateName);
-      if (!template) {
-        throw new Error(`Template ${templateName} not found`);
-      }
+      // Prepare subject/html/text using template when available; otherwise allow fallback
+      let subject: string;
+      let html: string;
+      let text: string;
 
-      const rendered = this.renderTemplate(template, variables);
+      if (!template) {
+        // Fallback for AI Apply flow when the DB template isn't present.
+        if (templateName === 'ai_application') {
+          subject = variables.emailSubject || `Application for ${variables.jobTitle || ''} at ${variables.companyName || ''}`.trim();
+          const body = variables.emailBody || '';
+          html = typeof body === 'string' ? body.replace(/\n/g, '<br>') : String(body);
+          text = typeof body === 'string' ? body : String(body);
+        } else {
+          throw new Error(`Template ${templateName} not found`);
+        }
+      } else {
+        const rendered = this.renderTemplate(template, variables);
+        subject = rendered.subject;
+        html = rendered.html;
+        text = rendered.text;
+      }
 
       const result = await db.query(`
         INSERT INTO email_queue (
@@ -243,10 +260,10 @@ export class EmailService {
         toName,
         process.env.VERIFIED_SENDER_EMAIL || 'interviewsfirst@gmail.com',
         'InterviewsFirst',
-        template.id,
-        rendered.subject,
-        rendered.html,
-        rendered.text,
+        template ? template.id : null,
+        subject,
+        html,
+        text,
         JSON.stringify(variables),
         priority,
         scheduledAt || new Date()
@@ -552,6 +569,44 @@ export class EmailService {
         ['sending', email.id]
       );
 
+      // Parse and fetch attachments if they exist
+      let attachments = [];
+      if (email.attachments) {
+        try {
+          const parsedAttachments = typeof email.attachments === 'string'
+            ? JSON.parse(email.attachments)
+            : email.attachments;
+
+          if (Array.isArray(parsedAttachments)) {
+            for (const att of parsedAttachments) {
+              if (att.url) {
+                try {
+                  // Fetch the attachment content from the URL
+                  const response = await fetch(att.url);
+                  if (response.ok) {
+                    const buffer = await response.arrayBuffer();
+                    const base64Content = Buffer.from(buffer).toString('base64');
+
+                    attachments.push({
+                      content: base64Content,
+                      filename: att.name,
+                      type: att.type || 'application/pdf',
+                      disposition: 'attachment'
+                    });
+                  } else {
+                    console.error(`Failed to fetch attachment from ${att.url}: ${response.status}`);
+                  }
+                } catch (fetchError) {
+                  console.error(`Error fetching attachment ${att.name}:`, fetchError);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing attachments:', error);
+        }
+      }
+
       // Send email via SendGrid
       const msg = {
         to: email.to_email,
@@ -561,7 +616,8 @@ export class EmailService {
         },
         subject: email.subject,
         text: email.text_content || '',
-        html: email.html_content || email.text_content || ''
+        html: email.html_content || email.text_content || '',
+        attachments: attachments
       };
 
       await sgMail.send(msg);
