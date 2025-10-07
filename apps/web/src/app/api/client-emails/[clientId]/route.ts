@@ -1,7 +1,6 @@
-import { verifyToken } from "@/lib/utils/jwt";
-// Client Emails API Endpoint
 import { NextRequest, NextResponse } from 'next/server';
-import { clientEmailService } from '@/lib/services/ClientEmailService';
+import { verifyToken } from '@/lib/utils/jwt';
+import { clientDomainService } from '@/lib/services/ClientDomainService';
 
 export async function GET(
     request: NextRequest,
@@ -9,7 +8,6 @@ export async function GET(
 ) {
     try {
         // Authenticate user
-        // Authenticate user
         const authHeader = request.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
@@ -19,52 +17,8 @@ export async function GET(
         }
         const token = authHeader.substring(7);
         const decoded = verifyToken(token);
-        const { clientId } = params;
 
-        // Check permissions
-        if (decoded.role === 'CLIENT' && decoded.userId !== clientId) {
-            return NextResponse.json(
-                { success: false, error: 'Access denied' },
-                { status: 403 }
-            );
-        }
-
-        // Get client emails
-        const emails = await clientEmailService.getClientEmails(clientId);
-
-        return NextResponse.json({
-            success: true,
-            data: { emails }
-        });
-
-    } catch (error) {
-        console.error('Error in client emails API:', error);
-        return NextResponse.json(
-            { success: false, error: 'Internal server error' },
-            { status: 500 }
-        );
-    }
-}
-
-export async function POST(
-    request: NextRequest,
-    { params }: { params: { clientId: string } }
-) {
-    try {
-        // Authenticate user
-        // Authenticate user
-        const authHeader = request.headers.get("authorization");
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { success: false, error: "No valid authorization token" },
-                { status: 401 }
-            );
-        }
-        const token = authHeader.substring(7);
-        const decoded = verifyToken(token);
-        const { clientId } = params;
-
-        // Only workers and admins can create client emails
+        // Only workers and admins can access client emails
         if (decoded.role !== 'WORKER' && decoded.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, error: 'Insufficient permissions' },
@@ -72,34 +26,22 @@ export async function POST(
             );
         }
 
-        // Parse request body
-        const body = await request.json();
-        const { from_name, reply_to_email } = body;
+        const { clientId } = params;
 
-        // Validate required fields
-        if (!from_name) {
-            return NextResponse.json(
-                { success: false, error: 'From name is required' },
-                { status: 400 }
-            );
-        }
-
-        // Create client email
-        const email = await clientEmailService.createClientEmail({
-            client_id: clientId,
-            from_name,
-            reply_to_email
-        });
+        // Get client's sender email
+        const senderEmail = await clientDomainService.getSenderEmail(clientId);
 
         return NextResponse.json({
             success: true,
-            data: { email }
+            data: {
+                from_email: senderEmail
+            }
         });
 
     } catch (error) {
-        console.error('Error creating client email:', error);
+        console.error('Error getting client sender email:', error);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: 'Failed to get client sender email' },
             { status: 500 }
         );
     }

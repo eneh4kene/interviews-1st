@@ -18,7 +18,9 @@ import {
   Check,
   X,
   Loader2,
-  Mail
+  Mail,
+  ExternalLink,
+  Paperclip
 } from 'lucide-react';
 import { AiApplicationStatus } from '@/lib/services/AiApplyService';
 import { apiService } from '@/lib/api';
@@ -49,7 +51,6 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
     search: ''
   });
   const [selectedApplication, setSelectedApplication] = useState<AiApplicationStatus | null>(null);
-  const [showReviewModal, setShowReviewModal] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailModalMode, setEmailModalMode] = useState<'compose' | 'reply' | 'forward' | 'review'>('compose');
   const [selectedEmailData, setSelectedEmailData] = useState<any>(null);
@@ -168,23 +169,62 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
     }
   };
 
-  const handleReview = (application: AiApplicationStatus) => {
-    setSelectedApplication(application);
-    setShowReviewModal(true);
+  const handleReview = async (application: AiApplicationStatus) => {
+    await handleComposeEmail(application, 'compose');
   };
 
-  const handleComposeEmail = (application: AiApplicationStatus) => {
+  const handlePreview = async (application: AiApplicationStatus) => {
+    await handleComposeEmail(application, 'review');
+  };
+
+  const handleComposeEmail = async (application: AiApplicationStatus, mode: 'compose' | 'review' = 'compose') => {
+    console.log('Application data:', application);
+    console.log('Target email:', application.target_email);
+    console.log('AI content:', application.ai_generated_content);
+    
+    // Set the selected application for use in handleSendEmail
+    setSelectedApplication(application);
+    
+    const aiContent: any = application.ai_generated_content || {};
+    const resumeUrl = aiContent?.resume_content?.blob_url || aiContent?.metadata?.resume_blob_url || '';
+    const attachments = resumeUrl
+      ? [
+          {
+            id: 'resume',
+            name: `Resume-${application.job_title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
+            url: resumeUrl,
+            size: 0,
+            type: 'application/pdf'
+          }
+        ]
+      : [];
+
+    // Get client's custom email address via API
+    let fromEmail = 'worker@interviewsfirst.com';
+    try {
+      const response = await apiService.get(`/client-emails/${clientId}`);
+      if (response.success && response.data && typeof response.data === 'object' && response.data !== null && 'from_email' in response.data) {
+        fromEmail = (response.data as any).from_email;
+      }
+    } catch (error) {
+      console.error('Error getting client sender email:', error);
+    }
+
+    // Use n8n-generated content if available, otherwise fallback
+    // Try target_email first, then fallback to discovery.primary_email from n8n payload
+    const discoveredEmail = application.target_email || aiContent?.discovery?.primary_email || '';
+    
     const emailData = {
-      to: application.target_email || '',
+      to: discoveredEmail,
       cc: '',
       bcc: '',
-      subject: `Application for ${application.job_title} at ${application.company_name}`,
-      body: `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${application.job_title} position at ${application.company_name}...`,
-      attachments: [],
-      from: 'worker@interviewsfirst.com'
+      subject: aiContent?.email_subject || `Application for ${application.job_title} at ${application.company_name}`,
+      body: aiContent?.email_body || `Dear Hiring Manager,\n\nI am writing to express my strong interest in the ${application.job_title} position at ${application.company_name}...`,
+      attachments,
+      from: fromEmail
     };
     setSelectedEmailData(emailData);
-    setEmailModalMode('compose');
+    setEmailModalMode(mode);
     setIsEmailModalOpen(true);
   };
 
@@ -198,34 +238,41 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
         throw new Error('No authentication token found');
       }
 
-      // Send email via API
-      const response = await fetch('/api/emails/send-direct', {
+      // Get the current application ID
+      if (!selectedApplication) {
+        throw new Error('No application selected');
+      }
+
+      // Use the approve API which will send the email and update the status
+      const response = await fetch('/api/ai-apply/approve', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          to: emailData.to,
-          cc: emailData.cc,
-          bcc: emailData.bcc,
-          subject: emailData.subject,
-          body: emailData.body,
-          from: emailData.from,
-          attachments: emailData.attachments || [],
-          clientId: clientId
+          application_id: selectedApplication.id,
+          edits: {
+            target_email: emailData.to,
+            email_subject: emailData.subject,
+            email_body: emailData.body,
+            worker_notes: `Email sent via worker dashboard on ${new Date().toISOString()}`
+          }
         })
       });
 
       const result = await response.json();
       
       if (!result.success) {
-        throw new Error(result.error || 'Failed to send email');
+        throw new Error(result.error || 'Failed to approve and send email');
       }
 
       console.log('Email sent successfully:', result.data);
       alert('Email sent successfully!');
       setIsEmailModalOpen(false);
+      
+      // Refresh the applications list to show updated status
+      await fetchData();
       
     } catch (error) {
       console.error('Failed to send email:', error);
@@ -284,19 +331,11 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
             <Button
               size="sm"
               variant="outline"
-              onClick={() => handleComposeEmail(application)}
+              onClick={() => handlePreview(application)}
               className="flex items-center gap-1"
             >
-              <Mail className="h-3 w-3" />
-              Compose
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleApprove(application)}
-              className="flex items-center gap-1 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="h-3 w-3" />
-              Approve
+              <Eye className="h-3 w-3" />
+              Preview
             </Button>
             <Button
               size="sm"
@@ -493,6 +532,23 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
                       {application.email_confidence_score && (
                         <span>Confidence: {(application.email_confidence_score * 100).toFixed(0)}%</span>
                       )}
+                      {/* Resume link if available */}
+                      {(() => {
+                        const aiContent: any = application.ai_generated_content || {};
+                        const resumeUrl = aiContent?.resume_content?.blob_url || aiContent?.metadata?.resume_blob_url;
+                        if (!resumeUrl) return null;
+                        return (
+                          <a
+                            href={resumeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View resume
+                          </a>
+                        );
+                      })()}
                     </div>
                     {application.error_message && (
                       <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
@@ -510,48 +566,7 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
         </div>
       )}
 
-      {/* Review Modal Placeholder */}
-      {showReviewModal && selectedApplication && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Review AI Application</h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowReviewModal(false)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium">{selectedApplication.job_title}</h4>
-                <p className="text-sm text-gray-600">{selectedApplication.company_name}</p>
-              </div>
-              <div className="text-sm text-gray-500">
-                Review modal content will be implemented here
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowReviewModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => {
-                    handleApprove(selectedApplication);
-                    setShowReviewModal(false);
-                  }}
-                >
-                  Approve & Send
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Email Modal */}
       <EmailModal

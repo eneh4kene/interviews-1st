@@ -125,6 +125,13 @@ export default function EmailModal({
     }));
   };
 
+  const downloadAttachment = (attachment: Attachment) => {
+    if (attachment.url) {
+      // For Vercel Blob URLs or other external URLs, open in new tab
+      window.open(attachment.url, '_blank');
+    }
+  };
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -137,7 +144,7 @@ export default function EmailModal({
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden" style={{ maxHeight: '90vh' }}>
         {/* Header - Gmail Style */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
           <div className="flex items-center gap-3">
@@ -177,7 +184,7 @@ export default function EmailModal({
         </div>
 
         {/* Email Form */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50">
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50" style={{ maxHeight: 'calc(90vh - 120px)' }}>
           {!isPreview ? (
             <>
               {/* Recipients - Gmail Style */}
@@ -271,7 +278,12 @@ export default function EmailModal({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {emailData.attachments.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                      <div 
+                        key={attachment.id} 
+                        className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                        onClick={() => downloadAttachment(attachment)}
+                        title="Click to download"
+                      >
                         <Paperclip size={14} className="text-blue-600" />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium text-blue-900">{attachment.name}</span>
@@ -281,8 +293,11 @@ export default function EmailModal({
                         </div>
                         {!readOnly && (
                           <button
-                            onClick={() => removeAttachment(attachment.id)}
-                            className="text-blue-400 hover:text-blue-600 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAttachment(attachment.id);
+                            }}
+                            className="text-blue-400 hover:text-blue-600 transition-colors ml-auto"
                           >
                             <X size={14} />
                           </button>
@@ -294,14 +309,20 @@ export default function EmailModal({
               )}
 
               {/* Body - Gmail Style */}
-              <div className="flex-1 bg-white">
+              <div className="flex-1 bg-white overflow-auto">
                 <div className="px-6 py-4">
                   <textarea
                     value={emailData.body}
                     onChange={(e) => setEmailData(prev => ({ ...prev, body: e.target.value }))}
-                    className="w-full h-full min-h-[300px] resize-none border-0 outline-none text-sm leading-relaxed placeholder-gray-400"
+                    className="w-full min-h-[300px] resize-none border-0 outline-none text-sm leading-relaxed placeholder-gray-400"
                     placeholder="Compose your email..."
                     readOnly={readOnly}
+                    style={{ height: 'auto', minHeight: '300px' }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.max(300, target.scrollHeight) + 'px';
+                    }}
                   />
                 </div>
               </div>
@@ -354,7 +375,12 @@ export default function EmailModal({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {emailData.attachments.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                      <div 
+                        key={attachment.id} 
+                        className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                        onClick={() => downloadAttachment(attachment)}
+                        title="Click to download"
+                      >
                         <Paperclip size={14} className="text-gray-600" />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium text-gray-900">{attachment.name}</span>
