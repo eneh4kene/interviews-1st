@@ -98,15 +98,28 @@ export class SimpleEmailService {
             // Process attachments if provided
             if (params.attachments && params.attachments.length > 0) {
                 console.log(`📎 Processing ${params.attachments.length} attachments`);
+                console.log(`📎 Attachment details:`, params.attachments.map(att => ({
+                    name: att.name,
+                    url: att.url,
+                    size: att.size,
+                    type: att.type
+                })));
+
                 const processedAttachments = [];
 
                 for (const attachment of params.attachments) {
                     try {
+                        console.log(`📎 Fetching attachment: ${attachment.name} from ${attachment.url}`);
+
                         // Fetch the attachment content from the URL
                         const response = await fetch(attachment.url);
+                        console.log(`📎 Fetch response status: ${response.status}`);
+
                         if (response.ok) {
                             const buffer = await response.arrayBuffer();
                             const base64Content = Buffer.from(buffer).toString('base64');
+
+                            console.log(`📎 Attachment ${attachment.name}: ${buffer.byteLength} bytes, base64 length: ${base64Content.length}`);
 
                             processedAttachments.push({
                                 content: base64Content,
@@ -114,9 +127,9 @@ export class SimpleEmailService {
                                 type: attachment.type || 'application/octet-stream',
                                 disposition: 'attachment'
                             });
-                            console.log(`✅ Processed attachment: ${attachment.name}`);
+                            console.log(`✅ Successfully processed attachment: ${attachment.name}`);
                         } else {
-                            console.error(`❌ Failed to fetch attachment ${attachment.name}: ${response.status}`);
+                            console.error(`❌ Failed to fetch attachment ${attachment.name}: ${response.status} ${response.statusText}`);
                         }
                     } catch (error) {
                         console.error(`❌ Error processing attachment ${attachment.name}:`, error);
@@ -126,6 +139,9 @@ export class SimpleEmailService {
                 if (processedAttachments.length > 0) {
                     msg.attachments = processedAttachments;
                     console.log(`📎 Added ${processedAttachments.length} attachments to email`);
+                    console.log(`📎 SendGrid message with attachments:`, JSON.stringify(msg, null, 2));
+                } else {
+                    console.warn(`⚠️ No attachments were successfully processed`);
                 }
             }
 

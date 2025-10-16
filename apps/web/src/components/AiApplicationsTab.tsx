@@ -186,14 +186,42 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
     setSelectedApplication(application);
     
     const aiContent: any = application.ai_generated_content || {};
-    const resumeUrl = aiContent?.resume_content?.blob_url || aiContent?.metadata?.resume_blob_url || '';
+    const resumeUrl = aiContent?.metadata?.resume_blob_url || aiContent?.resume_content?.blob_url || '';
+    
+    // Get the actual file size from the URL if possible
+    let resumeSize = 0;
+    if (resumeUrl) {
+      try {
+        console.log(`📎 Fetching resume file size from: ${resumeUrl}`);
+        // Use server-side API to get file size (avoids CORS issues)
+        const sizeResponse = await fetch(`/api/emails/get-attachment-size?url=${encodeURIComponent(resumeUrl)}`);
+        if (sizeResponse.ok) {
+          const sizeData = await sizeResponse.json();
+          if (sizeData.success) {
+            resumeSize = sizeData.data.size;
+            console.log(`📎 Resume file size: ${resumeSize} bytes`);
+          } else {
+            console.warn('Failed to get file size from API:', sizeData.error);
+            resumeSize = 50000; // 50KB default
+          }
+        } else {
+          console.warn(`Failed to fetch resume file size: ${sizeResponse.status}`);
+          resumeSize = 50000; // 50KB default
+        }
+      } catch (error) {
+        console.warn('Could not get resume file size:', error);
+        // Use a reasonable default for PDF files
+        resumeSize = 50000; // 50KB default
+      }
+    }
+    
     const attachments = resumeUrl
       ? [
           {
             id: 'resume',
             name: `Resume-${application.job_title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`,
             url: resumeUrl,
-            size: 0,
+            size: resumeSize,
             type: 'application/pdf'
           }
         ]
@@ -247,7 +275,8 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
           bcc: emailData.bcc || '',
           subject: emailData.subject,
           content: emailData.body,
-          htmlContent: emailData.body.replace(/\n/g, '<br>')
+          htmlContent: emailData.body.replace(/\n/g, '<br>'),
+          attachments: emailData.attachments || []
         })
       });
 
