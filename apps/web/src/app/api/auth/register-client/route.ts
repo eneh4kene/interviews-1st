@@ -176,14 +176,23 @@ export async function POST(request: NextRequest) {
 
         // Send welcome email to client
         try {
-            // Import and use the email service directly
-            const { emailService } = await import('@/lib/services/emailService');
-            const success = await emailService.sendWelcomeEmail(clientId);
+            // Import and use the new simple email service
+            const { SimpleEmailService } = await import('@/lib/services/SimpleEmailService');
+            const clientEmail = await SimpleEmailService.getClientEmail(clientId, name);
 
-            if (success) {
-                console.log('✅ Welcome email queued for client:', clientId);
+            const result = await SimpleEmailService.sendEmail({
+                to: email,
+                from: clientEmail,
+                fromName: name,
+                subject: 'Welcome to Interview Me!',
+                text: `Welcome ${name}! Your account has been created successfully.`,
+                html: `<h1>Welcome ${name}!</h1><p>Your account has been created successfully.</p>`
+            });
+
+            if (result.success) {
+                console.log('✅ Welcome email sent to client:', clientId);
             } else {
-                console.error('❌ Failed to send welcome email');
+                console.error('❌ Failed to send welcome email:', result.error);
             }
         } catch (emailError) {
             console.error('❌ Failed to send welcome email:', emailError);

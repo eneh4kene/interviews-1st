@@ -190,13 +190,19 @@ export default function EmailManagement() {
         }
       };
 
-      // Send the email using the template
-      const response = await fetch('/api/emails/send-template', {
+      // Send the email using the simple send endpoint
+      const response = await fetch('/api/emails/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(emailData)
+        body: JSON.stringify({
+          clientId: emailData.clientId,
+          to: emailData.to,
+          subject: emailData.subject,
+          content: emailData.htmlContent || emailData.textContent,
+          htmlContent: emailData.htmlContent
+        })
       });
 
       const result = await response.json();

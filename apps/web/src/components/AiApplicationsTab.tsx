@@ -199,16 +199,9 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
         ]
       : [];
 
-    // Get client's custom email address via API
-    let fromEmail = 'worker@interviewsfirst.com';
-    try {
-      const response = await apiService.get(`/client-emails/${clientId}`);
-      if (response.success && response.data && typeof response.data === 'object' && response.data !== null && 'from_email' in response.data) {
-        fromEmail = (response.data as any).from_email;
-      }
-    } catch (error) {
-      console.error('Error getting client sender email:', error);
-    }
+    // Get client's custom email address - this will be handled by the email service
+    // The email service will automatically generate client-specific emails
+    let fromEmail = ''; // This will be set by the email service based on client
 
     // Use n8n-generated content if available, otherwise fallback
     // Try target_email first, then fallback to discovery.primary_email from n8n payload
@@ -230,52 +223,90 @@ export default function AiApplicationsTab({ clientId, onApplicationUpdate }: AiA
 
   const handleSendEmail = async (emailData: any) => {
     try {
-      console.log('Sending email:', emailData);
+      console.log('🚀 SIMPLE EMAIL SEND - AI Applications Tab:', emailData);
+      console.log('🔍 ClientId being used:', clientId);
+      console.log('🔍 ClientId type:', typeof clientId);
+      console.log('🔍 ClientId length:', clientId?.length);
       
-      // Get auth token
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
       // Get the current application ID
       if (!selectedApplication) {
         throw new Error('No application selected');
       }
 
-      // Use the approve API which will send the email and update the status
-      const response = await fetch('/api/ai-apply/approve', {
+      // Send email via SIMPLE API - no authentication needed for now
+      console.log('🚀 Using NEW email system - cache busted!');
+      const emailResponse = await fetch('/api/emails/send', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          application_id: selectedApplication.id,
-          edits: {
-            target_email: emailData.to,
-            email_subject: emailData.subject,
-            email_body: emailData.body,
-            worker_notes: `Email sent via worker dashboard on ${new Date().toISOString()}`
-          }
+          clientId: clientId,
+          to: emailData.to,
+          cc: emailData.cc || '',
+          bcc: emailData.bcc || '',
+          subject: emailData.subject,
+          content: emailData.body,
+          htmlContent: emailData.body.replace(/\n/g, '<br>')
         })
       });
 
-      const result = await response.json();
+      console.log('🔍 Email response status:', emailResponse.status);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to approve and send email');
+      const responseText = await emailResponse.text();
+      console.log('🔍 Raw email response:', responseText);
+      
+      let emailResult;
+      try {
+        emailResult = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse email JSON response:', parseError);
+        console.error('❌ Raw response was:', responseText);
+        throw new Error(`Invalid response from email server: ${responseText.substring(0, 100)}...`);
+      }
+      
+      if (!emailResult.success) {
+        throw new Error(emailResult.error || 'Failed to send email');
       }
 
-      console.log('Email sent successfully:', result.data);
-      alert('Email sent successfully!');
+      console.log('✅ Email sent successfully:', emailResult.data);
+
+      // Then approve the application to update its status
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        const approveResponse = await fetch('/api/ai-apply/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            application_id: selectedApplication.id,
+            edits: {
+              target_email: emailData.to,
+              email_subject: emailData.subject,
+              email_body: emailData.body,
+              worker_notes: `Email sent via worker dashboard on ${new Date().toISOString()}`
+            }
+          })
+        });
+
+        const approveResult = await approveResponse.json();
+        
+        if (!approveResult.success) {
+          console.warn('Email sent but application approval failed:', approveResult.error);
+          // Don't throw here since the email was sent successfully
+        }
+      }
+
+      alert(`Email sent successfully! Message ID: ${emailResult.data.messageId}`);
       setIsEmailModalOpen(false);
       
       // Refresh the applications list to show updated status
       await fetchData();
       
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ Failed to send email:', error);
       alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };

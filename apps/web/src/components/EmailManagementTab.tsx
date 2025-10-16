@@ -54,33 +54,40 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
     const fetchEmails = async () => {
       try {
         setIsLoading(true);
+        console.log('📧 Fetching emails from new inbox API...');
         
-        // Get auth token
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          console.error('No authentication token found');
-          return;
-        }
-
-        // Fetch emails from API (both sent and received)
-        const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
+        // Fetch emails from the new inbox API
+        console.log(`🔍 Fetching emails for clientId: ${clientId}`);
+        const response = await fetch(`/api/emails/inbox?clientId=${clientId}`);
+        
+        console.log('🔍 Response status:', response.status);
+        console.log('🔍 Response ok:', response.ok);
+        
         if (response.ok) {
           const result = await response.json();
+          console.log('🔍 API result:', result);
+          
           if (result.success && result.data) {
-            // The API already returns emails in the correct format
+            console.log(`📬 Loaded ${result.data.length} emails`);
+            console.log('📧 Sample email:', result.data[0]);
             setEmails(result.data);
             setFilteredEmails(result.data);
+          } else {
+            console.error('❌ API returned error:', result.error);
+            setEmails([]);
+            setFilteredEmails([]);
           }
         } else {
-          console.error('Failed to fetch emails:', response.statusText);
+          console.error('❌ HTTP error:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+          setEmails([]);
+          setFilteredEmails([]);
         }
       } catch (error) {
         console.error('Error fetching emails:', error);
+        setEmails([]);
+        setFilteredEmails([]);
       } finally {
         setIsLoading(false);
       }
@@ -111,7 +118,21 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
     setFilteredEmails(filtered);
   }, [emails, searchTerm, statusFilter]);
 
-  const handleComposeEmail = () => {
+  const handleComposeEmail = async () => {
+    // Get the correct client email address
+    let clientEmail = '';
+    try {
+      const response = await fetch(`/api/client-emails/${clientId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          clientEmail = result.data.from_email;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching client email:', error);
+    }
+
     setSelectedEmail({
       to: '',
       cc: '',
@@ -119,7 +140,7 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
       subject: '',
       body: '',
       attachments: [],
-      from: 'worker@interviewsfirst.com'
+      from: clientEmail || `${clientName.toLowerCase().replace(/\s+/g, '')}@interviewsfirst.com`
     });
     setModalMode('compose');
     setIsEmailModalOpen(true);
@@ -166,72 +187,75 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
 
   const handleSendEmail = async (emailData: any) => {
     try {
-      console.log('Sending email:', emailData);
+      console.log('🚀 SIMPLE EMAIL SEND - handleSendEmail called with data:', emailData);
+      console.log('🔍 ClientId being used:', clientId);
+      console.log('🔍 ClientId type:', typeof clientId);
+      console.log('🔍 ClientId length:', clientId?.length);
       
-      // Get auth token
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      // Send email via API
-      const response = await fetch('/api/emails/send-direct', {
+      // Send email via SIMPLE API - no authentication needed for now
+      console.log('🚀 Using NEW email system - cache busted!');
+      const response = await fetch('/api/emails/send', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          clientId: clientId,
           to: emailData.to,
-          cc: emailData.cc,
-          bcc: emailData.bcc,
+          cc: emailData.cc || '',
+          bcc: emailData.bcc || '',
           subject: emailData.subject,
-          body: emailData.body,
-          from: emailData.from,
-          attachments: emailData.attachments || [],
-          clientId: clientId
+          content: emailData.body,
+          htmlContent: emailData.body.replace(/\n/g, '<br>'),
+          attachments: emailData.attachments || []
         })
       });
 
-      const result = await response.json();
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', response.headers);
+      
+      const responseText = await response.text();
+      console.log('🔍 Raw response:', responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        console.error('❌ Raw response was:', responseText);
+        throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}...`);
+      }
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to send email');
       }
 
-      console.log('Email sent successfully:', result.data);
-      
-      // Refresh emails list to show the new email
-      const fetchEmails = async () => {
-        try {
-          const token = localStorage.getItem('accessToken');
-          if (!token) return;
-
-          const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.data) {
-              setEmails(result.data);
-              setFilteredEmails(result.data);
-            }
-          }
-        } catch (error) {
-          console.error('Error refreshing emails:', error);
-        }
-      };
-
-      await fetchEmails();
+      console.log('✅ Email sent successfully:', result.data);
       
       // Show success message
-      alert('Email sent successfully!');
+      alert(`Email sent successfully! Message ID: ${result.data.messageId}`);
+      
+      // Close modal
+      setIsEmailModalOpen(false);
+      
+      // Refresh emails to show the new sent email
+      console.log('📧 Refreshing emails after sending...');
+      try {
+        const refreshResponse = await fetch(`/api/emails/inbox?clientId=${clientId}`);
+        if (refreshResponse.ok) {
+          const refreshResult = await refreshResponse.json();
+          if (refreshResult.success && refreshResult.data) {
+            console.log(`📬 Refreshed ${refreshResult.data.length} emails after sending`);
+            setEmails(refreshResult.data);
+            setFilteredEmails(refreshResult.data);
+          }
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing emails after sending:', refreshError);
+      }
       
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ Failed to send email:', error);
       alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
@@ -265,23 +289,8 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
         // Check if it's a sent email (from email_queue) or received email (from email_inbox)
         const email = emails.find(e => e.id === emailId);
         if (email) {
-          if (email.status === 'sent' || email.status === 'failed' || email.status === 'draft') {
-            // Delete from email_queue
-            await fetch(`/api/emails/queue/${emailId}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          } else if (email.status === 'received') {
-            // Delete from email_inbox
-            await fetch(`/api/emails/inbox/${emailId}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          }
+          // Note: Email deletion functionality removed - emails are kept for audit trail
+          console.log(`Email deletion requested for ${emailId} but not implemented for audit trail`);
         }
       }
 
@@ -304,17 +313,8 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
       for (const emailId of emailIds) {
         const email = emails.find(e => e.id === emailId);
         if (email) {
-          if (email.status === 'received') {
-            // Update in email_inbox
-            await fetch(`/api/emails/inbox/${emailId}`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ is_read: true })
-            });
-          }
+          // Note: Email read status update functionality removed - using local state only
+          console.log(`Email read status update requested for ${emailId} but using local state only`);
           // Note: Sent emails are already marked as read by default
         }
       }
@@ -362,20 +362,15 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
           <button
             onClick={async () => {
               setIsLoading(true);
-              // Refresh emails using the same endpoint as initial load
-              const token = localStorage.getItem('accessToken');
-              if (!token) return;
-
+              console.log('📧 Refreshing emails from new inbox API...');
+              
               try {
-                const response = await fetch(`/api/emails/client-inbox?clientId=${clientId}`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                });
-
+                const response = await fetch(`/api/emails/inbox?clientId=${clientId}`);
+                
                 if (response.ok) {
                   const result = await response.json();
                   if (result.success && result.data) {
+                    console.log(`📬 Refreshed ${result.data.length} emails`);
                     setEmails(result.data);
                     setFilteredEmails(result.data);
                   }
@@ -391,6 +386,7 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
           >
             <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
           </button>
+          
           <button
             onClick={handleComposeEmail}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -559,6 +555,7 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
         initialData={selectedEmail || undefined}
         mode={modalMode}
         readOnly={modalMode === 'review'}
+        clientId={clientId}
       />
     </div>
   );

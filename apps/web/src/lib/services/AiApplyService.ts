@@ -1,7 +1,6 @@
 // AI Apply Service - Orchestrates AI-powered job applications
 import { db } from '../utils/database';
-import { clientEmailService, ClientEmailInfo } from './ClientEmailService';
-import { emailService } from './emailService';
+import { SimpleEmailService } from './SimpleEmailService';
 
 export interface AiApplicationData {
     client_id: string;
@@ -485,20 +484,17 @@ export class AiApplyService {
                 throw new Error('Application not found');
             }
 
-            // Get client email
-            const clientEmail = await clientEmailService.getClientEmail(application.client_id);
-            if (!clientEmail) {
-                throw new Error('Client email not found');
-            }
+            // Get client email using the new simple service
+            const clientEmail = await SimpleEmailService.getClientEmail(application.client_id, 'Client');
 
             // For now, generate simple content
             // In the future, this will integrate with n8n workflows
             const content = {
                 email_subject: `Application for ${application.job_title} at ${application.company_name}`,
-                email_body: this.generateEmailBody(application, clientEmail),
+                email_body: this.generateEmailBody(application, { from_email: clientEmail, from_name: 'Client' }),
                 resume_content: 'AI-generated resume content will be here',
-                from_email: clientEmail.from_email,
-                from_name: clientEmail.from_name
+                from_email: clientEmail,
+                from_name: 'Client'
             };
 
             return {
@@ -526,20 +522,18 @@ export class AiApplyService {
 
             const content = application.ai_generated_content;
 
-            // Send email using the email service
-            await emailService.queueEmail(
-                application.target_email || 'hr@' + application.company_name.toLowerCase().replace(/\s+/g, '') + '.com',
-                application.company_name,
-                'ai_application',
-                {
-                    clientName: content.from_name,
-                    companyName: application.company_name,
-                    jobTitle: application.job_title,
-                    emailSubject: content.email_subject,
-                    emailBody: content.email_body
-                },
-                5 // High priority
-            );
+            // Send email using the new simple email service
+            const toEmail = application.target_email || 'hr@' + application.company_name.toLowerCase().replace(/\s+/g, '') + '.com';
+            const fromEmail = await SimpleEmailService.getClientEmail(application.client_id, content.from_name);
+
+            await SimpleEmailService.sendEmail({
+                to: toEmail,
+                from: fromEmail,
+                fromName: content.from_name,
+                subject: content.email_subject,
+                text: content.email_body,
+                html: content.email_body.replace(/\n/g, '<br>')
+            });
 
             return { success: true };
         } catch (error) {
@@ -622,7 +616,7 @@ export class AiApplyService {
     /**
      * Generate email body
      */
-    private generateEmailBody(application: AiApplicationStatus, clientEmail: ClientEmailInfo): string {
+    private generateEmailBody(application: AiApplicationStatus, clientEmail: { from_email: string; from_name: string }): string {
         return `
 Dear Hiring Manager,
 

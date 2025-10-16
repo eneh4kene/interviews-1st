@@ -116,12 +116,27 @@ export class ClientDomainService {
         try {
             console.log(`Getting sender email for client: ${clientId}`);
 
-            // Get client info including name
+            // First, check if client has an existing email in client_emails table
+            const clientEmailResult = await db.query(`
+                SELECT from_email, from_name 
+                FROM client_emails 
+                WHERE client_id = $1 AND is_active = TRUE
+                ORDER BY created_at DESC
+                LIMIT 1
+            `, [clientId]);
+
+            if (clientEmailResult.rows.length > 0) {
+                const clientEmail = clientEmailResult.rows[0];
+                console.log(`Using existing client email: ${clientEmail.from_email} for client ${clientId}`);
+                return clientEmail.from_email;
+            }
+
+            // If no existing email, get client info and generate one
             const result = await db.query(`
-        SELECT id, name, custom_domain, sender_email, domain_verified
-        FROM clients
-        WHERE id = $1
-      `, [clientId]);
+                SELECT id, name, custom_domain, sender_email, domain_verified
+                FROM clients
+                WHERE id = $1
+            `, [clientId]);
 
             if (result.rows.length === 0) {
                 const fallbackEmail = process.env.VERIFIED_SENDER_EMAIL || 'noreply@interviewsfirst.com';
@@ -131,7 +146,7 @@ export class ClientDomainService {
 
             const client = result.rows[0];
 
-            // If client has a custom sender email, use it
+            // If client has a custom sender email in clients table, use it
             if (client.sender_email) {
                 console.log(`Using configured sender email: ${client.sender_email}`);
                 return client.sender_email;
@@ -141,12 +156,21 @@ export class ClientDomainService {
             const clientEmail = this.generateClientEmail(client.name);
             console.log(`Generated client email: ${clientEmail} for ${client.name}`);
 
-            // Update the client record with the generated email
+            // Store the generated email in client_emails table
             await db.query(`
-        UPDATE clients 
-        SET sender_email = $1, updated_at = NOW()
-        WHERE id = $2
-      `, [clientEmail, clientId]);
+                INSERT INTO client_emails (client_id, from_email, from_name, is_active, created_at)
+                VALUES ($1, $2, $3, TRUE, NOW())
+                ON CONFLICT (client_id, from_email) DO UPDATE SET
+                    is_active = TRUE,
+                    updated_at = NOW()
+            `, [clientId, clientEmail, client.name]);
+
+            // Also update the client record with the generated email
+            await db.query(`
+                UPDATE clients 
+                SET sender_email = $1, updated_at = NOW()
+                WHERE id = $2
+            `, [clientEmail, clientId]);
 
             return clientEmail;
         } catch (error) {
@@ -167,7 +191,7 @@ export class ClientDomainService {
         ORDER BY updated_at DESC
       `);
 
-            return result.rows.map(client => ({
+            return result.rows.map((client: any) => ({
                 id: client.id,
                 client_id: client.id, // Use id as client_id
                 custom_domain: client.custom_domain,

@@ -31,13 +31,13 @@ export function cleanGmailHtml(html: string): string {
 
     // Remove Gmail-specific wrapper divs and quotes
     let cleaned = html
-        .replace(/<div[^>]*class="gmail_quote[^"]*"[^>]*>.*?<\/div>/gs, '') // Remove Gmail quote containers
-        .replace(/<div[^>]*class="gmail_attr"[^>]*>.*?<\/div>/gs, '') // Remove Gmail attributes
-        .replace(/---------- Forwarded message ---------.*?<\/div>/gs, '') // Remove forwarded message headers
-        .replace(/From:.*?<br>/gs, '') // Remove From lines
-        .replace(/Date:.*?<br>/gs, '') // Remove Date lines
-        .replace(/Subject:.*?<br>/gs, '') // Remove Subject lines
-        .replace(/To:.*?<br>/gs, '') // Remove To lines
+        .replace(/<div[^>]*class="gmail_quote[^"]*"[^>]*>[\s\S]*?<\/div>/g, '') // Remove Gmail quote containers
+        .replace(/<div[^>]*class="gmail_attr"[^>]*>[\s\S]*?<\/div>/g, '') // Remove Gmail attributes
+        .replace(/---------- Forwarded message ---------[\s\S]*?<\/div>/g, '') // Remove forwarded message headers
+        .replace(/From:[\s\S]*?<br>/g, '') // Remove From lines
+        .replace(/Date:[\s\S]*?<br>/g, '') // Remove Date lines
+        .replace(/Subject:[\s\S]*?<br>/g, '') // Remove Subject lines
+        .replace(/To:[\s\S]*?<br>/g, '') // Remove To lines
         .replace(/<br><br>/g, '\n\n') // Convert double breaks to newlines
         .replace(/<br>/g, '\n') // Convert single breaks to newlines
         .replace(/<div[^>]*dir="ltr"[^>]*>/g, '') // Remove direction divs

@@ -1,137 +1,143 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/utils/database';
+/**
+ * INBOUND EMAIL WEBHOOK - Receive emails from SendGrid
+ */
 
-// Handle incoming emails via SendGrid Inbound Parse
+import { NextRequest, NextResponse } from 'next/server';
+
 export async function POST(request: NextRequest) {
     try {
+        console.log('📧 Inbound email webhook received');
+
+        // Parse the form data from SendGrid
         const formData = await request.formData();
 
+        const from = formData.get('from')?.toString();
+        const to = formData.get('to')?.toString();
+        const subject = formData.get('subject')?.toString();
+        const text = formData.get('text')?.toString();
+        const html = formData.get('html')?.toString();
 
-        // Extract email data from SendGrid webhook
-        const from = formData.get('from') as string;
-        const to = formData.get('to') as string;
-        const subject = formData.get('subject') as string;
-        const text = formData.get('text') as string;
-        const html = formData.get('html') as string;
-        const headers = formData.get('headers') as string;
-
-        console.log(`📧 Inbound email received: ${from} -> ${to}`);
-        console.log(`Subject: ${subject}`);
-
-        // Parse the recipient email(s) to find the client.
-        // Prefer the envelope's "to" array when present, otherwise parse the "to" header
-        // which can include display names (e.g., "Name <email@domain>") and multiple recipients.
-        const normalizedRecipients: string[] = [];
-        try {
-            const envelope = formData.get('envelope') as string | null;
-            if (envelope) {
-                const env = JSON.parse(envelope);
-                if (Array.isArray(env.to)) {
-                    for (const r of env.to) {
-                        if (typeof r === 'string') normalizedRecipients.push(r.toLowerCase().trim());
-                    }
-                }
-            }
-        } catch (e) {
-            console.log('⚠ Failed to parse envelope JSON');
-        }
-
-        if (normalizedRecipients.length === 0 && to) {
-            const tokens = to.split(',');
-            for (const token of tokens) {
-                const trimmed = token.trim();
-                const match = trimmed.match(/<([^>]+)>/);
-                const addr = (match ? match[1] : trimmed).toLowerCase();
-                normalizedRecipients.push(addr);
+        // Process attachments if any
+        const attachments: Array<{
+            id: string;
+            name: string;
+            url: string;
+            size: number;
+            type: string;
+            content?: string; // Keep base64 content for received emails
+        }> = [];
+        for (const [key, value] of formData.entries()) {
+            if (key.startsWith('attachment') && value instanceof File) {
+                const file = value as File;
+                const buffer = await file.arrayBuffer();
+                const base64Content = Buffer.from(buffer).toString('base64');
+                attachments.push({
+                    id: `received_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    name: file.name,
+                    url: `data:${file.type};base64,${base64Content}`, // Create data URL for display
+                    size: file.size,
+                    type: file.type,
+                    content: base64Content // Keep original base64 for storage
+                });
+                console.log(`📎 Processed attachment: ${file.name} (${file.size} bytes)`);
             }
         }
 
-        // Keep only our domain
-        const ifRecipients = normalizedRecipients.filter(e => e.endsWith('@interviewsfirst.com'));
-        if (ifRecipients.length === 0) {
-            console.log('❌ No valid interviewsfirst.com recipient found');
-            return NextResponse.json({ success: false, error: 'Invalid recipient' }, { status: 400 });
+        console.log('📬 Inbound email details:');
+        console.log('  From:', from);
+        console.log('  To:', to);
+        console.log('  Subject:', subject);
+        console.log('  Text length:', text?.length || 0);
+        console.log('  HTML length:', html?.length || 0);
+
+        if (!from || !to || !subject || (!text && !html)) {
+            console.error('❌ Missing required fields in inbound email');
+            return NextResponse.json({
+                success: false,
+                error: 'Missing required fields'
+            }, { status: 400 });
         }
 
-        // Try to find a matching client by sender_email, then fall back to client_emails
-        let client: any | null = null;
-        let matchedRecipient = '';
-        for (const rcpt of ifRecipients) {
-            const bySender = await db.query(
-                'SELECT id, name, worker_id FROM clients WHERE LOWER(sender_email) = $1',
-                [rcpt]
-            );
-            if (bySender.rows.length > 0) {
-                client = bySender.rows[0];
-                matchedRecipient = rcpt;
-                break;
-            }
+        // Get database connection
+        const { db } = await import('@/lib/utils/database');
 
-            const byClientEmail = await db.query(
-                'SELECT c.id, c.name, c.worker_id FROM client_emails ce JOIN clients c ON c.id = ce.client_id WHERE LOWER(ce.from_email) = $1 AND ce.is_active = true',
-                [rcpt]
-            );
-            if (byClientEmail.rows.length > 0) {
-                client = byClientEmail.rows[0];
-                matchedRecipient = rcpt;
-                break;
-            }
+        // Find the client based on the 'to' email address
+        let clientId: string | null = null;
+
+        // Extract email address from formatted string (e.g., "Test Client <testclient@interviewsfirst.com>" -> "testclient@interviewsfirst.com")
+        const extractEmail = (emailString: string): string => {
+            const match = emailString.match(/<([^>]+)>/);
+            return match ? match[1] : emailString;
+        };
+
+        const cleanToEmail = extractEmail(to);
+        console.log(`📧 Extracted email: ${cleanToEmail} from: ${to}`);
+
+        // Check if the 'to' email matches a client email
+        const clientEmailResult = await db.query(
+            'SELECT client_id, from_name FROM client_emails WHERE LOWER(from_email) = LOWER($1) AND is_active = TRUE',
+            [cleanToEmail]
+        );
+
+        if (clientEmailResult.rows.length > 0) {
+            clientId = clientEmailResult.rows[0].client_id;
+            console.log(`✅ Found client ${clientId} for email ${to}`);
+        } else {
+            console.warn(`⚠️ No client found for email ${to}`);
+            return NextResponse.json({
+                success: false,
+                error: `No client found for email ${to}`
+            }, { status: 404 });
         }
 
-        if (!client) {
-            console.log(`❌ No client found for recipients: ${normalizedRecipients.join(', ')}`);
-            return NextResponse.json({ success: false, error: 'Client not found' }, { status: 404 });
-        }
+        // Generate a thread ID (for now, use a simple format)
+        const threadId = `thread_${clientId}_${Date.now()}`;
 
-        console.log(`✅ Matched recipient ${matchedRecipient}`);
-        console.log(`✅ Found client: ${client.name} (${client.id})`);
-        console.log(`✅ Found client: ${client.name} (${client.id})`);
-
-        // Store the incoming email in the client's inbox
-        await db.query(`
+        // Store the inbound email in the inbox
+        const result = await db.query(`
       INSERT INTO email_inbox (
-        client_id, from_email, from_name, subject, content, 
-        html_content, received_at, is_read, thread_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), false, $7)
+        thread_id, client_id, from_email, from_name, subject, content, html_content,
+        status, is_read, received_at, attachments
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
+      RETURNING id
     `, [
-            client.id,
+            threadId,
+            clientId,
             from,
-            from.split('@')[0], // Extract name from email
+            from.split('@')[0], // Simple name extraction
             subject,
-            text || '',
-            html || '',
-            `thread_${client.id}_${Date.now()}` // Generate thread ID
+            text || html || '',
+            html || text || '',
+            'unread',
+            false,
+            attachments.length > 0 ? JSON.stringify(attachments) : null
         ]);
 
-        console.log(`✅ Email stored in inbox for client: ${client.name}`);
-
-        // TODO: Notify the worker assigned to this client
-        // This could be done via:
-        // - Real-time notifications (WebSocket)
-        // - Email notification to worker
-        // - Push notification
-        // - Database trigger
+        const emailId = result.rows[0].id;
+        console.log(`✅ Inbound email stored with ID: ${emailId}`);
 
         return NextResponse.json({
             success: true,
-            message: 'Email processed successfully',
-            clientId: client.id,
-            clientName: client.name
+            data: {
+                message: 'Inbound email processed successfully',
+                emailId: emailId,
+                clientId: clientId
+            }
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('❌ Error processing inbound email:', error);
         return NextResponse.json({
             success: false,
-            error: `Failed to process email: ${error instanceof Error ? error.message : 'Unknown error'}`
+            error: error.message || 'Failed to process inbound email'
         }, { status: 500 });
     }
 }
 
-// Handle GET requests (for webhook verification)
+// For SendGrid webhook verification
 export async function GET(request: NextRequest) {
     return NextResponse.json({
-        success: true,
-        message: 'Inbound email webhook is active'
+        status: 'Inbound email webhook endpoint active',
+        timestamp: new Date().toISOString()
     });
 }

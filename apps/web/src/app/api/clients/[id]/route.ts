@@ -39,9 +39,11 @@ export async function GET(
                 c.created_at as "createdAt",
                 c.updated_at as "updatedAt",
                 u.name as "workerName",
-                u.email as "workerEmail"
+                u.email as "workerEmail",
+                ce.from_email as "customEmail"
             FROM clients c
             LEFT JOIN users u ON c.worker_id = u.id
+            LEFT JOIN client_emails ce ON c.id = ce.client_id AND ce.is_active = TRUE
             WHERE c.id = $1
         `, [id]);
 
@@ -68,7 +70,7 @@ export async function GET(
             id: row.id,
             workerId: row.workerId,
             name: row.name,
-            email: row.email,
+            email: row.customEmail || row.email, // Use custom email if available, otherwise fallback to personal email
             phone: row.phone,
             linkedinUrl: row.linkedinUrl,
             status: row.status,
@@ -177,12 +179,22 @@ export async function PUT(
             body.paymentStatus
         ]);
 
+        // Get the custom email address separately
+        const { rows: customEmailRows } = await db.query(`
+            SELECT from_email as "customEmail"
+            FROM client_emails 
+            WHERE client_id = $1 AND is_active = TRUE
+            ORDER BY created_at DESC
+            LIMIT 1
+        `, [id]);
+
         const row = rows[0];
+        const customEmail = customEmailRows.length > 0 ? customEmailRows[0].customEmail : null;
         const client: Client = {
             id: row.id,
             workerId: row.workerId,
             name: row.name,
-            email: row.email,
+            email: customEmail || row.email, // Use custom email if available, otherwise fallback to personal email
             phone: row.phone,
             linkedinUrl: row.linkedinUrl,
             status: row.status,

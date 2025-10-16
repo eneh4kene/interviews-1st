@@ -1,115 +1,98 @@
+/**
+ * EMAIL INBOX API - Fetch client email logs
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/utils/database';
 
 export async function GET(request: NextRequest) {
     try {
+        console.log('📧 Email inbox API called');
+
         const { searchParams } = new URL(request.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const limit = parseInt(searchParams.get('limit') || '20');
-        const status = searchParams.get('status') || 'all';
-        const search = searchParams.get('search') || '';
+        const clientId = searchParams.get('clientId');
 
-        const offset = (page - 1) * limit;
-
-        // Build query
-        let whereClause = 'WHERE 1=1';
-        const queryParams: any[] = [];
-        let paramCount = 0;
-
-        if (status !== 'all') {
-            paramCount++;
-            whereClause += ` AND status = $${paramCount}`;
-            queryParams.push(status);
+        if (!clientId) {
+            return NextResponse.json({
+                success: false,
+                error: 'Client ID is required'
+            }, { status: 400 });
         }
 
-        if (search) {
-            paramCount++;
-            whereClause += ` AND (subject ILIKE $${paramCount} OR from_email ILIKE $${paramCount} OR content ILIKE $${paramCount})`;
-            queryParams.push(`%${search}%`);
-        }
+        console.log('🔍 Fetching emails for client:', clientId);
 
-        // Get emails
-        const emailsResult = await db.query(`
+        // Get client info
+        const { db } = await import('@/lib/utils/database');
+
+        // Fetch emails from email_inbox table
+        const result = await db.query(`
       SELECT 
         id,
+        thread_id,
         from_email,
         from_name,
         subject,
         content,
-        received_at,
+        html_content,
         status,
         is_read,
-        thread_id,
-        reply_to_email,
-        client_id,
-        application_email_id
-      FROM email_inbox
-      ${whereClause}
-      ORDER BY received_at DESC
-      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
-    `, [...queryParams, limit, offset]);
+        received_at,
+        created_at,
+        attachments
+      FROM email_inbox 
+      WHERE client_id = $1 
+      ORDER BY received_at DESC, created_at DESC
+    `, [clientId]);
 
-        // Get total count
-        const countResult = await db.query(`
-      SELECT COUNT(*) as total
-      FROM email_inbox
-      ${whereClause}
-    `, queryParams);
+        console.log(`📬 Found ${result.rows.length} emails for client ${clientId}`);
 
-        return NextResponse.json({
-            success: true,
-            data: {
-                emails: emailsResult.rows,
-                pagination: {
-                    page,
-                    limit,
-                    total: parseInt(countResult.rows[0].total),
-                    pages: Math.ceil(parseInt(countResult.rows[0].total) / limit)
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching inbox emails:', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to fetch inbox emails' },
-            { status: 500 }
-        );
-    }
-}
-
-export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const {
-            from_email,
-            from_name,
-            subject,
-            content,
-            reply_to_email,
-            client_id,
-            application_email_id
-        } = body;
-
-        // Generate thread ID if not provided
-        const thread_id = body.thread_id || `thread_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-
-        const result = await db.query(`
-      INSERT INTO email_inbox (
-        from_email, from_name, subject, content, reply_to_email,
-        client_id, application_email_id, thread_id, status, is_read
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'unread', false)
-      RETURNING id
-    `, [from_email, from_name, subject, content, reply_to_email, client_id, application_email_id, thread_id]);
+        // Transform the data to match the frontend format
+        const emails = result.rows.map((row: any) => ({
+            id: row.id,
+            threadId: row.thread_id,
+            from: row.from_email,
+            fromName: row.from_name,
+            subject: row.subject,
+            body: row.content,
+            htmlContent: row.html_content,
+            status: row.status,
+            isRead: row.is_read,
+            receivedAt: row.received_at,
+            createdAt: row.created_at,
+            attachments: row.attachments ? (() => {
+                const atts = typeof row.attachments === 'string' ? JSON.parse(row.attachments) : row.attachments;
+                // Handle both old and new attachment formats
+                return atts.map((att: any) => {
+                    if (att.size !== undefined) {
+                        // New format - already has all required fields
+                        return att;
+                    } else {
+                        // Old format - convert to new format
+                        return {
+                            id: `legacy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            name: att.name,
+                            url: `data:${att.type};base64,${att.content}`, // Create data URL
+                            size: att.content ? Math.round(att.content.length * 0.75) : 0, // Estimate size from base64
+                            type: att.type,
+                            content: att.content // Keep original content
+                        };
+                    }
+                });
+            })() : [],
+            // Determine if it's sent or received based on the from_email
+            type: row.from_email.includes('@interviewsfirst.com') ? 'sent' : 'received'
+        }));
 
         return NextResponse.json({
             success: true,
-            data: { id: result.rows[0].id }
+            data: emails
         });
-    } catch (error) {
-        console.error('Error creating inbox email:', error);
-        return NextResponse.json(
-            { success: false, error: 'Failed to create inbox email' },
-            { status: 500 }
-        );
+
+    } catch (error: any) {
+        console.error('❌ Error fetching email inbox:', error);
+        return NextResponse.json({
+            success: false,
+            error: error.message || 'Failed to fetch emails'
+        }, { status: 500 });
     }
 }
+

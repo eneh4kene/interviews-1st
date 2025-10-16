@@ -12,6 +12,7 @@ interface EmailModalProps {
   initialData?: Partial<EmailData>;
   mode?: 'compose' | 'reply' | 'forward' | 'review';
   readOnly?: boolean;
+  clientId?: string;
 }
 
 interface EmailData {
@@ -41,7 +42,8 @@ export default function EmailModal({
   onForward,
   initialData = {},
   mode = 'compose',
-  readOnly = false
+  readOnly = false,
+  clientId
 }: EmailModalProps) {
   const [emailData, setEmailData] = useState<EmailData>({
     to: '',
@@ -79,12 +81,25 @@ export default function EmailModal({
   }, [initialData?.to, initialData?.cc, initialData?.bcc, initialData?.subject, initialData?.body, initialData?.attachments, initialData?.from]);
 
   const handleSend = async () => {
+    console.log('🔥 SEND BUTTON CLICKED - handleSend called');
+    console.log('Email data:', emailData);
+    
+    // Validate required fields before sending
+    if (!emailData.to || !emailData.subject || !emailData.body) {
+      console.log('❌ Validation failed - missing required fields');
+      alert('Please fill in all required fields (To, Subject, and Body)');
+      return;
+    }
+
+    console.log('✅ Validation passed, calling onSend...');
     setIsSending(true);
     try {
       await onSend(emailData);
+      console.log('✅ onSend completed successfully');
       onClose();
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ onSend failed:', error);
+      alert(`Failed to send email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSending(false);
     }
@@ -103,19 +118,48 @@ export default function EmailModal({
     }
   };
 
-  const addAttachment = (file: File) => {
-    const attachment: Attachment = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      url: URL.createObjectURL(file),
-      size: file.size,
-      type: file.type
-    };
-    
-    setEmailData(prev => ({
-      ...prev,
-      attachments: [...prev.attachments, attachment]
-    }));
+  const addAttachment = async (file: File) => {
+    try {
+      // Upload file to server
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('clientId', clientId || 'temp');
+
+      const response = await fetch('/api/emails/upload-attachment', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload attachment');
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      const attachment: Attachment = {
+        id: result.data.id,
+        name: result.data.name,
+        url: result.data.url,
+        size: result.data.size,
+        type: result.data.type
+      };
+      
+      setEmailData(prev => ({
+        ...prev,
+        attachments: [...prev.attachments, attachment]
+      }));
+
+      console.log(`✅ Attachment uploaded: ${file.name}`);
+    } catch (error) {
+      console.error('❌ Error uploading attachment:', error);
+      alert(`Failed to upload attachment: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const removeAttachment = (id: string) => {
@@ -470,7 +514,10 @@ export default function EmailModal({
               <>
                 {onSaveDraft && (
                   <button
-                    onClick={handleSaveDraft}
+                    onClick={(e) => {
+                      console.log('🚨 SAVE DRAFT BUTTON CLICKED - This should NOT happen when trying to send!');
+                      handleSaveDraft();
+                    }}
                     disabled={isSaving}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
                   >
@@ -480,8 +527,13 @@ export default function EmailModal({
                 )}
                 
                 <button
-                  onClick={handleSend}
-                  disabled={isSending || !emailData.to || !emailData.subject}
+                  onClick={(e) => {
+                    console.log('🔥 SEND BUTTON CLICKED - onClick handler triggered');
+                    console.log('Button disabled?', isSending || !emailData.to || !emailData.subject || !emailData.body);
+                    console.log('Email data at click:', emailData);
+                    handleSend();
+                  }}
+                  disabled={isSending || !emailData.to || !emailData.subject || !emailData.body}
                   className="flex items-center gap-2 px-6 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
                 >
                   <Send size={16} />

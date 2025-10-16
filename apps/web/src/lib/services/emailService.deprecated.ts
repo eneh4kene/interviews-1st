@@ -1,12 +1,13 @@
+/**
+ * @deprecated This service has been replaced by SimpleEmailService
+ * Use SimpleEmailService for all new email functionality
+ * This file is kept for reference and will be removed in a future version
+ */
+
 // Frontend email service - works within Next.js environment
 import { db } from '../utils/database';
 import sgMail from '@sendgrid/mail';
-import dotenv from 'dotenv';
-import path from 'path';
 import { clientDomainService } from './ClientDomainService';
-
-// Load environment variables from parent directory
-dotenv.config({ path: path.join(process.cwd(), '../../.env') });
 
 // Configure SendGrid
 console.log('SendGrid API Key loaded:', process.env.SENDGRID_API_KEY ? 'Yes' : 'No');
@@ -258,7 +259,7 @@ export class EmailService {
       `, [
         toEmail,
         toName,
-        process.env.VERIFIED_SENDER_EMAIL || 'interviewsfirst@gmail.com',
+        process.env.VERIFIED_SENDER_EMAIL || 'applications@interviewsfirst.com',
         'InterviewsFirst',
         template ? template.id : null,
         subject,
@@ -291,50 +292,106 @@ export class EmailService {
     client_id?: string;
   }): Promise<string> {
     try {
-      // Get client-specific sender email if client_id is provided
-      let senderEmail = emailData.from_email;
-      console.log(`Original sender email: ${senderEmail}, Client ID: ${emailData.client_id}`);
+      // Use a single verified sender email for all outbound emails
+      const verifiedSenderEmail = process.env.VERIFIED_SENDER_EMAIL || 'applications@interviewsfirst.com';
+      console.log(`Using verified sender email: ${verifiedSenderEmail} for client: ${emailData.client_id}`);
 
+      // Generate client-specific reply-to address for inbound routing
+      let replyToEmail = verifiedSenderEmail;
       if (emailData.client_id) {
         try {
-          console.log(`Attempting to get client-specific sender email for client: ${emailData.client_id}`);
-          const clientSenderEmail = await clientDomainService.getSenderEmail(emailData.client_id);
-          console.log(`Client sender email retrieved: ${clientSenderEmail}`);
-          senderEmail = clientSenderEmail;
-          console.log(`Using client-specific sender email: ${senderEmail} for client ${emailData.client_id}`);
+          // Get client info to generate reply-to address
+          const clientResult = await db.query('SELECT name FROM clients WHERE id = $1', [emailData.client_id]);
+          if (clientResult.rows.length > 0) {
+            const clientName = clientResult.rows[0].name;
+            const sanitizedName = clientName.toLowerCase()
+              .replace(/[^a-z0-9]/g, '.')
+              .replace(/\.+/g, '.')
+              .replace(/^\.|\.$/g, '');
+            replyToEmail = `client+${emailData.client_id}@interviewsfirst.com`;
+            console.log(`Generated reply-to address: ${replyToEmail} for client: ${clientName}`);
+          }
         } catch (error) {
-          console.error('Error getting client sender email, using provided email:', error);
+          console.error('Error generating reply-to address:', error);
+          // Fall back to verified sender if client lookup fails
         }
-      } else {
-        console.log('No client_id provided, using original sender email');
       }
 
-      const result = await db.query(`
-        INSERT INTO email_queue (
-          to_email, to_name, from_email, from_name, subject,
-          html_content, text_content, cc, bcc, attachments, priority, scheduled_at, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), 'pending')
-        RETURNING id
-      `, [
-        emailData.to_email,
-        emailData.to_name,
-        senderEmail, // Use client-specific sender email
-        emailData.from_name,
-        emailData.subject,
-        emailData.html_content,
-        emailData.text_content,
-        emailData.cc || '',
-        emailData.bcc || '',
-        JSON.stringify(emailData.attachments || []),
-        0 // Normal priority
-      ]);
+      // Check if the email_queue table has the required columns
+      const tableCheck = await db.query(`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'email_queue' 
+        AND column_name IN ('cc', 'bcc', 'attachments')
+      `);
 
-      // Create client-email relationship if client_id is provided
+      const hasCC = tableCheck.rows.some((row: any) => row.column_name === 'cc');
+      const hasBCC = tableCheck.rows.some((row: any) => row.column_name === 'bcc');
+      const hasAttachments = tableCheck.rows.some((row: any) => row.column_name === 'attachments');
+
+      console.log(`Email queue table columns: cc=${hasCC}, bcc=${hasBCC}, attachments=${hasAttachments}`);
+
+      let query: string;
+      let values: any[];
+
+      if (hasCC && hasBCC && hasAttachments) {
+        // Full schema with all columns
+        query = `
+          INSERT INTO email_queue (
+            to_email, to_name, from_email, from_name, subject,
+            html_content, text_content, cc, bcc, attachments, priority, scheduled_at, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending')
+          RETURNING id
+        `;
+        values = [
+          emailData.to_email,
+          emailData.to_name,
+          verifiedSenderEmail, // Use verified sender for FROM
+          emailData.from_name,
+          emailData.subject,
+          emailData.html_content,
+          emailData.text_content,
+          emailData.cc || '',
+          emailData.bcc || '',
+          JSON.stringify(emailData.attachments || []),
+          0, // Normal priority
+          new Date() // scheduled_at - send immediately
+        ];
+      } else {
+        // Fallback to basic schema without cc, bcc, attachments
+        console.warn('Email queue table missing cc/bcc/attachments columns, using basic schema');
+        query = `
+          INSERT INTO email_queue (
+            to_email, to_name, from_email, from_name, subject,
+            html_content, text_content, priority, scheduled_at, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
+          RETURNING id
+        `;
+        values = [
+          emailData.to_email,
+          emailData.to_name,
+          verifiedSenderEmail, // Use verified sender for FROM
+          emailData.from_name,
+          emailData.subject,
+          emailData.html_content,
+          emailData.text_content,
+          0, // Normal priority
+          new Date() // scheduled_at - send immediately
+        ];
+      }
+
+      const result = await db.query(query, values);
+
+      // Create client-email relationship if client_id is provided and table exists
       if (emailData.client_id) {
-        await db.query(`
-          INSERT INTO client_email_relationships (client_id, email_queue_id, relationship_type)
-          VALUES ($1, $2, 'sent')
-        `, [emailData.client_id, result.rows[0].id]);
+        try {
+          await db.query(`
+            INSERT INTO client_email_relationships (client_id, email_queue_id, relationship_type)
+            VALUES ($1, $2, 'sent')
+          `, [emailData.client_id, result.rows[0].id]);
+        } catch (error) {
+          console.warn('Could not create client-email relationship (table may not exist):', error);
+        }
       }
 
       // Process the email queue immediately
@@ -378,7 +435,7 @@ export class EmailService {
       `, [
         toEmail,
         toName,
-        process.env.VERIFIED_SENDER_EMAIL || 'interviewsfirst@gmail.com',
+        process.env.VERIFIED_SENDER_EMAIL || 'applications@interviewsfirst.com',
         'InterviewsFirst',
         template.id,
         rendered.subject,
@@ -537,7 +594,7 @@ export class EmailService {
   // Process email queue
   async processQueue(): Promise<void> {
     try {
-      console.log('Processing email queue...');
+      console.log('🔄 Processing email queue...');
 
       // Get pending emails ordered by priority and scheduled time
       const result = await db.query(`
@@ -548,20 +605,21 @@ export class EmailService {
         LIMIT 10
       `);
 
-      console.log(`Found ${result.rows.length} pending emails`);
+      console.log(`📧 Found ${result.rows.length} pending emails`);
 
       for (const email of result.rows) {
+        console.log(`🔄 Processing email ${email.id} to ${email.to_email}`);
         await this.processEmailQueueItem(email);
       }
     } catch (error) {
-      console.error('Error processing email queue:', error);
+      console.error('❌ Error processing email queue:', error);
     }
   }
 
   // Process individual email queue item
   private async processEmailQueueItem(email: EmailQueueItem): Promise<void> {
     try {
-      console.log(`Processing email to ${email.to_email}`);
+      console.log(`🔄 Processing email to ${email.to_email}`);
 
       // Update status to sending
       await db.query(
@@ -607,21 +665,71 @@ export class EmailService {
         }
       }
 
-      // Send email via SendGrid
-      const msg = {
+      // Check if SendGrid is properly configured
+      console.log('🔧 Checking SendGrid configuration...');
+      console.log('SENDGRID_API_KEY exists:', !!process.env.SENDGRID_API_KEY);
+      if (!process.env.SENDGRID_API_KEY) {
+        console.error('❌ SendGrid API key not configured');
+        throw new Error('SendGrid API key not configured');
+      }
+      console.log('✅ SendGrid API key found');
+
+      // Send email via SendGrid with reply-to pattern
+      const msg: any = {
         to: email.to_email,
         from: {
           email: email.from_email,
           name: email.from_name
         },
         subject: email.subject,
-        text: email.text_content || '',
-        html: email.html_content || email.text_content || '',
-        attachments: attachments
+        text: email.text_content || email.html_content || '',
+        html: email.html_content || email.text_content || ''
       };
 
-      await sgMail.send(msg);
-      console.log(`✅ Email sent successfully to ${email.to_email}`);
+      // Add reply-to header for client-specific routing
+      if (email.variables) {
+        try {
+          const variables = typeof email.variables === 'string'
+            ? JSON.parse(email.variables)
+            : email.variables;
+
+          if (variables.client_id) {
+            msg.replyTo = `client+${variables.client_id}@interviewsfirst.com`;
+            console.log(`Added reply-to: ${msg.replyTo} for client: ${variables.client_id}`);
+          }
+        } catch (error) {
+          console.error('Error parsing email variables for reply-to:', error);
+        }
+      }
+
+      // Only add attachments if they exist
+      if (attachments.length > 0) {
+        msg.attachments = attachments;
+      }
+
+      // Add CC and BCC if they exist in the email object
+      if ((email as any).cc && (email as any).cc.trim()) {
+        msg.cc = (email as any).cc.split(',').map((email: string) => email.trim());
+      }
+      if ((email as any).bcc && (email as any).bcc.trim()) {
+        msg.bcc = (email as any).bcc.split(',').map((email: string) => email.trim());
+      }
+
+      console.log(`📤 Sending email via SendGrid to ${email.to_email}`, {
+        subject: email.subject,
+        from: email.from_email,
+        hasAttachments: attachments.length > 0,
+        hasCC: !!(email as any).cc,
+        hasBCC: !!(email as any).bcc
+      });
+
+      console.log('📧 SendGrid message object:', JSON.stringify(msg, null, 2));
+
+      const response = await sgMail.send(msg);
+      console.log(`✅ Email sent successfully to ${email.to_email}`, {
+        statusCode: response[0].statusCode,
+        messageId: response[0].headers['x-message-id']
+      });
 
       // Update status to sent
       await db.query(
@@ -634,14 +742,37 @@ export class EmailService {
 
     } catch (error) {
       console.error(`❌ Failed to send email to ${email.to_email}:`, error);
+      console.error('Error details:', error);
 
-      // Update status to failed
-      await db.query(
-        'UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3',
-        ['failed', (error as Error).message, email.id]
-      );
+      // Log SendGrid specific error details
+      if (error.response) {
+        console.error('SendGrid response status:', error.response.status);
+        console.error('SendGrid response body:', error.response.body);
+      }
 
-      await this.logEmail(email.id, email.to_email, email.subject, 'failed', (error as Error).message);
+      // Update status to failed with retry logic
+      const errorMessage = (error as Error).message;
+      const currentRetryCount = (email as any).retry_count || 0;
+      const maxRetries = (email as any).max_retries || 3;
+
+      if (currentRetryCount < maxRetries) {
+        // Retry the email
+        const nextRetryTime = new Date(Date.now() + Math.pow(2, currentRetryCount) * 60000); // Exponential backoff
+        await db.query(
+          'UPDATE email_queue SET status = $1, error_message = $2, retry_count = $3, scheduled_at = $4 WHERE id = $5',
+          ['pending', errorMessage, currentRetryCount + 1, nextRetryTime, email.id]
+        );
+        console.log(`📧 Email queued for retry ${currentRetryCount + 1}/${maxRetries} at ${nextRetryTime.toISOString()}`);
+      } else {
+        // Max retries reached, mark as failed
+        await db.query(
+          'UPDATE email_queue SET status = $1, error_message = $2 WHERE id = $3',
+          ['failed', errorMessage, email.id]
+        );
+        console.log(`❌ Email failed permanently after ${maxRetries} retries`);
+      }
+
+      await this.logEmail(email.id, email.to_email, email.subject, 'failed', errorMessage);
     }
   }
 
