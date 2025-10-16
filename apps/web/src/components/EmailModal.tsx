@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, Save, Paperclip, Eye, EyeOff, MoreVertical, Reply, Forward, Archive, Trash2, Clock } from 'lucide-react';
 import { processEmailContent } from '@/lib/utils/htmlSanitizer';
+import { cleanQuotedText, extractMainContent } from '@/lib/utils/emailCleaner';
 
 interface EmailModalProps {
   isOpen: boolean;
@@ -442,7 +443,7 @@ export default function EmailModal({
               <div className="px-6 py-6">
                 <div className="prose prose-sm max-w-none">
                   <div className="whitespace-pre-wrap text-gray-900 leading-relaxed">
-                    {processEmailContent(emailData.body).textContent}
+                    {cleanQuotedText(processEmailContent(emailData.body).textContent)}
                   </div>
                 </div>
               </div>

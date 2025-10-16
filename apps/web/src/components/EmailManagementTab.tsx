@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter, RefreshCw, Mail, Send, Archive, Trash2, Eye, Edit } from 'lucide-react';
 import EmailModal from './EmailModal';
 import { processEmailContent } from '@/lib/utils/htmlSanitizer';
+import { formatReplyMessage, cleanSubjectLine } from '@/lib/utils/emailCleaner';
 
 interface EmailData {
   to: string;
@@ -147,12 +148,23 @@ export default function EmailManagementTab({ clientId, clientName }: EmailManage
   };
 
   const handleReplyEmail = (emailData: any) => {
+    // Clean up the subject line (remove existing "Re:" if present)
+    const cleanSubject = cleanSubjectLine(emailData.subject);
+    
+    // Format a clean reply message
+    const replyBody = formatReplyMessage(
+      emailData.body,
+      '', // Empty reply content initially
+      emailData.fromName || emailData.from,
+      new Date(emailData.receivedAt || emailData.createdAt).toLocaleString()
+    );
+    
     setSelectedEmail({
       ...emailData,
       to: emailData.from,
       from: emailData.to,
-      subject: `Re: ${emailData.subject}`,
-      body: `\n\n--- Original Message ---\nFrom: ${emailData.from}\nTo: ${emailData.to}\nSubject: ${emailData.subject}\n\n${emailData.body}`
+      subject: `Re: ${cleanSubject}`,
+      body: replyBody
     });
     setModalMode('compose');
     setIsEmailModalOpen(true);

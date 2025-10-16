@@ -19,6 +19,8 @@ import {
   XCircle
 } from 'lucide-react';
 import { processEmailContent } from '@/lib/utils/htmlSanitizer';
+import { cleanQuotedText } from '@/lib/utils/emailCleaner';
+import EmailThreadView from './EmailThreadView';
 
 interface Email {
   id: string;
@@ -225,7 +227,7 @@ export default function EmailInbox() {
                         {email.subject}
                       </p>
                       <p className="text-sm text-gray-500 truncate">
-                        {processEmailContent(email.content).textContent.substring(0, 100)}...
+                        {cleanQuotedText(processEmailContent(email.content).textContent).substring(0, 100)}...
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-xs text-gray-400">
@@ -242,43 +244,18 @@ export default function EmailInbox() {
         </div>
 
         {/* Email Thread */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Conversation</h3>
-          {selectedThread ? (
-            <div className="space-y-4">
-              {selectedThread.emails.map((email, index) => (
-                <Card key={email.id} className={index === 0 ? 'bg-blue-50' : ''}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          {email.from_name || email.from_email}
-                        </span>
-                        <span className="text-sm text-gray-500 ml-2">
-                          {new Date(email.received_at).toLocaleString()}
-                        </span>
-                      </div>
-                      {getStatusBadge(email.status)}
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 mb-2">
-                      {email.subject}
-                    </p>
-                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {processEmailContent(email.content).textContent}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-6 text-center">
-                <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">Select an email to view conversation</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <EmailThreadView 
+          thread={selectedThread}
+          onReply={(email) => {
+            // Handle reply action
+            console.log('Reply to email:', email);
+          }}
+          onForward={(email) => {
+            // Handle forward action
+            console.log('Forward email:', email);
+          }}
+          onMarkAsRead={markAsRead}
+        />
       </div>
 
       {/* Pagination */}

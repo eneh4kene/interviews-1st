@@ -3,6 +3,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { cleanQuotedText, cleanQuotedHtml } from '@/lib/utils/emailCleaner';
 
 export async function POST(request: NextRequest) {
     try {
@@ -93,6 +94,10 @@ export async function POST(request: NextRequest) {
         // Generate a thread ID (for now, use a simple format)
         const threadId = `thread_${clientId}_${Date.now()}`;
 
+        // Clean up the email content
+        const cleanedText = cleanQuotedText(text || '');
+        const cleanedHtml = cleanQuotedHtml(html || '');
+
         // Store the inbound email in the inbox
         const result = await db.query(`
       INSERT INTO email_inbox (
@@ -106,8 +111,8 @@ export async function POST(request: NextRequest) {
             from,
             from.split('@')[0], // Simple name extraction
             subject,
-            text || html || '',
-            html || text || '',
+            cleanedText || cleanedHtml || '',
+            cleanedHtml || cleanedText || '',
             'unread',
             false,
             attachments.length > 0 ? JSON.stringify(attachments) : null

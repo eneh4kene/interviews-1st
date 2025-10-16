@@ -5,6 +5,7 @@ import { Button } from '@interview-me/ui/button';
 import { Card } from '@interview-me/ui/card';
 import { Input } from '@interview-me/ui/input';
 import { Label } from '@interview-me/ui/label';
+import { cleanQuotedText } from '@/lib/utils/emailCleaner';
 
 interface Email {
   id: string;
@@ -226,7 +227,7 @@ export const ClientEmailInbox: React.FC<ClientEmailInboxProps> = ({
                   </div>
                 </div>
                 <div className="mt-2 text-sm text-gray-700">
-                  {email.content.substring(0, 200)}
+                  {cleanQuotedText(email.content).substring(0, 200)}
                   {email.content.length > 200 && '...'}
                 </div>
               </div>
