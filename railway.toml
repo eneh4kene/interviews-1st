@@ -1,0 +1,50 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "n8n start"
+healthcheckPath = "/healthz"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[environments.production]
+variables = { NODE_ENV = "production" }
+
+# Railway service configuration
+[service]
+name = "n8n-workflows"
+description = "n8n workflow automation service with auto-import"
+
+# Resource allocation
+[resources]
+memory = "1GB"
+cpu = "0.5"
+
+# Networking
+[networking]
+port = 5678
+protocol = "http"
+
+# Health check configuration
+[healthcheck]
+path = "/healthz"
+interval = "30s"
+timeout = "10s"
+retries = 3
+startPeriod = "60s"
+
+# Environment-specific settings
+[environments.production.variables]
+N8N_HOST = "0.0.0.0"
+N8N_PORT = "5678"
+N8N_PROTOCOL = "https"
+N8N_SECURE_COOKIE = "true"
+N8N_USER_MANAGEMENT_DISABLED = "false"
+N8N_DIAGNOSTICS_ENABLED = "false"
+N8N_VERSION_NOTIFICATIONS_ENABLED = "false"
+N8N_TEMPLATES_ENABLED = "false"
+N8N_ONBOARDING_FLOW_DISABLED = "true"
+N8N_LOG_LEVEL = "info"
+N8N_LOG_OUTPUT = "console"
+GENERIC_TIMEZONE = "UTC"
