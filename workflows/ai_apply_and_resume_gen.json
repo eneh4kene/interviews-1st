@@ -1,0 +1,1434 @@
+{
+    "name": "Interviews First workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ai-apply",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -80,
+                -48
+            ],
+            "id": "b5499241-c742-4643-ad70-b0f554e2b50a",
+            "name": "Webhook",
+            "webhookId": "b6569f40-9ecf-4ae6-b86d-cfdc1410ea0d"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.body.resume.file_url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                112,
+                -48
+            ],
+            "id": "7bee9554-552e-4f41-bde4-d30222aa5f18",
+            "name": "HTTP Request"
+        },
+        {
+            "parameters": {
+                "operation": "pdf",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.extractFromFile",
+            "typeVersion": 1,
+            "position": [
+                288,
+                -48
+            ],
+            "id": "e51ca6d9-64c2-4775-a33e-955ba60633df",
+            "name": "Extract from File"
+        },
+        {
+            "parameters": {
+                "resource": "assistant",
+                "assistantId": {
+                    "__rl": true,
+                    "value": "asst_NqLlpRN5jNWhmgj9o2Sk1iIa",
+                    "mode": "list",
+                    "cachedResultName": "Resume Curator"
+                },
+                "prompt": "define",
+                "text": "=You are an expert career assistant.\n\nYour task is to take a candidate’s original CV and rewrite it so that it aligns with a given job description. \nThe output should follow the JSON Resume schema below\n\n### Instructions:\n- Keep the candidate’s true information (education, work history, skills).\n- Emphasize only the most relevant experience and skills for the target job.\n- Reorder sections if needed to highlight relevance.\n- Remove or downplay unrelated details.\n- Keep dates and factual details consistent with the original CV.\n- Make it robust and let it standout as top 10 percent of applicants\n- Output valid JSON only, with no extra commentary or markdown formatting.\n- Each work section must have at least 5 or more items (the resume must be as robust as possible. we want to standout as top 10 percent)\n\n### Input:\nJob Title:\n{{ $('Webhook').item.json.body.job_title }}\n\nJob Description:\n{{ $('Webhook').item.json.body.description_snippet }}\n\nOriginal CV Text:\n{{ $json.text }}\n\ncandidate's name: {{ $('Webhook').item.json.body.client_name }}\ncandidate's email: {{ $('Webhook').item.json.body.sender_email }}\n### Output:\nA tailored resume object that strictly follows the JSON Resume schema v1.0.0.\n{\n  \"basics\": {\n    \"name\": \"John Doe\",\n    \"label\": \"Full Stack Developer\",\n    \"image\": \"\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"(912) 555-4321\",\n    \"url\": \"https://johndoe.com\",\n    \"summary\": \"Passionate software developer with 5+ years experience...\",\n    \"location\": {\n      \"address\": \"2712 Broadway St\",\n      \"postalCode\": \"CA 94115\",\n      \"city\": \"San Francisco\",\n      \"countryCode\": \"US\",\n      \"region\": \"California\"\n    },\n    \"profiles\": [\n      {\n        \"network\": \"LinkedIn\",\n        \"username\": \"johndoe\",\n        \"url\": \"https://linkedin.com/in/johndoe\"\n      },\n      {\n        \"network\": \"GitHub\",\n        \"username\": \"johndoe\",\n        \"url\": \"https://github.com/johndoe\"\n      }\n    ]\n  },\n  \"work\": [\n    {\n      \"name\": \"Acme Corp\",\n      \"position\": \"Senior Software Engineer\",\n      \"url\": \"https://acme.com\",\n      \"startDate\": \"2020-01-01\",\n      \"endDate\": \"2023-06-01\",\n      \"summary\": \"Led a team of 5 engineers to build scalable microservices.\",\n      \"highlights\": [\n        \"Optimized backend, reducing response times by 30%\",\n        \"Mentored junior developers\"\n      ]\n    }\n  ],\n  \"volunteer\": [\n    {\n      \"organization\": \"Code for Good\",\n      \"position\": \"Contributor\",\n      \"url\": \"https://codeforgood.org\",\n      \"startDate\": \"2019-01-01\",\n      \"endDate\": \"2020-01-01\",\n      \"summary\": \"Built community projects\",\n      \"highlights\": [\n        \"Developed open-source education platform\"\n      ]\n    }\n  ],\n  \"education\": [\n    {\n      \"institution\": \"University of Technology\",\n      \"area\": \"Computer Science\",\n      \"studyType\": \"Bachelor\",\n      \"startDate\": \"2014-01-01\",\n      \"endDate\": \"2018-01-01\",\n      \"score\": \"3.8 GPA\",\n      \"courses\": [\n        \"CS101 - Algorithms\",\n        \"CS201 - Databases\"\n      ]\n    }\n  ],\n  \"awards\": [\n    {\n      \"title\": \"Employee of the Year\",\n      \"date\": \"2022-12-01\",\n      \"awarder\": \"Acme Corp\",\n      \"summary\": \"For outstanding leadership and innovation.\"\n    }\n  ],\n  \"certificates\": [\n    {\n      \"name\": \"AWS Solutions Architect\",\n      \"date\": \"2021-06-01\",\n      \"issuer\": \"Amazon Web Services\",\n      \"url\": \"https://aws.amazon.com/certification\"\n    }\n  ],\n  \"publications\": [\n    {\n      \"name\": \"Scaling Systems with Kubernetes\",\n      \"publisher\": \"Tech Journal\",\n      \"releaseDate\": \"2021-08-01\",\n      \"url\": \"https://techjournal.com/article/k8s\",\n      \"summary\": \"Article on best practices for Kubernetes scaling.\"\n    }\n  ],\n  \"skills\": [\n    {\n      \"name\": \"Programming Languages\",\n      \"level\": \"Advanced\",\n      \"keywords\": [\"JavaScript\", \"Python\", \"TypeScript\", \"Go\"]\n    },\n    {\n      \"name\": \"Frameworks\",\n      \"level\": \"Advanced\",\n      \"keywords\": [\"React\", \"Next.js\", \"FastAPI\", \"Node.js\"]\n    }\n  ],\n  \"languages\": [\n    {\n      \"language\": \"English\",\n      \"fluency\": \"Native speaker\"\n    },\n    {\n      \"language\": \"French\",\n      \"fluency\": \"Intermediate\"\n    }\n  ],\n  \"interests\": [\n    {\n      \"name\": \"Open Source\",\n      \"keywords\": [\"n8n\", \"Next.js\", \"AI\"]\n    }\n  ],\n  \"references\": [\n    {\n      \"name\": \"Jane Smith\",\n      \"reference\": \"John is an exceptional developer and team player.\"\n    }\n  ],\n  \"projects\": [\n    {\n      \"name\": \"AI Resume Tailor\",\n      \"description\": \"Workflow automation that customizes resumes for job applications.\",\n      \"highlights\": [\n        \"Built with n8n + LLMs\",\n        \"Deployed on Railway\"\n      ],\n      \"keywords\": [\"AI\", \"Automation\", \"n8n\"],\n      \"startDate\": \"2024-01-01\",\n      \"endDate\": \"2024-06-01\",\n      \"url\": \"https://myproject.com\",\n      \"roles\": [\"Lead Developer\"],\n      \"entity\": \"Personal\",\n      \"type\": \"application\"\n    }\n  ]\n}\n",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1.8,
+            "position": [
+                448,
+                -48
+            ],
+            "id": "20615508-8818-4371-9208-18977992f676",
+            "name": "Message a model",
+            "retryOnFail": true,
+            "credentials": {
+                "openAiApi": {
+                    "id": "hPPzOLwfNBHbANKb",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Resume</title>\n  <style>\n    body {\n      font-family: \"Helvetica Neue\", Arial, sans-serif;\n      margin: 40px;\n      color: #333;\n      line-height: 1.6;\n    }\n    h1, h2, h3 {\n      margin: 0;\n      font-weight: 600;\n      color: #222;\n    }\n    h1 {\n      font-size: 28px;\n      margin-bottom: 5px;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 20px;\n      border-bottom: 2px solid #ddd;\n      padding-bottom: 4px;\n    }\n    h3 {\n      font-size: 16px;\n      margin-top: 10px;\n    }\n    p {\n      margin: 4px 0;\n    }\n    .contact {\n      font-size: 14px;\n      color: #666;\n    }\n    .section {\n      margin-bottom: 20px;\n    }\n    .job, .edu, .skill {\n      margin-bottom: 12px;\n    }\n    .date {\n      float: right;\n      font-size: 13px;\n      color: #888;\n    }\n    ul {\n      padding-left: 18px;\n      margin: 4px 0;\n    }\n  </style>\n</head>\n<body>\n\n  <!-- Basics -->\n  <div class=\"header\">\n    <h1>{{ $json.basics.name }}</h1>\n    <p class=\"contact\">\n      {{ $json.basics.email }} | {{ $json.basics.phone }} | {{ $json.basics.location.city }}, {{ $json.basics.location.countryCode }}<br>\n      {{ $json.basics.website ? '<a href=\"' + $json.basics.website + '\">' + $json.basics.website + '</a>' : '' }}\n    </p>\n  </div>\n\n  <!-- Summary -->\n  {{ $json.basics.summary ? `\n  <div class=\"section\">\n    <h2>Summary</h2>\n    <p>${$json.basics.summary}</p>\n  </div>\n  ` : '' }}\n\n  <!-- Work Experience -->\n  {{ $json.work && $json.work.length > 0 ? `\n  <div class=\"section\">\n    <h2>Work Experience</h2>\n    ${$json.work.map(job => `\n      <div class=\"job\">\n        <h3>${job.position} - ${job.name} <span class=\"date\">${job.startDate} – ${job.endDate}</span></h3>\n        ${job.location ? `<p><em>${job.location}</em></p>` : ''}\n        <p>${job.summary}</p>\n        ${job.highlights && job.highlights.length > 0 ? `\n          <ul>\n            ${job.highlights.map(highlight => `<li>${highlight}</li>`).join('')}\n          </ul>\n        ` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Education -->\n  {{ $json.education && $json.education.length > 0 ? `\n  <div class=\"section\">\n    <h2>Education</h2>\n    ${$json.education.map(edu => `\n      <div class=\"edu\">\n        <h3>${edu.studyType} in ${edu.area} - ${edu.institution} <span class=\"date\">${edu.startDate ? edu.startDate + ' – ' : ''}${edu.endDate}</span></h3>\n        ${edu.gpa ? `<p>${edu.gpa}</p>` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Skills -->\n  {{ $json.skills && $json.skills.length > 0 ? `\n  <div class=\"section\">\n    <h2>Skills</h2>\n    ${$json.skills.map(skill => `\n      <div class=\"skill\">\n        <strong>${skill.name}:</strong> ${skill.keywords ? skill.keywords.join(', ') : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Projects -->\n  {{ $json.projects && $json.projects.length > 0 ? `\n  <div class=\"section\">\n    <h2>Projects</h2>\n    ${$json.projects.map(project => `\n      <div class=\"proj\">\n        <h3>${project.name}</h3>\n        <p>${project.description}</p>\n        ${project.keywords && project.keywords.length > 0 ? `\n          <p><strong>Tech:</strong> ${project.keywords.join(', ')}</p>\n        ` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n</body>\n</html>"
+            },
+            "type": "n8n-nodes-base.html",
+            "typeVersion": 1.2,
+            "position": [
+                976,
+                -48
+            ],
+            "id": "d5a27a09-600b-4fe3-b46f-497180024920",
+            "name": "resume HTML template"
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "// Function node in n8n\n// Parse AI output and return a single item object\n\nconst raw = $json.output;\n\nlet resume;\ntry {\n  resume = JSON.parse(raw);\n} catch (e) {\n  throw new Error(\"Failed to parse resume JSON: \" + e.message);\n}\n\n// ✅ Return ONE object with a `json` key\nreturn {\n  json: resume\n};\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                752,
+                -48
+            ],
+            "id": "54d13e1b-2c03-4f9f-8719-fb85cdb6e460",
+            "name": "ai response resume extraction"
+        },
+        {
+            "parameters": {
+                "operation": "URL/HTML to PDF",
+                "convertType": "htmlToPDF",
+                "html": "={{ $json.html }}",
+                "advancedOptions": {}
+            },
+            "type": "n8n-nodes-pdfco.PDFco Api",
+            "typeVersion": 1,
+            "position": [
+                1184,
+                -48
+            ],
+            "id": "05d22064-1d88-4fb4-a960-580418924cc7",
+            "name": "PDFco Api (generated pdf expires in 1 hour)",
+            "retryOnFail": true,
+            "credentials": {
+                "pdfcoApi": {
+                    "id": "IuRDR4Ly2QhMb4Vc",
+                    "name": "PDF.co account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1392,
+                -48
+            ],
+            "id": "8a07b21e-9e17-4abb-a6b4-45533bfa98fe",
+            "name": "download resume pdf (so it persists)"
+        },
+        {
+            "parameters": {
+                "domain": "={{ $('Webhook').item.json.body.company_website }}",
+                "limit": 10,
+                "filters": {}
+            },
+            "type": "n8n-nodes-base.hunter",
+            "typeVersion": 1,
+            "position": [
+                928,
+                336
+            ],
+            "id": "88b6511e-5e40-4567-89c4-81184f7fedc2",
+            "name": "Hunter",
+            "credentials": {
+                "hunterApi": {
+                    "id": "k7MncSOd9jGjn1NX",
+                    "name": "Hunter account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Get all items from the previous node\nconst items = $input.all();\nconst contacts = items.map(item => item.json);\n\nif (!contacts || contacts.length === 0) {\n  return { error: 'No email data found', contacts: [] };\n}\n\n// Priority departments for sales/outreach\nconst priorityDepartments = ['executive', 'management', 'sales', 'marketing'];\n\n// Score and sort contacts\nconst scoredContacts = contacts.map(contact => {\n  let score = 0;\n  \n  // Department priority\n  if (priorityDepartments.includes(contact.department)) {\n    score += 10;\n  }\n  \n  // Confidence score\n  score += contact.confidence / 10;\n  \n  // Executive seniority bonus\n  if (contact.seniority === 'executive') {\n    score += 5;\n  }\n  \n  return { ...contact, score };\n}).sort((a, b) => b.score - a.score);\n\nconst bestContact = scoredContacts[0];\n\n// Extract domain from first email to get company name\nconst domain = bestContact.value.split('@')[1];\n\n// Return only the best contact\nreturn {\n  recipient: {\n    fullName: `${bestContact.first_name} ${bestContact.last_name}`,\n    firstName: bestContact.first_name,\n    lastName: bestContact.last_name,\n    position: bestContact.position_raw || bestContact.position,\n    department: bestContact.department,\n    seniority: bestContact.seniority,\n    email: bestContact.value\n  },\n  company: {\n    domain: domain,\n    organization: domain.split('.')[0]\n  },\n  confidence: bestContact.confidence,\n  verificationStatus: bestContact.verification.status,\n  score: bestContact.score\n};"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1136,
+                336
+            ],
+            "id": "bee76089-d804-493b-99c9-8cb28f899ea3",
+            "name": "SortedEmail",
+            "alwaysOutputData": false
+        },
+        {
+            "parameters": {
+                "modelId": {
+                    "__rl": true,
+                    "value": "models/gemini-2.5-flash",
+                    "mode": "list",
+                    "cachedResultName": "models/gemini-2.5-flash"
+                },
+                "messages": {
+                    "values": [
+                        {
+                            "content": "=# Cover Letter Generation Prompt for LLM Node\n\nYou are an expert career strategist and professional writer specializing in creating standout cover letters that place candidates in the top 10% of applicants. Your task is to write a concise, high-impact cover letter (no more than 420 words) that demonstrates exceptional value and strategic thinking.\n\n## Instructions:\n\n**Write a cover letter that:**\n1. **Opens with immediate impact** – Start with 1–2 sentences that highlight a measurable achievement directly relevant to the target role.\n2. **Demonstrates alignment** – Show you understand the recipient’s role, department, and the company’s challenges, and keep the explanation focused and relevant.\n3. **Tells a strategic story** – Connect 2–3 specific, quantified achievements from the resume to the role’s requirements in short, sharp paragraphs.\n4. **Shows cultural fit through example** – Reference company values or culture and give a brief example of when the candidate thrived in a similar environment.\n5. **Closes with confidence** – End with a specific, actionable call-to-action (e.g., a follow-up conversation next week).\n6. Never use redundant placeholders, if the information needed is not available, just omit it. For instance, \"At [Previous Company]...\" is not allowed.\n\n## Key Information to Use:\n\n**Recipient Details:**\n- Name: {{ $json.recipient.fullName }}\n- Position: {{ $json.recipient.position }}\n- Department: {{ $json.recipient.department }}\n- Email: {{ $json.recipient.email }}\n\n**Candidate Information:**\n- Candidate Name: {{ $('ai response resume extraction').first().json.basics.name }}\n- Resume Content: {{ $('ai response resume extraction').first().json.basics.summary }}\n- Target Company: {{ $('Webhook').first().json.body.company_name }}\n- Target Role: {{ $('Webhook').first().json.body.job_title }}\n\n## Writing Guidelines:\n\n**Structure (350–420 words, 3–4 paragraphs):**\n1. **Opening Hook** (1–2 sentences): Specific achievement tied to scale, reliability, or efficiency.  \n2. **Strategic Connection** (1–2 short paragraphs): Link 2–3 resume achievements to role requirements with metrics.  \n3. **Culture Alignment** (1 short paragraph): Show understanding of company culture/values with one concrete example of fit.  \n4. **Closing CTA** (1–2 sentences): Confident, actionable next step. \n5. Mention that there's a resume attachment as well\n\n**Tone & Style:**\n- Professional yet personable  \n- Direct and concise (avoid long multi-clause sentences)  \n- Confident without overselling  \n- Specific rather than generic  \n- Skimmable, with strong first sentences in each paragraph  \n\n**Top Differentiators to Include:**\n- Quantified results (cost savings, uptime %, speed improvements, growth metrics)  \n- Relevant technical expertise with industry context  \n- Strategic thinking and cross-team collaboration  \n- Clear understanding of company’s scale, innovation pace, and challenges  \n\n## Output Format:\n(separate in json with \"email_subject\" and \"email_body\")\n\nSubject: [Compelling subject line referencing the role and a key strength]\n\nDear [Recipient Name],\n[Concise 3–4 paragraph cover letter following the structure above]\nBest regards,[Candidate Name]\n## Quality Checklist:\n- [ ] Hook shows immediate, quantifiable value\n- [ ] Includes 2–3 measurable achievements tied to role\n- [ ] Shows understanding of company and department challenges\n- [ ] Demonstrates cultural alignment with a real example\n- [ ] Uses sharp, scannable paragraphs (3–4 total)\n- [ ] Maintains professional yet personable tone\n- [ ] Ends with specific, confident CTA\n- [ ] Stays within 350–420 word range\n- [ ] No redundancy or fluff\n- [ ] Error-free grammar and spelling\n\n**Remember:** This cover letter should make the hiring manager think \"I need to meet this person immediately.\" Focus on value creation, strategic thinking, and genuine connection rather than just listing qualifications.\n"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.googleGemini",
+            "typeVersion": 1,
+            "position": [
+                1296,
+                336
+            ],
+            "id": "71ee7435-31fb-49df-9188-e884f09b4399",
+            "name": "Generate cover letter",
+            "retryOnFail": true,
+            "credentials": {
+                "googlePalmApi": {
+                    "id": "f3If3PxYUBSAaMDJ",
+                    "name": "Google Gemini(PaLM) Api account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Get the raw text from model output\nconst rawText = $input.first().json.content.parts[0].text\n\n// Remove ```json and ``` if present\nconst cleaned = rawText.replace(/```json|```/g, '').trim();\n\n// Parse JSON\nlet parsed;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  throw new Error(\"Failed to parse LLM output as JSON: \" + e.message);\n}\n\nreturn [\n  {\n    json: {\n      email_subject: parsed.email_subject || \"\",\n      email_body: parsed.email_body || \"\"\n    }\n  }\n];\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1584,
+                336
+            ],
+            "id": "81e1301f-0b86-42b4-9137-bb8c1e5a2cd4",
+            "name": "cleanCoverLetter"
+        },
+        {
+            "parameters": {
+                "jsCode": "return [\n  {\n    json: {\n      status: \"success\",\n      ai_application_id: $('Webhook').first().json.body.ai_application_id,   \n      client_id: $('Webhook').first().json.body.client_id,                   \n      job_id: $('Webhook').first().json.body.job_id,                      \n      ai_generated_content: {\n        email_subject: $('cleanCoverLetter').first().json.email_subject,         \n        email_body: $('cleanCoverLetter').first().json.email_body,             \n        resume_content: {\n          blob_url:  $('saveCVToVercel').first().json.url           \n        },\n      metadata: {\n        resume_blob_url: $('saveCVToVercel').first().json.url\n      }\n    },\n        discovery: {\n          primary_email: $('SortedEmail').first().json.recipient.email\n        } \n      }\n  }\n];\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1776,
+                336
+            ],
+            "id": "1bdba40c-1641-4844-ba52-ff177fcf426e",
+            "name": "return JSON payload"
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://blob.vercel-storage.com/resumes/resume-${{$now}}-{{ $('Webhook').item.json.body.ai_application_id || $('Webhook').item.json.body.job_id}}.pdf",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBearerAuth",
+                "sendBody": true,
+                "contentType": "binaryData",
+                "inputDataFieldName": "data",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1600,
+                -48
+            ],
+            "id": "6ad73b7b-043a-4ff7-b4da-d5cb77167a4f",
+            "name": "saveCVToVercel",
+            "credentials": {
+                "httpBearerAuth": {
+                    "id": "GragSjtOGRb73Rrs",
+                    "name": "Bearer Auth account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3000/api/n8n/ai-apply",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "change-me-but-i-dont-wanna"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{$json}}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1984,
+                336
+            ],
+            "id": "12b778c4-9e18-4684-9aab-e2c38ab6929f",
+            "name": "HTTP Request1",
+            "retryOnFail": true
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "ai-resume",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2.1,
+            "position": [
+                -112,
+                784
+            ],
+            "id": "ff4c365c-3435-485c-b1c2-73e79fec52fd",
+            "name": "Webhook1",
+            "webhookId": "b6569f40-9ecf-4ae6-b86d-cfdc1410ea0d"
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.body.resume.file_url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                80,
+                784
+            ],
+            "id": "7e27cf4b-2d8c-4d3d-84eb-46204c0b0aa0",
+            "name": "HTTP Request2"
+        },
+        {
+            "parameters": {
+                "operation": "pdf",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.extractFromFile",
+            "typeVersion": 1,
+            "position": [
+                256,
+                784
+            ],
+            "id": "d9e87f01-bfac-4b5b-8879-f6bbae7fac00",
+            "name": "Extract from File1"
+        },
+        {
+            "parameters": {
+                "resource": "assistant",
+                "assistantId": {
+                    "__rl": true,
+                    "value": "asst_NqLlpRN5jNWhmgj9o2Sk1iIa",
+                    "mode": "list",
+                    "cachedResultName": "Resume Curator"
+                },
+                "prompt": "define",
+                "text": "=You are an expert career assistant.\n\nYour task is to take a candidate’s original CV and rewrite it so that it aligns with a given job description. \nThe output should follow the JSON Resume schema below\n\n### Instructions:\n- Keep the candidate’s true information (education, work history, skills).\n- Emphasize only the most relevant experience and skills for the target job.\n- Reorder sections if needed to highlight relevance.\n- Remove or downplay unrelated details.\n- Keep dates and factual details consistent with the original CV.\n- Make it robust and let it standout as top 10 percent of applicants\n- Output valid JSON only, with no extra commentary or markdown formatting.\n- Each work section must have at least 5 or more items (the resume must be as robust as possible. we want to standout as top 10 percent)\n\n### Input:\nJob Title:\n{{ $('Webhook1').item.json.body.job_title }}\n\nJob Description:\n{{ $('Webhook1').item.json.body.description_snippet }}\n\nOriginal CV Text:\n{{ $json.text }}\n\ncandidate's name: {{ $('Webhook1').item.json.body.client_name }}\ncandidate's email: {{ $('Webhook1').item.json.body.sender_email }}\n### Output:\nA tailored resume object that strictly follows the JSON Resume schema v1.0.0.\n{\n  \"basics\": {\n    \"name\": \"John Doe\",\n    \"label\": \"Full Stack Developer\",\n    \"image\": \"\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"(912) 555-4321\",\n    \"url\": \"https://johndoe.com\",\n    \"summary\": \"Passionate software developer with 5+ years experience...\",\n    \"location\": {\n      \"address\": \"2712 Broadway St\",\n      \"postalCode\": \"CA 94115\",\n      \"city\": \"San Francisco\",\n      \"countryCode\": \"US\",\n      \"region\": \"California\"\n    },\n    \"profiles\": [\n      {\n        \"network\": \"LinkedIn\",\n        \"username\": \"johndoe\",\n        \"url\": \"https://linkedin.com/in/johndoe\"\n      },\n      {\n        \"network\": \"GitHub\",\n        \"username\": \"johndoe\",\n        \"url\": \"https://github.com/johndoe\"\n      }\n    ]\n  },\n  \"work\": [\n    {\n      \"name\": \"Acme Corp\",\n      \"position\": \"Senior Software Engineer\",\n      \"url\": \"https://acme.com\",\n      \"startDate\": \"2020-01-01\",\n      \"endDate\": \"2023-06-01\",\n      \"summary\": \"Led a team of 5 engineers to build scalable microservices.\",\n      \"highlights\": [\n        \"Optimized backend, reducing response times by 30%\",\n        \"Mentored junior developers\"\n      ]\n    }\n  ],\n  \"volunteer\": [\n    {\n      \"organization\": \"Code for Good\",\n      \"position\": \"Contributor\",\n      \"url\": \"https://codeforgood.org\",\n      \"startDate\": \"2019-01-01\",\n      \"endDate\": \"2020-01-01\",\n      \"summary\": \"Built community projects\",\n      \"highlights\": [\n        \"Developed open-source education platform\"\n      ]\n    }\n  ],\n  \"education\": [\n    {\n      \"institution\": \"University of Technology\",\n      \"area\": \"Computer Science\",\n      \"studyType\": \"Bachelor\",\n      \"startDate\": \"2014-01-01\",\n      \"endDate\": \"2018-01-01\",\n      \"score\": \"3.8 GPA\",\n      \"courses\": [\n        \"CS101 - Algorithms\",\n        \"CS201 - Databases\"\n      ]\n    }\n  ],\n  \"awards\": [\n    {\n      \"title\": \"Employee of the Year\",\n      \"date\": \"2022-12-01\",\n      \"awarder\": \"Acme Corp\",\n      \"summary\": \"For outstanding leadership and innovation.\"\n    }\n  ],\n  \"certificates\": [\n    {\n      \"name\": \"AWS Solutions Architect\",\n      \"date\": \"2021-06-01\",\n      \"issuer\": \"Amazon Web Services\",\n      \"url\": \"https://aws.amazon.com/certification\"\n    }\n  ],\n  \"publications\": [\n    {\n      \"name\": \"Scaling Systems with Kubernetes\",\n      \"publisher\": \"Tech Journal\",\n      \"releaseDate\": \"2021-08-01\",\n      \"url\": \"https://techjournal.com/article/k8s\",\n      \"summary\": \"Article on best practices for Kubernetes scaling.\"\n    }\n  ],\n  \"skills\": [\n    {\n      \"name\": \"Programming Languages\",\n      \"level\": \"Advanced\",\n      \"keywords\": [\"JavaScript\", \"Python\", \"TypeScript\", \"Go\"]\n    },\n    {\n      \"name\": \"Frameworks\",\n      \"level\": \"Advanced\",\n      \"keywords\": [\"React\", \"Next.js\", \"FastAPI\", \"Node.js\"]\n    }\n  ],\n  \"languages\": [\n    {\n      \"language\": \"English\",\n      \"fluency\": \"Native speaker\"\n    },\n    {\n      \"language\": \"French\",\n      \"fluency\": \"Intermediate\"\n    }\n  ],\n  \"interests\": [\n    {\n      \"name\": \"Open Source\",\n      \"keywords\": [\"n8n\", \"Next.js\", \"AI\"]\n    }\n  ],\n  \"references\": [\n    {\n      \"name\": \"Jane Smith\",\n      \"reference\": \"John is an exceptional developer and team player.\"\n    }\n  ],\n  \"projects\": [\n    {\n      \"name\": \"AI Resume Tailor\",\n      \"description\": \"Workflow automation that customizes resumes for job applications.\",\n      \"highlights\": [\n        \"Built with n8n + LLMs\",\n        \"Deployed on Railway\"\n      ],\n      \"keywords\": [\"AI\", \"Automation\", \"n8n\"],\n      \"startDate\": \"2024-01-01\",\n      \"endDate\": \"2024-06-01\",\n      \"url\": \"https://myproject.com\",\n      \"roles\": [\"Lead Developer\"],\n      \"entity\": \"Personal\",\n      \"type\": \"application\"\n    }\n  ]\n}\n",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1.8,
+            "position": [
+                416,
+                784
+            ],
+            "id": "f50446ca-e7c8-4e04-937f-df514c944936",
+            "name": "Message a model1",
+            "retryOnFail": true,
+            "credentials": {
+                "openAiApi": {
+                    "id": "hPPzOLwfNBHbANKb",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Resume</title>\n  <style>\n    body {\n      font-family: \"Helvetica Neue\", Arial, sans-serif;\n      margin: 40px;\n      color: #333;\n      line-height: 1.6;\n    }\n    h1, h2, h3 {\n      margin: 0;\n      font-weight: 600;\n      color: #222;\n    }\n    h1 {\n      font-size: 28px;\n      margin-bottom: 5px;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 20px;\n      border-bottom: 2px solid #ddd;\n      padding-bottom: 4px;\n    }\n    h3 {\n      font-size: 16px;\n      margin-top: 10px;\n    }\n    p {\n      margin: 4px 0;\n    }\n    .contact {\n      font-size: 14px;\n      color: #666;\n    }\n    .section {\n      margin-bottom: 20px;\n    }\n    .job, .edu, .skill {\n      margin-bottom: 12px;\n    }\n    .date {\n      float: right;\n      font-size: 13px;\n      color: #888;\n    }\n    ul {\n      padding-left: 18px;\n      margin: 4px 0;\n    }\n  </style>\n</head>\n<body>\n\n  <!-- Basics -->\n  <div class=\"header\">\n    <h1>{{ $json.basics.name }}</h1>\n    <p class=\"contact\">\n      {{ $json.basics.email }} | {{ $json.basics.phone }} | {{ $json.basics.location.city }}, {{ $json.basics.location.countryCode }}<br>\n      {{ $json.basics.website ? '<a href=\"' + $json.basics.website + '\">' + $json.basics.website + '</a>' : '' }}\n    </p>\n  </div>\n\n  <!-- Summary -->\n  {{ $json.basics.summary ? `\n  <div class=\"section\">\n    <h2>Summary</h2>\n    <p>${$json.basics.summary}</p>\n  </div>\n  ` : '' }}\n\n  <!-- Work Experience -->\n  {{ $json.work && $json.work.length > 0 ? `\n  <div class=\"section\">\n    <h2>Work Experience</h2>\n    ${$json.work.map(job => `\n      <div class=\"job\">\n        <h3>${job.position} - ${job.name} <span class=\"date\">${job.startDate} – ${job.endDate}</span></h3>\n        ${job.location ? `<p><em>${job.location}</em></p>` : ''}\n        <p>${job.summary}</p>\n        ${job.highlights && job.highlights.length > 0 ? `\n          <ul>\n            ${job.highlights.map(highlight => `<li>${highlight}</li>`).join('')}\n          </ul>\n        ` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Education -->\n  {{ $json.education && $json.education.length > 0 ? `\n  <div class=\"section\">\n    <h2>Education</h2>\n    ${$json.education.map(edu => `\n      <div class=\"edu\">\n        <h3>${edu.studyType} in ${edu.area} - ${edu.institution} <span class=\"date\">${edu.startDate ? edu.startDate + ' – ' : ''}${edu.endDate}</span></h3>\n        ${edu.gpa ? `<p>${edu.gpa}</p>` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Skills -->\n  {{ $json.skills && $json.skills.length > 0 ? `\n  <div class=\"section\">\n    <h2>Skills</h2>\n    ${$json.skills.map(skill => `\n      <div class=\"skill\">\n        <strong>${skill.name}:</strong> ${skill.keywords ? skill.keywords.join(', ') : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n  <!-- Projects -->\n  {{ $json.projects && $json.projects.length > 0 ? `\n  <div class=\"section\">\n    <h2>Projects</h2>\n    ${$json.projects.map(project => `\n      <div class=\"proj\">\n        <h3>${project.name}</h3>\n        <p>${project.description}</p>\n        ${project.keywords && project.keywords.length > 0 ? `\n          <p><strong>Tech:</strong> ${project.keywords.join(', ')}</p>\n        ` : ''}\n      </div>\n    `).join('')}\n  </div>\n  ` : '' }}\n\n</body>\n</html>"
+            },
+            "type": "n8n-nodes-base.html",
+            "typeVersion": 1.2,
+            "position": [
+                944,
+                784
+            ],
+            "id": "9bba1879-4667-47e2-af52-47b914d53325",
+            "name": "resume HTML template1"
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "// Function node in n8n\n// Parse AI output and return a single item object\n\nconst raw = $json.output;\n\nlet resume;\ntry {\n  resume = JSON.parse(raw);\n} catch (e) {\n  throw new Error(\"Failed to parse resume JSON: \" + e.message);\n}\n\n// ✅ Return ONE object with a `json` key\nreturn {\n  json: resume\n};\n"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                720,
+                784
+            ],
+            "id": "c8d1b970-6b92-4aba-b960-73bb66017a55",
+            "name": "ai response resume extraction1"
+        },
+        {
+            "parameters": {
+                "operation": "URL/HTML to PDF",
+                "convertType": "htmlToPDF",
+                "html": "={{ $json.html }}",
+                "advancedOptions": {}
+            },
+            "type": "n8n-nodes-pdfco.PDFco Api",
+            "typeVersion": 1,
+            "position": [
+                1152,
+                784
+            ],
+            "id": "f9c019b5-bce4-4d66-980f-9d410cf1cf57",
+            "name": "PDFco Api (generated pdf expires in 1 hour)1",
+            "retryOnFail": true,
+            "credentials": {
+                "pdfcoApi": {
+                    "id": "IuRDR4Ly2QhMb4Vc",
+                    "name": "PDF.co account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "url": "={{ $json.url }}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1360,
+                784
+            ],
+            "id": "dc8b2370-b7d4-444f-ae4f-104f888e13f6",
+            "name": "download resume pdf (so it persists)1"
+        },
+        {
+            "parameters": {
+                "jsCode": "return [\n  {\n    json: {\n    status: \"success\",\n    resume_id: $('Webhook1').first().json.body.resume_id,\n    client_id: $('Webhook1').first().json.body.client_id, \n    job_id: $('Webhook1').first().json.body.job_id,\n    generated_resume: {\n      resume_url: $input.first().json.url,\n      filename: \"{{ $input.first().json.filename || 'generated_resume.pdf' }}\"\n    }\n  }}\n];"
+            },
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1824,
+                784
+            ],
+            "id": "fcdc2531-1a47-40c4-8141-175dcfe60d5b",
+            "name": "return JSON payload1"
+        },
+        {
+            "parameters": {
+                "method": "PUT",
+                "url": "=https://blob.vercel-storage.com/resumes/resume-${{$now}}-{{ $('Webhook1').item.json.body.ai_application_id || $('Webhook1').item.json.body.job_id}}.pdf",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpBearerAuth",
+                "sendBody": true,
+                "contentType": "binaryData",
+                "inputDataFieldName": "data",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1568,
+                784
+            ],
+            "id": "1029b048-b6f4-4c0e-a6ef-c821cfb3f962",
+            "name": "saveCVToVercel1",
+            "credentials": {
+                "httpBearerAuth": {
+                    "id": "GragSjtOGRb73Rrs",
+                    "name": "Bearer Auth account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://host.docker.internal:3000/api/n8n/ai-resume",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "X-Webhook-Secret",
+                            "value": "change-me-but-i-dont-wanna"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{$json}}",
+                "options": {}
+            },
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                2032,
+                784
+            ],
+            "id": "d395049b-93e7-4d66-8f06-83cff522c4a7",
+            "name": "HTTP Request3",
+            "retryOnFail": true
+        }
+    ],
+    "pinData": {
+        "Webhook": [
+            {
+                "json": {
+                    "headers": {
+                        "host": "localhost:5678",
+                        "connection": "keep-alive",
+                        "content-type": "application/json",
+                        "x-webhook-secret": "change-me-but-i-dont-wanna",
+                        "accept": "*/*",
+                        "accept-language": "*",
+                        "sec-fetch-mode": "cors",
+                        "user-agent": "node",
+                        "accept-encoding": "gzip, deflate",
+                        "content-length": "742"
+                    },
+                    "params": {},
+                    "query": {},
+                    "body": {
+                        "ai_application_id": "078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb",
+                        "client_id": "7fe84a82-974a-4a7a-b082-a36614138203",
+                        "client_name": "Test Client",
+                        "sender_email": "test.client@interviewsfirst.com",
+                        "worker_id": "550e8400-e29b-41d4-a716-446655440002",
+                        "resume": {
+                            "id": "fe9f49bd-8aaf-4ea8-b2bd-f7113d49fd90",
+                            "file_url": "https://qvhecu7xamhhrgwx.public.blob.vercel-storage.com/resume-1758026552791-175922056.pdf",
+                            "name": "Software Engineer - Tech Companies (1).pdf"
+                        },
+                        "job_id": "8481933a-a096-4191-9372-dc034b0c098f",
+                        "job_title": "Product Manager",
+                        "company_name": "Microsoft",
+                        "company_website": "https://microsoft.com",
+                        "description_snippet": "Join our product team to drive innovation...",
+                        "wait_for_approval": true,
+                        "worker_notes": "AI application from job discovery"
+                    },
+                    "webhookUrl": "http://localhost:5678/webhook-test/ai-apply",
+                    "executionMode": "test"
+                }
+            }
+        ],
+        "HTTP Request": [
+            {
+                "json": {
+                    "headers": {
+                        "host": "localhost:5678",
+                        "connection": "keep-alive",
+                        "content-type": "application/json",
+                        "x-webhook-secret": "change-me-but-i-dont-wanna",
+                        "accept": "*/*",
+                        "accept-language": "*",
+                        "sec-fetch-mode": "cors",
+                        "user-agent": "node",
+                        "accept-encoding": "gzip, deflate",
+                        "content-length": "742"
+                    },
+                    "params": {},
+                    "query": {},
+                    "body": {
+                        "ai_application_id": "078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb",
+                        "client_id": "7fe84a82-974a-4a7a-b082-a36614138203",
+                        "client_name": "Test Client",
+                        "sender_email": "test.client@interviewsfirst.com",
+                        "worker_id": "550e8400-e29b-41d4-a716-446655440002",
+                        "resume": {
+                            "id": "fe9f49bd-8aaf-4ea8-b2bd-f7113d49fd90",
+                            "file_url": "https://qvhecu7xamhhrgwx.public.blob.vercel-storage.com/resume-1758026552791-175922056.pdf",
+                            "name": "Software Engineer - Tech Companies (1).pdf"
+                        },
+                        "job_id": "8481933a-a096-4191-9372-dc034b0c098f",
+                        "job_title": "Product Manager",
+                        "company_name": "Microsoft",
+                        "company_website": "https://microsoft.com",
+                        "description_snippet": "Join our product team to drive innovation...",
+                        "wait_for_approval": true,
+                        "worker_notes": "AI application from job discovery"
+                    },
+                    "webhookUrl": "http://localhost:5678/webhook-test/ai-apply",
+                    "executionMode": "test"
+                }
+            }
+        ],
+        "Extract from File": [
+            {
+                "json": {
+                    "numpages": 1,
+                    "numrender": 1,
+                    "info": {
+                        "PDFFormatVersion": "1.4",
+                        "Language": null,
+                        "EncryptFilterName": null,
+                        "IsLinearized": false,
+                        "IsAcroFormPresent": false,
+                        "IsXFAPresent": false,
+                        "IsCollectionPresent": false,
+                        "IsSignaturesPresent": false
+                    },
+                    "text": "Resume: Software Engineer - Tech Companies",
+                    "version": "5.3.31"
+                }
+            }
+        ],
+        "Message a model": [
+            {
+                "json": {
+                    "output": "{\n  \"basics\": {\n    \"name\": \"Test Client\",\n    \"label\": \"Product Manager\",\n    \"image\": \"\",\n    \"email\": \"test.client@interviewsfirst.com\",\n    \"phone\": \"\",\n    \"url\": \"\",\n    \"summary\": \"Dynamic and detail-oriented Product Manager with a strong background in software engineering and technology. Proven expertise in driving product innovation, managing cross-functional teams, and delivering user-centric solutions that align business goals with customer needs. Demonstrated ability to translate technical concepts into strategic product roadmaps and lead initiatives from concept to launch.\",\n    \"location\": {\n      \"address\": \"\",\n      \"postalCode\": \"\",\n      \"city\": \"\",\n      \"countryCode\": \"\",\n      \"region\": \"\"\n    },\n    \"profiles\": []\n  },\n  \"work\": [\n    {\n      \"name\": \"Financial Services Technology Consultancy\",\n      \"position\": \"Senior DevOps Engineer – Salesforce Platform Automation\",\n      \"url\": \"\",\n      \"startDate\": \"2021-01-01\",\n      \"endDate\": \"Present\",\n      \"summary\": \"Led platform automation initiatives enhancing product delivery and reliability for Salesforce Financial Services Cloud used by 25,000+ users. Collaborated with product and engineering teams to streamline deployment processes and improve user experience through automation and integration.\",\n      \"highlights\": [\n        \"Architected and implemented end-to-end automated release management using Azure DevOps pipelines, ensuring 99.98% platform uptime and supporting high reliability for end users.\",\n        \"Designed CI/CD pipeline architecture integrating automated regression testing and code quality checks, increasing deployment frequency to 8+ releases per month without critical incidents.\",\n        \"Developed automation frameworks using Python and Salesforce CLI, significantly reducing manual deployment efforts by 85% and accelerating time-to-market for new product features.\",\n        \"Integrated OwnBackup data protection services with automation scripts to ensure regulatory compliance and efficient data refreshes, supporting product reliability and trust.\",\n        \"Collaborated with cross-functional teams to implement MuleSoft API Gateway integration within deployment workflows, enabling seamless data exchange critical to product functionality.\"\n      ]\n    },\n    {\n      \"name\": \"Regulatory Technology Specialist\",\n      \"position\": \"DevOps Platform Engineer – Cloud Infrastructure Automation\",\n      \"url\": \"\",\n      \"startDate\": \"2019-01-01\",\n      \"endDate\": \"2021-01-01\",\n      \"summary\": \"Drove cloud infrastructure automation and DevOps best practices that directly supported product stability, scalability, and compliance. Partnered with product teams to embed quality and security in release processes, enhancing product integrity and customer confidence.\",\n      \"highlights\": [\n        \"Led Azure DevOps transformation with Infrastructure as Code techniques, achieving 99.95% availability critical to consistent product delivery.\",\n        \"Developed comprehensive monitoring and alerting frameworks reducing issue detection times dramatically, improving product reliability and user satisfaction.\",\n        \"Embedded automated testing and security scanning within CI/CD pipelines, resulting in 95% code coverage while maintaining rapid deployment cycles aligned with product goals.\",\n        \"Implemented automated rollback mechanisms streamlined product recovery from deployment issues, minimizing downtime to under 10 minutes.\",\n        \"Mentored development teams on Azure platform and DevOps practices, elevating team capability and enhancing collaboration between engineering and product management.\"\n      ]\n    },\n    {\n      \"name\": \"Enterprise Software Solutions\",\n      \"position\": \"Systems Integration Engineer – Automation & Deployment\",\n      \"url\": \"\",\n      \"startDate\": \"2017-01-01\",\n      \"endDate\": \"2019-01-01\",\n      \"summary\": \"Engineered automated deployment solutions supporting SaaS platforms for regulated industries, focusing on uptime, compliance, and performance which directly influenced successful product launches and customer adoption.\",\n      \"highlights\": [\n        \"Designed and implemented Blue-Green deployment strategies eliminating downtime during product releases, enhancing end user experience.\",\n        \"Developed monitoring dashboards providing real-time system performance visibility critical for proactive product management and customer support.\",\n        \"Automated configuration management ensuring consistency across development, testing, and production environments to support a reliable and predictable product lifecycle.\",\n        \"Led disaster recovery automation projects reducing recovery objectives, safeguarding product availability and trust.\",\n        \"Established automated compliance reporting workflows, significantly reducing manual prep time and ensuring adherence to regulatory standards impacting product viability.\"\n      ]\n    }\n  ],\n  \"education\": [],\n  \"awards\": [],\n  \"certificates\": [],\n  \"publications\": [],\n  \"skills\": [\n    {\n      \"name\": \"Product & Technical Skills\",\n      \"level\": \"Advanced\",\n      \"keywords\": [\n        \"Product Roadmapping\",\n        \"Cross-functional Team Leadership\",\n        \"Agile & Scrum Methodologies\",\n        \"CI/CD Pipeline Design\",\n        \"Automation Frameworks\",\n        \"Cloud Infrastructure (Azure)\",\n        \"Salesforce Platform\",\n        \"API Integration (MuleSoft)\",\n        \"Regulatory Compliance\",\n        \"Monitoring and Alerting\"\n      ]\n    },\n    {\n      \"name\": \"Programming & Tools\",\n      \"level\": \"Intermediate\",\n      \"keywords\": [\n        \"Python\",\n        \"YAML\",\n        \"Bash Scripting\",\n        \"Git\",\n        \"Terraform\",\n        \"ARM Templates\",\n        \"Azure DevOps\",\n        \"JMeter\",\n        \"SonarQube\",\n        \"OWASP ZAP\"\n      ]\n    }\n  ],\n  \"languages\": [],\n  \"interests\": [],\n  \"references\": [],\n  \"projects\": []\n}",
+                    "threadId": "thread_caWL4iC3aNpAWfGjVO8lpdQH"
+                }
+            }
+        ],
+        "resume HTML template": [
+            {
+                "json": {
+                    "html": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Resume</title>\n  <style>\n    body {\n      font-family: \"Helvetica Neue\", Arial, sans-serif;\n      margin: 40px;\n      color: #333;\n      line-height: 1.6;\n    }\n    h1, h2, h3 {\n      margin: 0;\n      font-weight: 600;\n      color: #222;\n    }\n    h1 {\n      font-size: 28px;\n      margin-bottom: 5px;\n    }\n    h2 {\n      font-size: 18px;\n      margin-top: 20px;\n      border-bottom: 2px solid #ddd;\n      padding-bottom: 4px;\n    }\n    h3 {\n      font-size: 16px;\n      margin-top: 10px;\n    }\n    p {\n      margin: 4px 0;\n    }\n    .contact {\n      font-size: 14px;\n      color: #666;\n    }\n    .section {\n      margin-bottom: 20px;\n    }\n    .job, .edu, .skill {\n      margin-bottom: 12px;\n    }\n    .date {\n      float: right;\n      font-size: 13px;\n      color: #888;\n    }\n    ul {\n      padding-left: 18px;\n      margin: 4px 0;\n    }\n  </style>\n</head>\n<body>\n\n  <!-- Basics -->\n  <div class=\"header\">\n    <h1>Test Client</h1>\n    <p class=\"contact\">\n      test.client@interviewsfirst.com |  | , <br>\n      \n    </p>\n  </div>\n\n  <!-- Summary -->\n  \n  <div class=\"section\">\n    <h2>Summary</h2>\n    <p>Dynamic and detail-oriented Product Manager with a strong background in software engineering and technology. Proven expertise in driving product innovation, managing cross-functional teams, and delivering user-centric solutions that align business goals with customer needs. Demonstrated ability to translate technical concepts into strategic product roadmaps and lead initiatives from concept to launch.</p>\n  </div>\n  \n\n  <!-- Work Experience -->\n  \n  <div class=\"section\">\n    <h2>Work Experience</h2>\n    \n      <div class=\"job\">\n        <h3>Senior DevOps Engineer – Salesforce Platform Automation - Financial Services Technology Consultancy <span class=\"date\">2021-01-01 – Present</span></h3>\n        \n        <p>Led platform automation initiatives enhancing product delivery and reliability for Salesforce Financial Services Cloud used by 25,000+ users. Collaborated with product and engineering teams to streamline deployment processes and improve user experience through automation and integration.</p>\n        \n          <ul>\n            <li>Architected and implemented end-to-end automated release management using Azure DevOps pipelines, ensuring 99.98% platform uptime and supporting high reliability for end users.</li><li>Designed CI/CD pipeline architecture integrating automated regression testing and code quality checks, increasing deployment frequency to 8+ releases per month without critical incidents.</li><li>Developed automation frameworks using Python and Salesforce CLI, significantly reducing manual deployment efforts by 85% and accelerating time-to-market for new product features.</li><li>Integrated OwnBackup data protection services with automation scripts to ensure regulatory compliance and efficient data refreshes, supporting product reliability and trust.</li><li>Collaborated with cross-functional teams to implement MuleSoft API Gateway integration within deployment workflows, enabling seamless data exchange critical to product functionality.</li>\n          </ul>\n        \n      </div>\n    \n      <div class=\"job\">\n        <h3>DevOps Platform Engineer – Cloud Infrastructure Automation - Regulatory Technology Specialist <span class=\"date\">2019-01-01 – 2021-01-01</span></h3>\n        \n        <p>Drove cloud infrastructure automation and DevOps best practices that directly supported product stability, scalability, and compliance. Partnered with product teams to embed quality and security in release processes, enhancing product integrity and customer confidence.</p>\n        \n          <ul>\n            <li>Led Azure DevOps transformation with Infrastructure as Code techniques, achieving 99.95% availability critical to consistent product delivery.</li><li>Developed comprehensive monitoring and alerting frameworks reducing issue detection times dramatically, improving product reliability and user satisfaction.</li><li>Embedded automated testing and security scanning within CI/CD pipelines, resulting in 95% code coverage while maintaining rapid deployment cycles aligned with product goals.</li><li>Implemented automated rollback mechanisms streamlined product recovery from deployment issues, minimizing downtime to under 10 minutes.</li><li>Mentored development teams on Azure platform and DevOps practices, elevating team capability and enhancing collaboration between engineering and product management.</li>\n          </ul>\n        \n      </div>\n    \n      <div class=\"job\">\n        <h3>Systems Integration Engineer – Automation & Deployment - Enterprise Software Solutions <span class=\"date\">2017-01-01 – 2019-01-01</span></h3>\n        \n        <p>Engineered automated deployment solutions supporting SaaS platforms for regulated industries, focusing on uptime, compliance, and performance which directly influenced successful product launches and customer adoption.</p>\n        \n          <ul>\n            <li>Designed and implemented Blue-Green deployment strategies eliminating downtime during product releases, enhancing end user experience.</li><li>Developed monitoring dashboards providing real-time system performance visibility critical for proactive product management and customer support.</li><li>Automated configuration management ensuring consistency across development, testing, and production environments to support a reliable and predictable product lifecycle.</li><li>Led disaster recovery automation projects reducing recovery objectives, safeguarding product availability and trust.</li><li>Established automated compliance reporting workflows, significantly reducing manual prep time and ensuring adherence to regulatory standards impacting product viability.</li>\n          </ul>\n        \n      </div>\n    \n  </div>\n  \n\n  <!-- Education -->\n  \n\n  <!-- Skills -->\n  \n  <div class=\"section\">\n    <h2>Skills</h2>\n    \n      <div class=\"skill\">\n        <strong>Product & Technical Skills:</strong> Product Roadmapping, Cross-functional Team Leadership, Agile & Scrum Methodologies, CI/CD Pipeline Design, Automation Frameworks, Cloud Infrastructure (Azure), Salesforce Platform, API Integration (MuleSoft), Regulatory Compliance, Monitoring and Alerting\n      </div>\n    \n      <div class=\"skill\">\n        <strong>Programming & Tools:</strong> Python, YAML, Bash Scripting, Git, Terraform, ARM Templates, Azure DevOps, JMeter, SonarQube, OWASP ZAP\n      </div>\n    \n  </div>\n  \n\n  <!-- Projects -->\n  \n\n</body>\n</html>"
+                }
+            }
+        ],
+        "ai response resume extraction": [
+            {
+                "json": {
+                    "basics": {
+                        "name": "Test Client",
+                        "label": "Product Manager",
+                        "image": "",
+                        "email": "test.client@interviewsfirst.com",
+                        "phone": "",
+                        "url": "",
+                        "summary": "Dynamic and detail-oriented Product Manager with a strong background in software engineering and technology. Proven expertise in driving product innovation, managing cross-functional teams, and delivering user-centric solutions that align business goals with customer needs. Demonstrated ability to translate technical concepts into strategic product roadmaps and lead initiatives from concept to launch.",
+                        "location": {
+                            "address": "",
+                            "postalCode": "",
+                            "city": "",
+                            "countryCode": "",
+                            "region": ""
+                        },
+                        "profiles": []
+                    },
+                    "work": [
+                        {
+                            "name": "Financial Services Technology Consultancy",
+                            "position": "Senior DevOps Engineer – Salesforce Platform Automation",
+                            "url": "",
+                            "startDate": "2021-01-01",
+                            "endDate": "Present",
+                            "summary": "Led platform automation initiatives enhancing product delivery and reliability for Salesforce Financial Services Cloud used by 25,000+ users. Collaborated with product and engineering teams to streamline deployment processes and improve user experience through automation and integration.",
+                            "highlights": [
+                                "Architected and implemented end-to-end automated release management using Azure DevOps pipelines, ensuring 99.98% platform uptime and supporting high reliability for end users.",
+                                "Designed CI/CD pipeline architecture integrating automated regression testing and code quality checks, increasing deployment frequency to 8+ releases per month without critical incidents.",
+                                "Developed automation frameworks using Python and Salesforce CLI, significantly reducing manual deployment efforts by 85% and accelerating time-to-market for new product features.",
+                                "Integrated OwnBackup data protection services with automation scripts to ensure regulatory compliance and efficient data refreshes, supporting product reliability and trust.",
+                                "Collaborated with cross-functional teams to implement MuleSoft API Gateway integration within deployment workflows, enabling seamless data exchange critical to product functionality."
+                            ]
+                        },
+                        {
+                            "name": "Regulatory Technology Specialist",
+                            "position": "DevOps Platform Engineer – Cloud Infrastructure Automation",
+                            "url": "",
+                            "startDate": "2019-01-01",
+                            "endDate": "2021-01-01",
+                            "summary": "Drove cloud infrastructure automation and DevOps best practices that directly supported product stability, scalability, and compliance. Partnered with product teams to embed quality and security in release processes, enhancing product integrity and customer confidence.",
+                            "highlights": [
+                                "Led Azure DevOps transformation with Infrastructure as Code techniques, achieving 99.95% availability critical to consistent product delivery.",
+                                "Developed comprehensive monitoring and alerting frameworks reducing issue detection times dramatically, improving product reliability and user satisfaction.",
+                                "Embedded automated testing and security scanning within CI/CD pipelines, resulting in 95% code coverage while maintaining rapid deployment cycles aligned with product goals.",
+                                "Implemented automated rollback mechanisms streamlined product recovery from deployment issues, minimizing downtime to under 10 minutes.",
+                                "Mentored development teams on Azure platform and DevOps practices, elevating team capability and enhancing collaboration between engineering and product management."
+                            ]
+                        },
+                        {
+                            "name": "Enterprise Software Solutions",
+                            "position": "Systems Integration Engineer – Automation & Deployment",
+                            "url": "",
+                            "startDate": "2017-01-01",
+                            "endDate": "2019-01-01",
+                            "summary": "Engineered automated deployment solutions supporting SaaS platforms for regulated industries, focusing on uptime, compliance, and performance which directly influenced successful product launches and customer adoption.",
+                            "highlights": [
+                                "Designed and implemented Blue-Green deployment strategies eliminating downtime during product releases, enhancing end user experience.",
+                                "Developed monitoring dashboards providing real-time system performance visibility critical for proactive product management and customer support.",
+                                "Automated configuration management ensuring consistency across development, testing, and production environments to support a reliable and predictable product lifecycle.",
+                                "Led disaster recovery automation projects reducing recovery objectives, safeguarding product availability and trust.",
+                                "Established automated compliance reporting workflows, significantly reducing manual prep time and ensuring adherence to regulatory standards impacting product viability."
+                            ]
+                        }
+                    ],
+                    "education": [],
+                    "awards": [],
+                    "certificates": [],
+                    "publications": [],
+                    "skills": [
+                        {
+                            "name": "Product & Technical Skills",
+                            "level": "Advanced",
+                            "keywords": [
+                                "Product Roadmapping",
+                                "Cross-functional Team Leadership",
+                                "Agile & Scrum Methodologies",
+                                "CI/CD Pipeline Design",
+                                "Automation Frameworks",
+                                "Cloud Infrastructure (Azure)",
+                                "Salesforce Platform",
+                                "API Integration (MuleSoft)",
+                                "Regulatory Compliance",
+                                "Monitoring and Alerting"
+                            ]
+                        },
+                        {
+                            "name": "Programming & Tools",
+                            "level": "Intermediate",
+                            "keywords": [
+                                "Python",
+                                "YAML",
+                                "Bash Scripting",
+                                "Git",
+                                "Terraform",
+                                "ARM Templates",
+                                "Azure DevOps",
+                                "JMeter",
+                                "SonarQube",
+                                "OWASP ZAP"
+                            ]
+                        }
+                    ],
+                    "languages": [],
+                    "interests": [],
+                    "references": [],
+                    "projects": []
+                }
+            }
+        ],
+        "PDFco Api (generated pdf expires in 1 hour)": [
+            {
+                "json": {
+                    "pageCount": 2,
+                    "url": "https://pdf-temp-files.s3.us-west-2.amazonaws.com/IYCSBULGG2RQOZ4KMT2M78MY96V3Q7CO/htmltopdf.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIZJDPLX6D7EHVCKA%2F20251016%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20251016T145958Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=beffe660e3e9566a8c4f2072ba7dac4875c3166d959aef5820634b54d598541a",
+                    "outputLinkValidTill": "2025-10-16T15:59:58.88218+00:00",
+                    "duration": 126,
+                    "name": "htmltopdf.pdf"
+                }
+            }
+        ],
+        "download resume pdf (so it persists)": [
+            {
+                "json": {
+                    "pageCount": 2,
+                    "url": "https://pdf-temp-files.s3.us-west-2.amazonaws.com/IYCSBULGG2RQOZ4KMT2M78MY96V3Q7CO/htmltopdf.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIZJDPLX6D7EHVCKA%2F20251016%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20251016T145958Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=beffe660e3e9566a8c4f2072ba7dac4875c3166d959aef5820634b54d598541a",
+                    "outputLinkValidTill": "2025-10-16T15:59:58.88218+00:00",
+                    "duration": 126,
+                    "name": "htmltopdf.pdf"
+                }
+            }
+        ],
+        "Hunter": [
+            {
+                "json": {
+                    "value": "frank.johnson@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "linkedin.com",
+                            "uri": "https://www.google.com/search?q=site:linkedin.com%20frank%20johnson%20microsoft",
+                            "extracted_on": "2025-01-16",
+                            "last_seen_on": "2025-10-07",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Frank",
+                    "last_name": "Johnson",
+                    "position": "Director of Operations",
+                    "position_raw": "Director of Sunday K2B Operations",
+                    "seniority": "executive",
+                    "department": "executive",
+                    "linkedin": "https://www.linkedin.com/in/frank-johnson-a136474b",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-15",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "greg.kramer@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "usenix.org",
+                            "uri": "https://usenix.org/conference/nsdi23/technical-sessions",
+                            "extracted_on": "2024-10-19",
+                            "last_seen_on": "2025-03-11",
+                            "still_on_page": true
+                        },
+                        {
+                            "domain": "usenix.org",
+                            "uri": "https://usenix.org/conference/nsdi23/fall-accepted-papers",
+                            "extracted_on": "2024-10-19",
+                            "last_seen_on": "2025-03-16",
+                            "still_on_page": false
+                        }
+                    ],
+                    "first_name": "Greg",
+                    "last_name": "Kramer",
+                    "position": "Software Architect",
+                    "position_raw": "Partner Software Architect",
+                    "seniority": null,
+                    "department": "it",
+                    "linkedin": "https://www.linkedin.com/in/gkramer1979",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": null,
+                        "status": null
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "orlando.escalante@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "ansys.com",
+                            "uri": "https://ansys.com/ja-jp/partner-ecosystem/high-performance-computing-partners/microsoft-azure",
+                            "extracted_on": "2024-07-02",
+                            "last_seen_on": "2025-10-02",
+                            "still_on_page": true
+                        },
+                        {
+                            "domain": "ansys.com",
+                            "uri": "https://ansys.com/ko-kr/partner-ecosystem/high-performance-computing-partners/microsoft-azure",
+                            "extracted_on": "2024-08-27",
+                            "last_seen_on": "2025-08-27",
+                            "still_on_page": true
+                        },
+                        {
+                            "domain": "ansys.com",
+                            "uri": "https://ansys.com/en-gb/partner-ecosystem/high-performance-computing-partners/microsoft-azure",
+                            "extracted_on": "2024-07-25",
+                            "last_seen_on": "2025-07-28",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Orlando",
+                    "last_name": "Escalante",
+                    "position": "Senior Partner Development Manager",
+                    "position_raw": "Sr Partner Development Manager - Global ISVs Data Plat & AI",
+                    "seniority": "senior",
+                    "department": "management",
+                    "linkedin": "https://www.linkedin.com/in/orlandoescalante",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-09-24",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "claudia.goes@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "news.microsoft.com",
+                            "uri": "https://news.microsoft.com/es-xl/contactos-de-comunicaciones-microsoft-latinoamerica",
+                            "extracted_on": "2024-04-12",
+                            "last_seen_on": "2025-09-06",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Claudia",
+                    "last_name": "Góes",
+                    "position": "Director of Communications",
+                    "position_raw": "Communications Director",
+                    "seniority": "executive",
+                    "department": "communication",
+                    "linkedin": "https://www.linkedin.com/in/claudiagoes1",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-13",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "rene.moddejongen@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "pulse.microsoft.com",
+                            "uri": "https://pulse.microsoft.com/nl-nl/transform-nl-nl/na/fa1-microsoft-loves-open-source",
+                            "extracted_on": "2024-02-13",
+                            "last_seen_on": "2025-10-04",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "René",
+                    "last_name": "Moddejongen",
+                    "position": "Director of Partner Sales",
+                    "position_raw": "Head of Enterprise Partner Sales",
+                    "seniority": "executive",
+                    "department": "sales",
+                    "linkedin": "https://www.linkedin.com/in/renemoddejongen",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-02",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "lars.meinecke@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "bdl.leasingverband.de",
+                            "uri": "https://bdl.leasingverband.de/fileadmin/downloads/bdl-forum-digitalisierung-cloud-computing-im-leasing.pdf",
+                            "extracted_on": "2023-07-04",
+                            "last_seen_on": "2025-08-17",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Lars",
+                    "last_name": "Meinecke",
+                    "position": "Chief Technology Officer",
+                    "position_raw": "CTO - Banking",
+                    "seniority": "executive",
+                    "department": "it",
+                    "linkedin": "https://www.linkedin.com/in/larsmein",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-03",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "robert.aichner@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "buchner-net.com",
+                            "uri": "https://buchner-net.com/lnt2008_20.pdf",
+                            "extracted_on": "2023-07-03",
+                            "last_seen_on": "2025-10-09",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Robert",
+                    "last_name": "Aichner",
+                    "position": "Director of Product Management",
+                    "position_raw": "Partner Director of Product Management",
+                    "seniority": "executive",
+                    "department": "management",
+                    "linkedin": "https://www.linkedin.com/in/robertaichner",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": null,
+                        "status": null
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "cberlin@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "losant.com",
+                            "uri": "https://losant.com/deeper-dive-webinar-replay-azure-iot-edge-and-losant-edge-compute",
+                            "extracted_on": "2023-06-29",
+                            "last_seen_on": "2025-07-26",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Christoph",
+                    "last_name": "Berlin",
+                    "position": "Vice President of Engineering",
+                    "position_raw": "Vice President of Engineering",
+                    "seniority": "executive",
+                    "department": "executive",
+                    "linkedin": "https://www.linkedin.com/in/christophberlin",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-09",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "andrew.randall@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "cloud-native.rejekts.io",
+                            "uri": "https://cloud-native.rejekts.io/code-of-conduct",
+                            "extracted_on": "2023-05-22",
+                            "last_seen_on": "2025-09-05",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Andrew",
+                    "last_name": "Randall",
+                    "position": "Principal Product Manager",
+                    "position_raw": "Principal Product Manager, Office of the Chief Product Officer",
+                    "seniority": "senior",
+                    "department": "education",
+                    "linkedin": "https://www.linkedin.com/in/andrewrandall",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-10-13",
+                        "status": "valid"
+                    }
+                }
+            },
+            {
+                "json": {
+                    "value": "geec@microsoft.com",
+                    "type": "personal",
+                    "confidence": 99,
+                    "sources": [
+                        {
+                            "domain": "borissov.net",
+                            "uri": "https://borissov.net/userlist.php",
+                            "extracted_on": "2023-04-18",
+                            "last_seen_on": "2023-05-17",
+                            "still_on_page": true
+                        }
+                    ],
+                    "first_name": "Candance",
+                    "last_name": "Gee",
+                    "position": "Executive",
+                    "position_raw": "Executive",
+                    "seniority": "executive",
+                    "department": "executive",
+                    "linkedin": "https://www.linkedin.com/in/candance-gee-98383162",
+                    "twitter": null,
+                    "phone_number": null,
+                    "verification": {
+                        "date": "2025-09-26",
+                        "status": "valid"
+                    }
+                }
+            }
+        ],
+        "SortedEmail": [
+            {
+                "json": {
+                    "recipient": {
+                        "fullName": "Frank Johnson",
+                        "firstName": "Frank",
+                        "lastName": "Johnson",
+                        "position": "Director of Sunday K2B Operations",
+                        "department": "executive",
+                        "seniority": "executive",
+                        "email": "frank.johnson@microsoft.com"
+                    },
+                    "company": {
+                        "domain": "microsoft.com",
+                        "organization": "microsoft"
+                    },
+                    "confidence": 99,
+                    "verificationStatus": "valid",
+                    "score": 24.9
+                }
+            }
+        ],
+        "Generate cover letter": [
+            {
+                "json": {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "```json\n{\n  \"email_subject\": \"Product Manager: Scaling Operational Excellence at Microsoft's K2B Division\",\n  \"email_body\": \"Dear Frank Johnson,\\n\\nMy track record as a Product Manager includes successfully orchestrating initiatives that have significantly scaled user engagement for enterprise platforms and optimized core system reliability, directly impacting operational efficiency and strategic growth. With Microsoft’s position at the forefront of global technology, I understand the critical need for Product Managers who can not only navigate immense technical complexity but also translate strategic vision into tangible, high-impact products that drive efficiency across an organization as dynamic as your Sunday K2B Operations.\\n\\nI specialize in leading cross-functional teams to define, prioritize, and execute ambitious product roadmaps, consistently delivering user-centric solutions that align core business objectives with evolving customer needs. My background in software engineering complements my product management acumen, allowing me to bridge the gap between technical possibilities and market demands. For instance, I have a proven history of enhancing product lifecycle efficiency by streamlining development processes and optimizing resource allocation, resulting in faster feature delivery and improved system performance.\\n\\nOne of my strengths lies in my ability to manage multiple complex initiatives from concept to successful launch, navigating intricate stakeholder landscapes and technical dependencies. I focus on developing scalable solutions that are not only robust but also adaptable to future demands, a critical capability for any role within Microsoft’s expansive ecosystem. Microsoft’s commitment to empowering every person and organization resonates deeply with my collaborative leadership style. I thrive in environments where diverse perspectives are actively sought and leveraged to solve complex challenges, fostering a culture of shared ownership and driving collective achievement to meet ambitious, industry-defining goals.\\n\\nMy resume, attached for your detailed review, further illuminates my experience in driving product innovation and delivering strategic, measurable impact. I am eager to discuss how my expertise can directly contribute to the success of Microsoft’s Sunday K2B Operations and help achieve its strategic objectives. I will reach out next week to schedule a brief conversation at your convenience.\\n\\nBest regards,\\nTest Client\"\n}\n```"
+                            }
+                        ],
+                        "role": "model"
+                    },
+                    "finishReason": "STOP",
+                    "index": 0
+                }
+            }
+        ],
+        "cleanCoverLetter": [
+            {
+                "json": {
+                    "email_subject": "Product Manager: Scaling Operational Excellence at Microsoft's K2B Division",
+                    "email_body": "Dear Frank Johnson,\n\nMy track record as a Product Manager includes successfully orchestrating initiatives that have significantly scaled user engagement for enterprise platforms and optimized core system reliability, directly impacting operational efficiency and strategic growth. With Microsoft’s position at the forefront of global technology, I understand the critical need for Product Managers who can not only navigate immense technical complexity but also translate strategic vision into tangible, high-impact products that drive efficiency across an organization as dynamic as your Sunday K2B Operations.\n\nI specialize in leading cross-functional teams to define, prioritize, and execute ambitious product roadmaps, consistently delivering user-centric solutions that align core business objectives with evolving customer needs. My background in software engineering complements my product management acumen, allowing me to bridge the gap between technical possibilities and market demands. For instance, I have a proven history of enhancing product lifecycle efficiency by streamlining development processes and optimizing resource allocation, resulting in faster feature delivery and improved system performance.\n\nOne of my strengths lies in my ability to manage multiple complex initiatives from concept to successful launch, navigating intricate stakeholder landscapes and technical dependencies. I focus on developing scalable solutions that are not only robust but also adaptable to future demands, a critical capability for any role within Microsoft’s expansive ecosystem. Microsoft’s commitment to empowering every person and organization resonates deeply with my collaborative leadership style. I thrive in environments where diverse perspectives are actively sought and leveraged to solve complex challenges, fostering a culture of shared ownership and driving collective achievement to meet ambitious, industry-defining goals.\n\nMy resume, attached for your detailed review, further illuminates my experience in driving product innovation and delivering strategic, measurable impact. I am eager to discuss how my expertise can directly contribute to the success of Microsoft’s Sunday K2B Operations and help achieve its strategic objectives. I will reach out next week to schedule a brief conversation at your convenience.\n\nBest regards,\nTest Client"
+                }
+            }
+        ],
+        "return JSON payload": [
+            {
+                "json": {
+                    "status": "success",
+                    "ai_application_id": "078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb",
+                    "client_id": "7fe84a82-974a-4a7a-b082-a36614138203",
+                    "job_id": "8481933a-a096-4191-9372-dc034b0c098f",
+                    "ai_generated_content": {
+                        "email_subject": "Product Manager: Scaling Operational Excellence at Microsoft's K2B Division",
+                        "email_body": "Dear Frank Johnson,\n\nMy track record as a Product Manager includes successfully orchestrating initiatives that have significantly scaled user engagement for enterprise platforms and optimized core system reliability, directly impacting operational efficiency and strategic growth. With Microsoft’s position at the forefront of global technology, I understand the critical need for Product Managers who can not only navigate immense technical complexity but also translate strategic vision into tangible, high-impact products that drive efficiency across an organization as dynamic as your Sunday K2B Operations.\n\nI specialize in leading cross-functional teams to define, prioritize, and execute ambitious product roadmaps, consistently delivering user-centric solutions that align core business objectives with evolving customer needs. My background in software engineering complements my product management acumen, allowing me to bridge the gap between technical possibilities and market demands. For instance, I have a proven history of enhancing product lifecycle efficiency by streamlining development processes and optimizing resource allocation, resulting in faster feature delivery and improved system performance.\n\nOne of my strengths lies in my ability to manage multiple complex initiatives from concept to successful launch, navigating intricate stakeholder landscapes and technical dependencies. I focus on developing scalable solutions that are not only robust but also adaptable to future demands, a critical capability for any role within Microsoft’s expansive ecosystem. Microsoft’s commitment to empowering every person and organization resonates deeply with my collaborative leadership style. I thrive in environments where diverse perspectives are actively sought and leveraged to solve complex challenges, fostering a culture of shared ownership and driving collective achievement to meet ambitious, industry-defining goals.\n\nMy resume, attached for your detailed review, further illuminates my experience in driving product innovation and delivering strategic, measurable impact. I am eager to discuss how my expertise can directly contribute to the success of Microsoft’s Sunday K2B Operations and help achieve its strategic objectives. I will reach out next week to schedule a brief conversation at your convenience.\n\nBest regards,\nTest Client",
+                        "resume_content": {
+                            "blob_url": "https://qvhecu7xamhhrgwx.public.blob.vercel-storage.com/resumes/resume-%242025-10-16T11%3A00%3A33.332-04%3A00-078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb-55r1uDb9pc5WslKsrNo0hnvIFEEEN8.pdf"
+                        },
+                        "metadata": {
+                            "resume_blob_url": "https://qvhecu7xamhhrgwx.public.blob.vercel-storage.com/resumes/resume-%242025-10-16T11%3A00%3A33.332-04%3A00-078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb-55r1uDb9pc5WslKsrNo0hnvIFEEEN8.pdf"
+                        }
+                    },
+                    "discovery": {
+                        "primary_email": "frank.johnson@microsoft.com"
+                    }
+                }
+            }
+        ],
+        "saveCVToVercel": [
+            {
+                "json": {
+                    "url": "https://qvhecu7xamhhrgwx.public.blob.vercel-storage.com/resumes/resume-%242025-10-16T11%3A00%3A33.332-04%3A00-078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb-55r1uDb9pc5WslKsrNo0hnvIFEEEN8.pdf",
+                    "pathname": "resumes/resume-$2025-10-16T11:00:33.332-04:00-078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb.pdf",
+                    "contentType": "application/pdf",
+                    "contentDisposition": "attachment; filename=\"resume-%242025-10-16T11%3A00%3A33.332-04%3A00-078201b8-b1fc-4fbc-a7d6-d7f7dc7d2efb.pdf\"",
+                    "uploadedAt": "2025-10-16T15:00:33.878Z",
+                    "size": 90136
+                }
+            }
+        ]
+    },
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request": {
+            "main": [
+                [
+                    {
+                        "node": "Extract from File",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract from File": {
+            "main": [
+                [
+                    {
+                        "node": "Message a model",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Message a model": {
+            "main": [
+                [
+                    {
+                        "node": "ai response resume extraction",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "resume HTML template": {
+            "main": [
+                [
+                    {
+                        "node": "PDFco Api (generated pdf expires in 1 hour)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "ai response resume extraction": {
+            "main": [
+                [
+                    {
+                        "node": "resume HTML template",
+                        "type": "main",
+                        "index": 0
+                    },
+                    {
+                        "node": "Hunter",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PDFco Api (generated pdf expires in 1 hour)": {
+            "main": [
+                [
+                    {
+                        "node": "download resume pdf (so it persists)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "download resume pdf (so it persists)": {
+            "main": [
+                [
+                    {
+                        "node": "saveCVToVercel",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hunter": {
+            "main": [
+                [
+                    {
+                        "node": "SortedEmail",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "SortedEmail": {
+            "main": [
+                [
+                    {
+                        "node": "Generate cover letter",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Generate cover letter": {
+            "main": [
+                [
+                    {
+                        "node": "cleanCoverLetter",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "cleanCoverLetter": {
+            "main": [
+                [
+                    {
+                        "node": "return JSON payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "return JSON payload": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "saveCVToVercel": {
+            "main": [
+                [
+                    {
+                        "node": "return JSON payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook1": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request2",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request2": {
+            "main": [
+                [
+                    {
+                        "node": "Extract from File1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract from File1": {
+            "main": [
+                [
+                    {
+                        "node": "Message a model1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Message a model1": {
+            "main": [
+                [
+                    {
+                        "node": "ai response resume extraction1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "resume HTML template1": {
+            "main": [
+                [
+                    {
+                        "node": "PDFco Api (generated pdf expires in 1 hour)1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "ai response resume extraction1": {
+            "main": [
+                [
+                    {
+                        "node": "resume HTML template1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "PDFco Api (generated pdf expires in 1 hour)1": {
+            "main": [
+                [
+                    {
+                        "node": "download resume pdf (so it persists)1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "download resume pdf (so it persists)1": {
+            "main": [
+                [
+                    {
+                        "node": "saveCVToVercel1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "return JSON payload1": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request3",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "saveCVToVercel1": {
+            "main": [
+                [
+                    {
+                        "node": "return JSON payload1",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v0",
+        "callerPolicy": "workflowsFromSameOwner",
+        "errorWorkflow": "xjbvTQRIGYTISlMv",
+        "executionTimeout": -1
+    },
+    "versionId": "5c5a64f4-d0c2-4033-a00d-bee7fe29ec5f",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "97091d9beeba1dfea228ae2903e03357c97b1fab3398ef08a93bd036a6cfc06c"
+    },
+    "id": "xjbvTQRIGYTISlMv",
+    "tags": []
+}
