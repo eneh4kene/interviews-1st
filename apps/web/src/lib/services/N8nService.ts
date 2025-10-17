@@ -56,15 +56,61 @@ export interface N8nErrorOutput {
     };
 }
 
+// AI Resume Generation Types
+export interface N8nAiResumeInput {
+    resume_id: UUID;
+    client_id: UUID;
+    client_name?: string;
+    sender_email?: string;
+    worker_id?: UUID;
+    resume: {
+        id: UUID;
+        file_url: string;
+        name: string;
+    };
+    job_id: string;
+    job_title: string;
+    company_name: string;
+    company_website?: string;
+    description_snippet: string;
+}
+
+export interface N8nAiResumeSuccessOutput {
+    status: 'success';
+    resume_id: UUID;
+    client_id: UUID;
+    job_id: string;
+    generated_resume: {
+        resume_url: string;
+        filename: string;
+        file_size?: number;
+    };
+    metadata?: Record<string, any>;
+}
+
+export interface N8nAiResumeErrorOutput {
+    status: 'error';
+    resume_id?: UUID;
+    client_id?: UUID;
+    job_id?: string;
+    error: {
+        code: string;
+        message: string;
+        details?: Record<string, any>;
+    };
+}
+
 export class N8nService {
     private baseUrl: string;
     private applyWebhookPath: string;
+    private resumeWebhookPath: string;
     private webhookSecret?: string;
 
     constructor() {
         this.baseUrl = process.env.N8N_BASE_URL || 'http://localhost:5678';
         // Point to test webhook by default to simplify local dev
         this.applyWebhookPath = process.env.N8N_AI_APPLY_WEBHOOK_PATH || '/webhook-test/ai-apply';
+        this.resumeWebhookPath = process.env.N8N_AI_RESUME_WEBHOOK_PATH || '/webhook-test/ai-resume';
         this.webhookSecret = process.env.N8N_WEBHOOK_SECRET;
     }
 
@@ -93,6 +139,37 @@ export class N8nService {
         if (!response.ok) {
             const text = await response.text().catch(() => '');
             console.warn('n8n sendAiApply non-OK response', { status: response.status, statusText: response.statusText, body: text, url });
+        }
+        return response;
+    }
+
+    async sendAiResume(payload: N8nAiResumeInput): Promise<Response> {
+        const url = this.buildUrl(this.resumeWebhookPath);
+        console.log('🔗 n8n sendAiResume URL:', url);
+        console.log('🔗 n8n sendAiResume payload:', JSON.stringify(payload, null, 2));
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        };
+
+        if (this.webhookSecret) {
+            headers['X-Webhook-Secret'] = this.webhookSecret;
+        }
+
+        console.log('🔗 n8n sendAiResume headers:', headers);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(payload)
+        });
+
+        console.log('🔗 n8n sendAiResume response status:', response.status);
+        console.log('🔗 n8n sendAiResume response headers:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+            const text = await response.text().catch(() => '');
+            console.warn('n8n sendAiResume non-OK response', { status: response.status, statusText: response.statusText, body: text, url });
         }
         return response;
     }
@@ -136,6 +213,30 @@ export class N8nService {
                  updated_at = NOW()
              WHERE id = $4`,
             [targetEmail, confidence, alternatives, appId]
+        );
+    }
+
+    // Persist results from n8n into applications table
+    async persistAiResumeResult(body: N8nAiResumeSuccessOutput | N8nAiResumeErrorOutput): Promise<void> {
+        if (body.status === 'error') {
+            if (body.resume_id) {
+                await db.query(
+                    `UPDATE applications SET resume_generation_status = $1, resume_generation_error = $2, updated_at = NOW() WHERE id = $3`,
+                    ['failed', `${body.error.code}: ${body.error.message}`, body.resume_id]
+                );
+            }
+            return;
+        }
+
+        const resumeId = body.resume_id;
+
+        // Update with generated resume URL
+        await db.query(
+            `UPDATE applications 
+             SET generated_resume_url = $1, generated_resume_filename = $2, 
+                 resume_generation_status = 'completed', resume_generation_progress = 100, updated_at = NOW()
+             WHERE id = $3`,
+            [body.generated_resume.resume_url, body.generated_resume.filename, resumeId]
         );
     }
 }

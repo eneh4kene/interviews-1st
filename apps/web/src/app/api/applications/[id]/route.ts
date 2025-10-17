@@ -90,7 +90,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         const applicationId = params.id;
         const body = await request.json();
-        const { jobTitle, companyName, applicationDate, status, interviewDate, notes, jobPreferenceId, resumeId } = body;
+        console.log('🔧 PUT /applications/[id] - Application ID:', applicationId);
+        console.log('🔧 PUT /applications/[id] - Request body:', body);
+
+        const { jobTitle, companyName, applicationDate, status, interviewDate, notes, jobPreferenceId, resumeId, applyUrl } = body;
 
         // Get application details and verify access
         const { rows: applicationRows } = await db.query(`
@@ -121,6 +124,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         }
 
         // Update application
+        console.log('🔧 Updating application with values:', {
+            jobPreferenceId: jobPreferenceId || null,
+            resumeId: resumeId || null,
+            jobTitle,
+            companyName,
+            applicationDate,
+            status,
+            interviewDate,
+            notes,
+            applyUrl: applyUrl || null,
+            applicationId
+        });
+
         const { rows } = await db.query(`
             UPDATE applications 
             SET 
@@ -132,8 +148,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 status = $6,
                 interview_date = $7,
                 notes = $8,
+                apply_url = $9,
                 updated_at = NOW()
-            WHERE id = $9
+            WHERE id = $10
             RETURNING 
                 id,
                 client_id as "clientId",
@@ -145,6 +162,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
                 status,
                 interview_date as "interviewDate",
                 notes,
+                apply_url as "applyUrl",
                 created_at as "createdAt",
                 updated_at as "updatedAt"
         `, [
@@ -156,8 +174,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             status,
             interviewDate,
             notes,
+            applyUrl || null,
             applicationId
         ]);
+
+        console.log('🔧 Update query result:', rows);
 
         const response: ApiResponse = {
             success: true,
@@ -167,7 +188,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         return NextResponse.json(response);
     } catch (error) {
-        console.error('Update application error:', error);
+        console.error('❌ Update application error:', error);
+        console.error('❌ Error details:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+        });
         const response: ApiResponse = {
             success: false,
             error: 'Failed to update application',

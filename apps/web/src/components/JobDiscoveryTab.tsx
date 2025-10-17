@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ClassifiedJobListing } from "@/lib/services/JobDiscoveryService";
 import { apiService } from "@/lib/api";
+import ResumeGenerationModal from "./ResumeGenerationModal";
 
 interface JobDiscoveryTabProps {
   clientId: string;
@@ -51,6 +52,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
   });
   const [refreshing, setRefreshing] = useState(false);
   const [applyingJobs, setApplyingJobs] = useState<Set<string>>(new Set());
+  const [resumeModalOpen, setResumeModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<ClassifiedJobListing | null>(null);
 
   // Fetch jobs and stats
   const fetchData = async () => {
@@ -137,6 +140,126 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
     });
   };
 
+  // Handle manual apply with resume generation modal
+  const handleManualApply = async (job: ClassifiedJobListing) => {
+    // Ensure we have a default resume before opening the modal
+    const resumeToUse = defaultResume || (await loadDefaultResume());
+    if (!resumeToUse) {
+      alert('Please upload/select a resume for this client before generating a custom resume.');
+      return;
+    }
+    
+    setSelectedJob(job);
+    setResumeModalOpen(true);
+  };
+
+  // Handle continue to job (after resume generation or skipping)
+  const handleContinueToJob = async (job: ClassifiedJobListing) => {
+    try {
+      // Check if already applying
+      if (applyingJobs.has(job.id)) {
+        return;
+      }
+
+      setApplyingJobs(prev => new Set(prev).add(job.id));
+
+      // Check if there's already an application record (from resume generation)
+      if (job.id) {
+        const duplicateCheck = await apiService.checkDuplicateApplication(clientId, job.id);
+        
+        if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
+          // Application already exists (from resume generation), just update it
+          console.log('📝 Application already exists, updating with apply URL...');
+          console.log('📝 Existing application ID:', duplicateCheck.data.existingApplicationId);
+          console.log('📝 Apply URL:', job.apply_url);
+          
+          // Update the existing application with the apply URL
+          const updateResponse = await apiService.put(`/applications/${duplicateCheck.data.existingApplicationId}`, {
+            jobTitle: job.title,
+            companyName: job.company,
+            applyUrl: job.apply_url,
+            notes: `Applied via Manual application from job discovery${selectedJob ? ' (with custom resume generated)' : ''}`
+          });
+
+          console.log('📝 Update response:', updateResponse);
+
+          if (updateResponse.success) {
+            // Close modal and clear state
+            setResumeModalOpen(false);
+            setSelectedJob(null);
+            
+            // Refresh data to show updated stats
+            await fetchData();
+            
+            // Call parent handler if provided
+            if (onJobApply) {
+              onJobApply(job, 'manual');
+            }
+            
+            // Open job URL in new tab
+            if (job.apply_url) {
+              window.open(job.apply_url, '_blank');
+            }
+          } else {
+            alert(`Failed to update application: ${updateResponse.error}`);
+          }
+          return;
+        }
+      }
+
+      // No existing application, create new one
+      const applicationData = {
+        clientId,
+        jobId: job.id,
+        jobTitle: job.title,
+        companyName: job.company,
+        companyWebsite: job.company_website,
+        applyUrl: job.apply_url,
+        applicationType: 'manual' as const,
+        notes: `Applied via Manual application from job discovery`
+      };
+
+      const response = await apiService.createApplication(applicationData);
+
+      if (response.success) {
+        // Close modal and clear state
+        setResumeModalOpen(false);
+        setSelectedJob(null);
+        
+        // Refresh data to show updated stats
+        await fetchData();
+        
+        // Call parent handler if provided
+        if (onJobApply) {
+          onJobApply(job, 'manual');
+        }
+        
+        // Open job URL in new tab
+        if (job.apply_url) {
+          window.open(job.apply_url, '_blank');
+        }
+      } else {
+        if ((response as any).data?.isDuplicate) {
+          alert(`Application already exists: ${response.error}`);
+        } else {
+          alert(`Failed to apply: ${response.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error applying to job:', error);
+      alert('Failed to apply to job. Please try again.');
+    } finally {
+      setApplyingJobs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(job.id);
+        return newSet;
+      });
+      // Clear modal state
+      setResumeModalOpen(false);
+      setSelectedJob(null);
+    }
+  };
+
   // Handle job application
   const handleJobApply = async (job: ClassifiedJobListing, applicationType: 'ai' | 'manual') => {
     try {
@@ -193,50 +316,9 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
           alert(`Failed to submit AI application: ${response.error}`);
         }
       } else {
-        // Use regular application system for manual applications
-        // Check for duplicate application if job has an ID
-        if (job.id) {
-          const duplicateCheck = await apiService.checkDuplicateApplication(clientId, job.id);
-          
-          if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
-            alert(`Application already exists: ${duplicateCheck.data.message}`);
-            return;
-          }
-        }
-
-        // Create application
-        const getApplicationTypeLabel = (type: 'ai' | 'manual') => type === 'ai' ? 'AI' : 'Manual';
-        const applicationTypeLabel = getApplicationTypeLabel(applicationType);
-        const applicationData = {
-          clientId,
-          jobId: job.id,
-          jobTitle: job.title,
-          companyName: job.company,
-          companyWebsite: job.company_website,
-          applyUrl: job.apply_url,
-          applicationType,
-          notes: `Applied via ${applicationTypeLabel} application from job discovery`
-        };
-
-        const response = await apiService.createApplication(applicationData);
-
-        if (response.success) {
-          alert(`Successfully applied to ${job.title} at ${job.company} via ${applicationTypeLabel} application!`);
-          
-          // Refresh data to show updated stats
-          await fetchData();
-          
-          // Call parent handler if provided
-          if (onJobApply) {
-            onJobApply(job, applicationType);
-          }
-        } else {
-          if ((response as any).data?.isDuplicate) {
-            alert(`Application already exists: ${response.error}`);
-          } else {
-            alert(`Failed to apply: ${response.error}`);
-          }
-        }
+        // Manual applications are now handled by the resume generation modal
+        // This should not be called directly anymore
+        console.warn('Manual application should be handled through resume generation modal');
       }
     } catch (error) {
       console.error('Error applying to job:', error);
@@ -541,7 +623,7 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
                     </Button>
                   )}
                   <Button 
-                    onClick={() => handleJobApply(job, 'manual')}
+                    onClick={() => handleManualApply(job)}
                     disabled={applyingJobs.has(job.id)}
                     variant="outline"
                     className="flex-1"
@@ -589,6 +671,25 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
             Next
           </Button>
         </div>
+      )}
+
+      {/* Resume Generation Modal */}
+      {selectedJob && (
+        <ResumeGenerationModal
+          isOpen={resumeModalOpen}
+          onClose={() => {
+            setResumeModalOpen(false);
+            setSelectedJob(null);
+          }}
+          job={selectedJob}
+          clientId={clientId}
+          defaultResume={defaultResume!}
+          onContinue={() => handleContinueToJob(selectedJob)}
+          onResumeGenerated={(resumeUrl) => {
+            console.log('Resume generated:', resumeUrl);
+            // Optional: Show success message or track analytics
+          }}
+        />
       )}
     </div>
   );

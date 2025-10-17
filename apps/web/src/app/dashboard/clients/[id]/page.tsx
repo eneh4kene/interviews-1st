@@ -20,7 +20,8 @@ import {
   Briefcase,
   Users,
   TrendingUp,
-  Mail
+  Mail,
+  Bot
 } from "lucide-react";
 import { apiService } from '../../../../lib/api';
 import EditClientForm from '../../../../components/EditClientForm';
@@ -30,6 +31,7 @@ import ViewApplicationsModal from '../../../../components/ViewApplicationsModal'
 import ApplicationModal from '../../../../components/ApplicationModal';
 import JobDiscoveryTab from '../../../../components/JobDiscoveryTab';
 import AiApplicationsTab from '../../../../components/AiApplicationsTab';
+import UnifiedApplicationsTab from '../../../../components/UnifiedApplicationsTab';
 import EmailManagementTab from '../../../../components/EmailManagementTab';
 
 export default function ClientProfile({ params }: { params: { id: string } }) {
@@ -39,7 +41,7 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery' | 'ai-applications' | 'emails'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'resumes' | 'preferences' | 'job-discovery' | 'applications' | 'ai-applications' | 'emails'>('overview');
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showEditResumeModal, setShowEditResumeModal] = useState(false);
@@ -472,7 +474,8 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 { id: 'resumes', label: 'Resumes', icon: FileText },
                 { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
                 { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
-                { id: 'ai-applications', label: 'AI Applications', icon: CheckCircle },
+                { id: 'applications', label: 'All Applications', icon: CheckCircle },
+                { id: 'ai-applications', label: 'AI Applications', icon: Bot },
                 { id: 'emails', label: 'Emails', icon: Mail },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -771,6 +774,13 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                   // Optional: Handle additional post-application logic
                   console.log('Job application completed:', { job, applicationType });
                 }}
+              />
+            )}
+
+            {/* Unified Applications Tab */}
+            {activeTab === 'applications' && (
+              <UnifiedApplicationsTab 
+                clientId={params.id}
               />
             )}
 
