@@ -1,50 +1,56 @@
 [build]
-builder = "dockerfile"
+builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
 startCommand = "n8n start"
-healthcheckPath = "/healthz"
+healthcheckPath = "/"
 healthcheckTimeout = 300
-restartPolicyType = "always"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
 
-[environments.production]
-variables = { NODE_ENV = "production" }
+[environment]
+# Database (Neon Postgres)
+DB_TYPE = "postgresdb"
+DB_POSTGRESDB_HOST = "${{NEON_DB_HOST}}"
+DB_POSTGRESDB_PORT = "5432"
+DB_POSTGRESDB_DATABASE = "${{NEON_DB_DATABASE}}"
+DB_POSTGRESDB_USER = "${{NEON_DB_USER}}"
+DB_POSTGRESDB_PASSWORD = "${{NEON_DB_PASSWORD}}"
+DB_POSTGRESDB_SSL_ENABLED = "true"
 
-# Railway service configuration
-[service]
-name = "n8n-workflows"
-description = "n8n workflow automation service with auto-import"
+# n8n Security (IMPORTANT: CHANGE THESE!)
+N8N_ENCRYPTION_KEY = "${{N8N_ENCRYPTION_KEY}}"
+N8N_BASIC_AUTH_ACTIVE = "true"
+N8N_BASIC_AUTH_USER = "${{N8N_USER}}"
+N8N_BASIC_AUTH_PASSWORD = "${{N8N_PASSWORD}}"
 
-# Resource allocation
-[resources]
-memory = "1GB"
-cpu = "0.5"
+# URLs (Railway provides RAILWAY_STATIC_URL without protocol)
+N8N_HOST = "${{RAILWAY_STATIC_URL}}"
+WEBHOOK_URL = "https://${{RAILWAY_STATIC_URL}}"
+N8N_EDITOR_BASE_URL = "https://${{RAILWAY_STATIC_URL}}"
+INTERVIEW_ME_APP_URL = "${{INTERVIEW_ME_APP_URL}}"
+INTERVIEW_ME_WEBHOOK_SECRET = "${{INTERVIEW_ME_WEBHOOK_SECRET}}"
 
-# Networking
-[networking]
-port = 5678
-protocol = "http"
-
-# Health check configuration
-[healthcheck]
-path = "/healthz"
-interval = "30s"
-timeout = "10s"
-retries = 3
-startPeriod = "60s"
-
-# Environment-specific settings
-[environments.production.variables]
-N8N_HOST = "0.0.0.0"
-N8N_PORT = "5678"
-N8N_PROTOCOL = "https"
+# Production settings
 N8N_SECURE_COOKIE = "true"
 N8N_USER_MANAGEMENT_DISABLED = "false"
 N8N_DIAGNOSTICS_ENABLED = "false"
 N8N_VERSION_NOTIFICATIONS_ENABLED = "false"
 N8N_TEMPLATES_ENABLED = "false"
 N8N_ONBOARDING_FLOW_DISABLED = "true"
-N8N_LOG_LEVEL = "info"
-N8N_LOG_OUTPUT = "console"
-GENERIC_TIMEZONE = "UTC"
+
+# Optional: Redis for queue mode (if needed for high load)
+# QUEUE_BULL_REDIS_HOST = "${{REDIS_HOST}}"
+# QUEUE_BULL_REDIS_PORT = "${{REDIS_PORT}}"
+# QUEUE_BULL_REDIS_PASSWORD = "${{REDIS_PASSWORD}}"
+# QUEUE_HEALTH_CHECK_ACTIVE = "true"
+# N8N_QUEUE_HEALTH_CHECK_INTERVAL = "30000"
+
+# Optional: S3 for external data storage
+# S3_ENDPOINT = "${{S3_ENDPOINT}}"
+# S3_ACCESS_KEY = "${{S3_ACCESS_KEY}}"
+# S3_SECRET_KEY = "${{S3_SECRET_KEY}}"
+# S3_BUCKET_NAME = "${{S3_BUCKET_NAME}}"
+# S3_REGION = "${{S3_REGION}}"
+# N8N_DEFAULT_BINARY_DATA_MODE = "s3"

@@ -21,35 +21,20 @@ RUN chmod +x /home/node/scripts/import-workflows.sh
 # Copy workflows directory
 COPY --chown=node:node workflows/ /home/node/workflows/
 
-# Set environment variables for production
+# Set production environment variables
+ENV NODE_ENV=production
 ENV N8N_HOST=0.0.0.0
 ENV N8N_PORT=5678
 ENV N8N_PROTOCOL=https
-ENV WEBHOOK_URL=https://n8n.railway.app
 ENV GENERIC_TIMEZONE=UTC
 
-# Database configuration (will be set via environment variables)
-ENV DB_TYPE=postgresdb
-ENV DB_POSTGRESDB_HOST=localhost
-ENV DB_POSTGRESDB_PORT=5432
-ENV DB_POSTGRESDB_DATABASE=n8n
-ENV DB_POSTGRESDB_USER=n8n
-ENV DB_POSTGRESDB_PASSWORD=password
-
-# Security and performance settings
+# Production settings (will be overridden by Railway environment variables)
 ENV N8N_SECURE_COOKIE=true
-ENV N8N_ENCRYPTION_KEY=your-encryption-key-here
 ENV N8N_USER_MANAGEMENT_DISABLED=false
 ENV N8N_DIAGNOSTICS_ENABLED=false
 ENV N8N_VERSION_NOTIFICATIONS_ENABLED=false
 ENV N8N_TEMPLATES_ENABLED=false
 ENV N8N_ONBOARDING_FLOW_DISABLED=true
-
-# Workflow settings
-ENV N8N_WORKFLOWS_DEFAULT_NAME=My Workflow
-ENV N8N_DEFAULT_BINARY_DATA_MODE=filesystem
-
-# Logging
 ENV N8N_LOG_LEVEL=info
 ENV N8N_LOG_OUTPUT=console
 
