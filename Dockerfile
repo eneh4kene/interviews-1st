@@ -45,3 +45,7 @@ RUN chmod +x /home/node/scripts/entrypoint.sh
 # Use custom entrypoint
 ENTRYPOINT ["/home/node/scripts/entrypoint.sh"]
 CMD ["n8n", "start"]
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:5678/healthz || exit 1

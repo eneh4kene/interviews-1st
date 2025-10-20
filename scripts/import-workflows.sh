@@ -7,11 +7,11 @@
 set -e
 
 # Configuration
-N8N_HOST="${N8N_HOST:-localhost}"
+N8N_HOST="${N8N_HOST:-0.0.0.0}"
 N8N_PORT="${N8N_PORT:-5678}"
 N8N_PROTOCOL="${N8N_PROTOCOL:-http}"
-N8N_USER="${N8N_USER:-admin@example.com}"
-N8N_PASSWORD="${N8N_PASSWORD:-admin}"
+N8N_USER="${N8N_BASIC_AUTH_USER:-admin@example.com}"
+N8N_PASSWORD="${N8N_BASIC_AUTH_PASSWORD:-admin}"
 
 # API endpoints
 BASE_URL="${N8N_PROTOCOL}://${N8N_HOST}:${N8N_PORT}"
@@ -49,7 +49,10 @@ wait_for_n8n() {
     local attempt=1
     
     while [ $attempt -le $max_attempts ]; do
-        if curl -s -f "${BASE_URL}/healthz" > /dev/null 2>&1; then
+        # Try multiple endpoints
+        if curl -s -f "${BASE_URL}/healthz" > /dev/null 2>&1 || \
+           curl -s -f "${BASE_URL}/" > /dev/null 2>&1 || \
+           curl -s -f "${BASE_URL}/rest/login" > /dev/null 2>&1; then
             log_success "n8n is ready!"
             return 0
         fi
