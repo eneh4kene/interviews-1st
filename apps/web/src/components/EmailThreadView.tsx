@@ -131,10 +131,6 @@ export default function EmailThreadView({
     return processed.textContent;
   };
 
-  const isOutgoing = (email: Email) => {
-    return email.type === 'sent' || email.from_email.includes('@interviewsfirst.com');
-  };
-
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {/* Thread Header */}
