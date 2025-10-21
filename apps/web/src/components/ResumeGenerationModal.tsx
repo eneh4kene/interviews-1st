@@ -76,9 +76,9 @@ export default function ResumeGenerationModal({
       console.log('📡 API Response:', response);
 
       if (response.success) {
-        setResumeId(response.data.resume_id);
+        setResumeId((response.data as any).resume_id);
         // Poll for completion
-        await pollForCompletion(response.data.resume_id);
+        await pollForCompletion((response.data as any).resume_id);
       } else {
         throw new Error(response.error || 'Failed to start resume generation');
       }
@@ -98,7 +98,7 @@ export default function ResumeGenerationModal({
         const statusResponse = await apiService.get(`/ai-resume/status/${resumeId}`);
         
         if (statusResponse.success) {
-          const data = statusResponse.data;
+          const data = statusResponse.data as any;
           
           if (data.status === 'completed') {
             setGeneratedResumeUrl(data.generated_resume_url);

@@ -242,7 +242,7 @@ export class AiResumeService {
             status: row.resume_generation_status,
             progress: row.resume_generation_progress || 0,
             original_resume_id: row.resume_id,
-            original_resume_url: null, // Not stored in applications table
+            original_resume_url: undefined, // Not stored in applications table
             generated_resume_url: row.generated_resume_url,
             generated_resume_filename: row.generated_resume_filename,
             error_message: row.resume_generation_error,

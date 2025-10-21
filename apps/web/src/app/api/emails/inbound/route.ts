@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
             type: string;
             content?: string; // Keep base64 content for received emails
         }> = [];
-        for (const [key, value] of formData.entries()) {
+        for (const [key, value] of Array.from(formData.entries())) {
             if (key.startsWith('attachment') && value instanceof File) {
                 const file = value as File;
                 const buffer = await file.arrayBuffer();

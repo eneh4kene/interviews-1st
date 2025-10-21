@@ -745,9 +745,9 @@ export class EmailService {
       console.error('Error details:', error);
 
       // Log SendGrid specific error details
-      if (error.response) {
-        console.error('SendGrid response status:', error.response.status);
-        console.error('SendGrid response body:', error.response.body);
+      if ((error as any).response) {
+        console.error('SendGrid response status:', (error as any).response.status);
+        console.error('SendGrid response body:', (error as any).response.body);
       }
 
       // Update status to failed with retry logic

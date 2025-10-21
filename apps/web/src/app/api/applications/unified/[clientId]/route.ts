@@ -90,11 +90,11 @@ export async function GET(
 
         // Combine and sort by creation date
         const allApplications = [
-            ...aiApplicationsResult.rows.map(row => ({
+            ...aiApplicationsResult.rows.map((row: any) => ({
                 ...row,
                 application_type: 'ai'
             })),
-            ...manualApplicationsResult.rows.map(row => ({
+            ...manualApplicationsResult.rows.map((row: any) => ({
                 ...row,
                 application_type: 'manual'
             }))
@@ -105,14 +105,14 @@ export async function GET(
             total: allApplications.length,
             ai_applications: aiApplicationsResult.rows.length,
             manual_applications: manualApplicationsResult.rows.length,
-            resume_generation_pending: manualApplicationsResult.rows.filter(app =>
+            resume_generation_pending: manualApplicationsResult.rows.filter((app: any) =>
                 app.resume_generation_status &&
                 ['queued', 'processing', 'generating'].includes(app.resume_generation_status)
             ).length,
-            resume_generation_completed: manualApplicationsResult.rows.filter(app =>
+            resume_generation_completed: manualApplicationsResult.rows.filter((app: any) =>
                 app.resume_generation_status === 'completed'
             ).length,
-            resume_generation_failed: manualApplicationsResult.rows.filter(app =>
+            resume_generation_failed: manualApplicationsResult.rows.filter((app: any) =>
                 app.resume_generation_status === 'failed'
             ).length
         };

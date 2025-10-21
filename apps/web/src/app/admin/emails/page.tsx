@@ -174,34 +174,27 @@ export default function EmailManagement() {
     if (!toEmail) return;
     
     const toName = prompt('Enter recipient name (optional):') || 'Valued Client';
+    const clientId = prompt('Enter client ID (optional):') || '1'; // Default to client ID 1 for testing
 
     try {
-      // Create a custom email using the template
-      const emailData = {
-        to_email: toEmail,
-        to_name: toName,
-        template_name: template.name,
-        variables: {
-          client_name: toName,
-          company_name: 'InterviewsFirst',
-          worker_name: 'Sarah Johnson',
-          worker_phone: '+1-555-0123',
-          dashboard_url: 'https://interviewsfirst.com/dashboard'
-        }
-      };
-
-      // Send the email using the simple send endpoint
-      const response = await fetch('/api/emails/send', {
+      // Send email using template API endpoint
+      const response = await fetch('/api/emails/send-template', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          clientId: emailData.clientId,
-          to: emailData.to,
-          subject: emailData.subject,
-          content: emailData.htmlContent || emailData.textContent,
-          htmlContent: emailData.htmlContent
+          to: toEmail,
+          toName: toName,
+          templateName: template.name,
+          variables: {
+            client_name: toName,
+            company_name: 'InterviewsFirst',
+            worker_name: 'Sarah Johnson',
+            worker_phone: '+1-555-0123',
+            dashboard_url: 'https://interviewsfirst.com/dashboard'
+          },
+          clientId: clientId
         })
       });
 
