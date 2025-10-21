@@ -261,7 +261,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://b8c6831c1311.ngrok-free.app/api/n8n/ai-apply",
+                "url": "https://44b09879afcc.ngrok-free.app/api/n8n/ai-apply",
                 "sendHeaders": true,
                 "headerParameters": {
                     "parameters": [
@@ -469,7 +469,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://b8c6831c1311.ngrok-free.app/api/n8n/ai-resume",
+                "url": "https://44b09879afcc.ngrok-free.app/api/n8n/ai-resume",
                 "sendHeaders": true,
                 "headerParameters": {
                     "parameters": [
