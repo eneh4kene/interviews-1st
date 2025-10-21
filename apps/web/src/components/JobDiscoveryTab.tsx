@@ -170,14 +170,27 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
         if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
           // Application already exists (from resume generation), just update it
           console.log('📝 Application already exists, updating with apply URL...');
+          console.log('📝 Duplicate check response:', duplicateCheck);
           console.log('📝 Existing application ID:', duplicateCheck.data.existingApplicationId);
+          console.log('📝 Existing application object:', duplicateCheck.data.existingApplication);
           console.log('📝 Apply URL:', job.apply_url);
           
+          // Get the application ID (fallback to existingApplication.id if existingApplicationId is undefined)
+          const applicationId = duplicateCheck.data.existingApplicationId || duplicateCheck.data.existingApplication?.id;
+          
+          if (!applicationId) {
+            console.error('❌ No application ID found in duplicate check response');
+            alert('Error: Could not find application record. Please try again.');
+            return;
+          }
+          
           // Update the existing application with the apply URL
-          const updateResponse = await apiService.put(`/applications/${duplicateCheck.data.existingApplicationId}`, {
+          const updateResponse = await apiService.put(`/applications/${applicationId}`, {
             jobTitle: job.title,
             companyName: job.company,
             applyUrl: job.apply_url,
+            applicationDate: new Date().toISOString(),
+            status: 'applied',
             notes: `Applied via Manual application from job discovery${selectedJob ? ' (with custom resume generated)' : ''}`
           });
 

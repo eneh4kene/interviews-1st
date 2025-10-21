@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
             data: {
                 isDuplicate,
                 existingApplication,
+                existingApplicationId: existingApplication?.id || null,
                 message: isDuplicate
                     ? `Application already exists (${existingApplication?.application_type}, ${existingApplication?.status})`
                     : 'No duplicate application found'
