@@ -447,7 +447,7 @@ export default function Dashboard() {
                     {/* Mobile Menu Button - Right Side */}
                     <button
                       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                      className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center relative z-10 bg-white"
                       aria-label="Toggle mobile menu"
                       data-mobile-menu
                     >

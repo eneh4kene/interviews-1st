@@ -206,7 +206,7 @@ export default function Home() {
                     {/* Mobile Menu Button - Right Side */}
                     <button
                       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                      className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center relative z-10 bg-white"
                       aria-label="Toggle mobile menu"
                     >
                       <div className="transition-transform duration-300 ease-out">
