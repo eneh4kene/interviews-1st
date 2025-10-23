@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@interview-me/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@interview-me/ui";
 import { Client, DashboardStats, ApiResponse } from "@interview-me/types";
-import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase, LogOut, Lock, User } from "lucide-react";
+import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, DollarSign, CheckCircle, ChevronDown, Briefcase, LogOut, Lock, User, Menu, X } from "lucide-react";
 import Logo from '../../components/Logo';
 import ClientForm from '../../components/ClientForm';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [filters, setFilters] = useState({
     paymentStatus: '',
     interviewCount: '',
@@ -132,6 +133,21 @@ export default function Dashboard() {
 
     fetchDashboardData();
   }, [workerId]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen) {
+        const target = event.target as Element;
+        if (!target.closest('[data-mobile-menu]')) {
+          setIsMobileMenuOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch = client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -335,15 +351,27 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center py-4 lg:py-6 gap-4">
+          <div className="flex items-center justify-between py-4 lg:py-6">
             <div className="flex items-center gap-3 lg:gap-4">
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Toggle mobile menu"
+                data-mobile-menu
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+              
               <Logo size="md" />
               <div className="min-w-0 flex-1">
                 <h1 className="text-xl lg:text-2xl font-bold text-gray-900 truncate">Talent Portfolio Dashboard</h1>
                 <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage your talents' job search journeys</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            
+            {/* Desktop Actions */}
+            <div className="hidden lg:flex items-center gap-3">
               <Button 
                 variant="outline" 
                 className="flex items-center justify-center gap-2 min-h-[44px]" 
@@ -353,20 +381,18 @@ export default function Dashboard() {
                 {isNavigating ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                    <span className="hidden sm:inline">Loading...</span>
+                    <span>Loading...</span>
                   </div>
                 ) : (
                   <>
                     <Briefcase className="h-4 w-4" />
-                    <span className="hidden sm:inline">Find Jobs</span>
-                    <span className="sm:hidden">Jobs</span>
+                    <span>Find Jobs</span>
                   </>
                 )}
               </Button>
               <Button className="flex items-center justify-center gap-2 min-h-[44px]" onClick={handleAddNewClient}>
                 <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add New Talent</span>
-                <span className="sm:hidden">Add Talent</span>
+                <span>Add New Talent</span>
               </Button>
               
               {/* User Menu */}
@@ -377,7 +403,7 @@ export default function Dashboard() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
                   <User className="h-4 w-4" />
-                  <span className="hidden sm:inline">Account</span>
+                  <span>Account</span>
                   <ChevronDown className="h-4 w-4" />
                 </Button>
                 
@@ -410,6 +436,129 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sidebar */}
+      {isMobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" data-mobile-menu>
+          <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-xl">
+            <div className="flex flex-col h-full">
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <Logo size="sm" />
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
+                    <p className="text-sm text-gray-600">Quick Actions</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Sidebar Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Quick Actions */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full justify-start min-h-[44px]" 
+                      onClick={() => {
+                        handleAddNewClient();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-3" />
+                      Add New Talent
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start min-h-[44px]" 
+                      onClick={() => {
+                        handleFindJobs();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      disabled={isNavigating}
+                    >
+                      <Briefcase className="h-4 w-4 mr-3" />
+                      {isNavigating ? 'Loading...' : 'Find Jobs'}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Account Actions */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Account</h3>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start min-h-[44px]" 
+                      onClick={() => {
+                        setShowChangePasswordModal(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <Lock className="h-4 w-4 mr-3" />
+                      Change Password
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start min-h-[44px] text-red-600 hover:text-red-700 hover:bg-red-50" 
+                      onClick={() => {
+                        handleLogout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4 mr-3" />
+                      Logout
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Stats Summary */}
+                {stats && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Stats</h3>
+                    <div className="space-y-2">
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 text-blue-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-700">Total Talents</span>
+                          </div>
+                          <span className="text-lg font-bold text-blue-600">{stats.totalClients}</span>
+                        </div>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <Target className="h-4 w-4 text-green-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-700">Active</span>
+                          </div>
+                          <span className="text-lg font-bold text-green-600">{stats.activeClients}</span>
+                        </div>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 text-purple-600 mr-2" />
+                            <span className="text-sm font-medium text-gray-700">Revenue</span>
+                          </div>
+                          <span className="text-lg font-bold text-purple-600">£{stats.totalRevenue}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {/* Stats Cards */}
