@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showStats, setShowStats] = useState(true);
   const [filters, setFilters] = useState({
     paymentStatus: '',
     interviewCount: '',
@@ -347,7 +348,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -487,6 +488,17 @@ export default function Dashboard() {
                       <Briefcase className="h-4 w-4 mr-3" />
                       {isNavigating ? 'Loading...' : 'Find Jobs'}
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start min-h-[44px]" 
+                      onClick={() => {
+                        setShowStats(!showStats);
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-3" />
+                      {showStats ? 'Hide Stats' : 'View Stats'}
+                    </Button>
                   </div>
                 </div>
 
@@ -519,50 +531,15 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Stats Summary */}
-                {stats && (
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Stats</h3>
-                    <div className="space-y-2">
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 text-blue-600 mr-2" />
-                            <span className="text-sm font-medium text-gray-700">Total Talents</span>
-                          </div>
-                          <span className="text-lg font-bold text-blue-600">{stats.totalClients}</span>
-                        </div>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <Target className="h-4 w-4 text-green-600 mr-2" />
-                            <span className="text-sm font-medium text-gray-700">Active</span>
-                          </div>
-                          <span className="text-lg font-bold text-green-600">{stats.activeClients}</span>
-                        </div>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 text-purple-600 mr-2" />
-                            <span className="text-sm font-medium text-gray-700">Revenue</span>
-                          </div>
-                          <span className="text-lg font-bold text-purple-600">£{stats.totalRevenue}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 w-full overflow-x-hidden">
         {/* Stats Cards */}
-        {stats && (
+        {stats && showStats && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
             <Card>
               <CardContent className="p-4 lg:p-6">
@@ -680,7 +657,7 @@ export default function Dashboard() {
         )}
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 lg:p-6 mb-6 lg:mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-4 lg:p-6 mb-6 lg:mb-8 w-full overflow-x-hidden">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
               <div className="flex-1">
@@ -810,7 +787,7 @@ export default function Dashboard() {
         </div>
 
         {/* Talents Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full overflow-x-hidden">
           {filteredClients.map((client) => (
             <Card 
               key={client.id} 
