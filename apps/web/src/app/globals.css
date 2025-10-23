@@ -217,30 +217,30 @@
 }
 
 .dark {
-    --bg: #0B1020;
-    --surface: #11162A;
-    --border: #1E243A;
-    --text: #E9ECF8;
-    --muted: #9AA4B2;
-    --shadow: 0 10px 30px -12px rgba(0, 0, 0, .55);
+    --bg: #0F0F0F;
+    --surface: #1A1A1A;
+    --border: #2A2A2A;
+    --text: #FFFFFF;
+    --muted: #A1A1AA;
+    --shadow: 0 10px 30px -12px rgba(0, 0, 0, .8);
     
     /* UI Component Variables - Dark Mode */
-    --background: #0B1020;
-    --foreground: #E9ECF8;
-    --card: #11162A;
-    --card-foreground: #E9ECF8;
-    --popover: #11162A;
-    --popover-foreground: #E9ECF8;
+    --background: #0F0F0F;
+    --foreground: #FFFFFF;
+    --card: #1A1A1A;
+    --card-foreground: #FFFFFF;
+    --popover: #1A1A1A;
+    --popover-foreground: #FFFFFF;
     --primary-foreground: #FFFFFF;
-    --secondary: #1E243A;
-    --secondary-foreground: #E9ECF8;
-    --muted-foreground: #9AA4B2;
-    --accent: #1E243A;
-    --accent-foreground: #E9ECF8;
+    --secondary: #2A2A2A;
+    --secondary-foreground: #FFFFFF;
+    --muted-foreground: #A1A1AA;
+    --accent: #2A2A2A;
+    --accent-foreground: #FFFFFF;
     --destructive: #EF4444;
     --destructive-foreground: #FFFFFF;
-    --border: #1E243A;
-    --input: #1E243A;
+    --border: #2A2A2A;
+    --input: #2A2A2A;
     --ring: #635BFF;
 }
 
@@ -251,6 +251,32 @@
 
     body {
         @apply bg-bg text-text antialiased;
+        font-feature-settings: "rlig" 1, "calt" 1;
+    }
+
+    /* Dark mode typography improvements */
+    .dark {
+        font-weight: 500;
+    }
+
+    .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+        @apply text-white font-semibold;
+    }
+
+    .dark p, .dark span, .dark div {
+        @apply text-gray-100;
+    }
+
+    .dark .text-gray-600 {
+        @apply text-gray-300;
+    }
+
+    .dark .text-gray-500 {
+        @apply text-gray-400;
+    }
+
+    .dark .text-gray-400 {
+        @apply text-gray-500;
     }
 
     /* Focus rings */
@@ -314,6 +340,35 @@
     ::-webkit-scrollbar-thumb:hover {
         background: var(--muted);
     }
+
+    /* Dark mode specific improvements */
+    .dark .bg-white {
+        @apply bg-gray-900;
+    }
+
+    .dark .bg-gray-50 {
+        @apply bg-gray-800;
+    }
+
+    .dark .bg-gray-100 {
+        @apply bg-gray-700;
+    }
+
+    .dark .border-gray-200 {
+        @apply border-gray-700;
+    }
+
+    .dark .border-gray-300 {
+        @apply border-gray-600;
+    }
+
+    .dark .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .dark .shadow-lg {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    }
 }
 
 /* shadcn/ui CSS Variables */
@@ -341,25 +396,25 @@
         --radius: var(--radius);
     }
 
-    .dark {
-        --background: var(--bg);
-        --foreground: var(--text);
-        --card: var(--surface);
-        --card-foreground: var(--text);
-        --popover: var(--surface);
-        --popover-foreground: var(--text);
-        --primary: var(--primary);
-        --primary-foreground: #ffffff;
-        --secondary: var(--border);
-        --secondary-foreground: var(--text);
-        --muted: var(--muted);
-        --muted-foreground: var(--muted);
-        --accent: var(--border);
-        --accent-foreground: var(--text);
-        --destructive: #ef4444;
-        --destructive-foreground: #ffffff;
-        --border: var(--border);
-        --input: var(--border);
-        --ring: var(--primary);
-    }
+            .dark {
+                --background: #0F0F0F;
+                --foreground: #FFFFFF;
+                --card: #1A1A1A;
+                --card-foreground: #FFFFFF;
+                --popover: #1A1A1A;
+                --popover-foreground: #FFFFFF;
+                --primary: #635BFF;
+                --primary-foreground: #ffffff;
+                --secondary: #2A2A2A;
+                --secondary-foreground: #FFFFFF;
+                --muted: #2A2A2A;
+                --muted-foreground: #A1A1AA;
+                --accent: #2A2A2A;
+                --accent-foreground: #FFFFFF;
+                --destructive: #ef4444;
+                --destructive-foreground: #ffffff;
+                --border: #2A2A2A;
+                --input: #2A2A2A;
+                --ring: #635BFF;
+            }
 }
