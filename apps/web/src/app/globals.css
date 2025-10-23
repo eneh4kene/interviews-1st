@@ -275,10 +275,6 @@
         @apply text-gray-400;
     }
 
-    .dark .text-gray-400 {
-        @apply text-gray-500;
-    }
-
     /* Focus rings */
     *:focus-visible {
         @apply outline-none ring-2 ring-primary rounded;
