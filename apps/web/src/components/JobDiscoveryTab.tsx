@@ -642,35 +642,42 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  {job.is_ai_applicable && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex gap-2 flex-1">
+                    {job.is_ai_applicable && (
+                      <Button 
+                        onClick={() => handleJobApply(job, 'ai')}
+                        disabled={applyingJobs.has(job.id)}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <Bot className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">{applyingJobs.has(job.id) ? 'Applying...' : 'AI Apply'}</span>
+                        <span className="sm:hidden">{applyingJobs.has(job.id) ? '...' : 'AI'}</span>
+                      </Button>
+                    )}
                     <Button 
-                      onClick={() => handleJobApply(job, 'ai')}
+                      onClick={() => handleManualApply(job)}
                       disabled={applyingJobs.has(job.id)}
+                      variant="outline"
                       className="flex-1"
                       size="sm"
                     >
-                      <Bot className="h-4 w-4 mr-2" />
-                      {applyingJobs.has(job.id) ? 'Applying...' : 'AI Apply'}
+                      <User className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">{applyingJobs.has(job.id) ? 'Applying...' : 'Manual Apply'}</span>
+                      <span className="sm:hidden">{applyingJobs.has(job.id) ? '...' : 'Manual'}</span>
                     </Button>
-                  )}
-                  <Button 
-                    onClick={() => handleManualApply(job)}
-                    disabled={applyingJobs.has(job.id)}
-                    variant="outline"
-                    className="flex-1"
-                    size="sm"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    {applyingJobs.has(job.id) ? 'Applying...' : 'Manual Apply'}
-                  </Button>
+                  </div>
                   {job.apply_url && (
                     <Button 
                       onClick={() => window.open(job.apply_url, '_blank')}
                       variant="outline"
                       size="sm"
+                      className="w-full sm:w-auto"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      <span className="hidden sm:inline">Apply on Site</span>
+                      <span className="sm:hidden">Site</span>
                     </Button>
                   )}
                 </div>
