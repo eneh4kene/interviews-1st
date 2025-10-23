@@ -357,11 +357,13 @@ export default function Dashboard() {
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Toggle mobile menu"
                 data-mobile-menu
               >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                <div className="transition-transform duration-300 ease-out">
+                  {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
+                </div>
               </button>
               
               <Logo size="md" />
@@ -440,8 +442,21 @@ export default function Dashboard() {
 
       {/* Mobile Sidebar */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50" data-mobile-menu>
-          <div className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-xl">
+        <div 
+          className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-0 transition-all duration-300 ease-out data-[state=open]:bg-opacity-50" 
+          data-mobile-menu
+          style={{ 
+            animation: 'fadeIn 300ms ease-out',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div 
+            className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-out"
+            style={{ 
+              animation: 'slideInLeft 300ms ease-out',
+              transform: 'translateX(0)'
+            }}
+          >
             <div className="flex flex-col h-full">
               {/* Sidebar Header */}
               <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -454,78 +469,78 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <X size={24} />
+                  <X size={24} className="transition-transform duration-200 hover:rotate-90" />
                 </button>
               </div>
 
               {/* Sidebar Content */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {/* Quick Actions */}
-                <div>
+                <div className="animate-slide-in-up" style={{ animationDelay: '100ms' }}>
                   <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
                   <div className="space-y-2">
                     <Button 
-                      className="w-full justify-start min-h-[44px]" 
+                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
                         handleAddNewClient();
                         setIsMobileMenuOpen(false);
                       }}
                     >
-                      <Plus className="h-4 w-4 mr-3" />
+                      <Plus className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:rotate-90" />
                       Add New Talent
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start min-h-[44px]" 
+                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
                         handleFindJobs();
                         setIsMobileMenuOpen(false);
                       }}
                       disabled={isNavigating}
                     >
-                      <Briefcase className="h-4 w-4 mr-3" />
+                      <Briefcase className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:scale-110" />
                       {isNavigating ? 'Loading...' : 'Find Jobs'}
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start min-h-[44px]" 
+                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
                         setShowStats(!showStats);
                         setIsMobileMenuOpen(false);
                       }}
                     >
-                      <TrendingUp className="h-4 w-4 mr-3" />
+                      <TrendingUp className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:scale-110" />
                       {showStats ? 'Hide Stats' : 'View Stats'}
                     </Button>
                   </div>
                 </div>
 
                 {/* Account Actions */}
-                <div>
+                <div className="animate-slide-in-up" style={{ animationDelay: '200ms' }}>
                   <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Account</h3>
                   <div className="space-y-2">
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start min-h-[44px]" 
+                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
                         setShowChangePasswordModal(true);
                         setIsMobileMenuOpen(false);
                       }}
                     >
-                      <Lock className="h-4 w-4 mr-3" />
+                      <Lock className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:rotate-12" />
                       Change Password
                     </Button>
                     <Button 
                       variant="outline" 
-                      className="w-full justify-start min-h-[44px] text-red-600 hover:text-red-700 hover:bg-red-50" 
+                      className="w-full justify-start min-h-[44px] text-red-600 hover:text-red-700 hover:bg-red-50 transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
                         handleLogout();
                         setIsMobileMenuOpen(false);
                       }}
                     >
-                      <LogOut className="h-4 w-4 mr-3" />
+                      <LogOut className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:translate-x-1" />
                       Logout
                     </Button>
                   </div>

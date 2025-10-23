@@ -9,6 +9,78 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Mobile sidebar animations */
+  @keyframes slideInLeft {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutLeft {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes slideInUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 300ms ease-out;
+  }
+
+  .animate-slide-out-left {
+    animation: slideOutLeft 300ms ease-in;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 300ms ease-out;
+  }
+
+  .animate-fade-out {
+    animation: fadeOut 300ms ease-in;
+  }
+
+  .animate-slide-in-up {
+    animation: slideInUp 200ms ease-out;
+  }
 }
 
 /* Fix for Select component transparency */

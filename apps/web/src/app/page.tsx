@@ -206,29 +206,31 @@ export default function Home() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Toggle mobile menu"
             >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              <div className="transition-transform duration-300 ease-out">
+                {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
+              </div>
             </button>
           </div>
 
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-border/50 bg-surface/95 backdrop-blur-sm">
+            <div className="md:hidden border-t border-border/50 bg-surface/95 backdrop-blur-sm animate-slide-in-up">
               <div className="px-2 pt-2 pb-3 space-y-1">
                 <Link href="/jobs" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="ghost" size="sm" className="w-full justify-start text-text hover:bg-surface min-h-[44px]">
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-text hover:bg-surface min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-sm">
                     Browse Jobs
                   </Button>
                 </Link>
                 <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button variant="outline" size="sm" className="w-full justify-start border-border text-text hover:bg-surface min-h-[44px]">
+                  <Button variant="outline" size="sm" className="w-full justify-start border-border text-text hover:bg-surface min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/signup/client" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button size="sm" className="w-full justify-start bg-primary hover:bg-primary-600 text-white min-h-[44px]">
+                  <Button size="sm" className="w-full justify-start bg-primary hover:bg-primary-600 text-white min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
                     Get Started
                   </Button>
                 </Link>
