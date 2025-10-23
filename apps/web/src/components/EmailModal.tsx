@@ -188,32 +188,32 @@ export default function EmailModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden" style={{ maxHeight: '90vh' }}>
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg sm:rounded-2xl shadow-2xl w-full max-w-5xl h-[95vh] sm:h-[90vh] flex flex-col overflow-hidden" style={{ maxHeight: '95vh' }}>
         {/* Header - Gmail Style */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm flex-shrink-0">
               {mode === 'compose' ? '✉️' : mode === 'review' ? '👁️' : '📧'}
             </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                 {mode === 'compose' ? 'New Message' : 
                  mode === 'reply' ? 'Reply' : 
                  mode === 'forward' ? 'Forward' : 
                  mode === 'review' ? 'Email Preview' : 'Email'}
               </h2>
               {mode === 'review' && (
-                <p className="text-sm text-gray-500">Review email content before sending</p>
+                <p className="text-xs sm:text-sm text-gray-500">Review email content before sending</p>
               )}
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             {mode !== 'review' && (
               <button
                 onClick={() => setIsPreview(!isPreview)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 title={isPreview ? 'Edit' : 'Preview'}
               >
                 {isPreview ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -221,7 +221,7 @@ export default function EmailModal({
             )}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <X size={18} />
             </button>
@@ -229,7 +229,7 @@ export default function EmailModal({
         </div>
 
         {/* Email Form */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50" style={{ maxHeight: 'calc(95vh - 120px)' }}>
           {!isPreview ? (
             <>
               {/* Recipients - Gmail Style */}
