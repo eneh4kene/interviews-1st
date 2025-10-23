@@ -64,7 +64,7 @@
 
   @keyframes slideInUpStats {
     from {
-      transform: translateY(30px);
+      transform: translateY(40px);
       opacity: 0;
     }
     to {
@@ -79,7 +79,7 @@
       opacity: 1;
     }
     to {
-      transform: translateY(-30px);
+      transform: translateY(-40px);
       opacity: 0;
     }
   }
@@ -105,11 +105,11 @@
   }
 
   .animate-slide-in-up-stats {
-    animation: slideInUpStats 300ms ease-out;
+    animation: slideInUpStats 600ms ease-out;
   }
 
   .animate-slide-out-up-stats {
-    animation: slideOutUpStats 300ms ease-in;
+    animation: slideOutUpStats 500ms ease-in;
   }
 }
 

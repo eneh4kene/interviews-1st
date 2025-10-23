@@ -304,14 +304,14 @@ export default function Dashboard() {
       setTimeout(() => {
         setShowStats(false);
         setIsStatsAnimating(false);
-      }, 300); // Match animation duration
+      }, 500); // Match animation duration
     } else {
       // Show stats with animation
       setShowStats(true);
       setIsStatsAnimating(true);
       setTimeout(() => {
         setIsStatsAnimating(false);
-      }, 300);
+      }, 600);
     }
   };
 
@@ -577,7 +577,7 @@ export default function Dashboard() {
           <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8 ${
             isStatsAnimating ? 'animate-slide-in-up-stats' : 'opacity-100'
           }`}>
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '50ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '100ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -591,7 +591,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '100ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '200ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-green-100 rounded-lg">
@@ -605,7 +605,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '150ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '300ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-purple-100 rounded-lg">
@@ -619,7 +619,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '200ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '400ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-yellow-100 rounded-lg">
@@ -633,7 +633,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '250ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '500ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-red-100 rounded-lg">
@@ -647,7 +647,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '300ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '600ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-indigo-100 rounded-lg">
@@ -661,7 +661,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '350ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '700ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -676,7 +676,7 @@ export default function Dashboard() {
             </Card>
 
             {/* NEW: New Clients Stats Card */}
-            <Card className={`transition-all duration-300 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '400ms' : '0ms' }}>
+            <Card className={`transition-all duration-600 ease-out ${isStatsAnimating ? 'animate-slide-in-up-stats' : ''}`} style={{ animationDelay: isStatsAnimating ? '800ms' : '0ms' }}>
               <CardContent className="p-4 lg:p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-orange-100 rounded-lg">
