@@ -26,7 +26,7 @@ export default function Dashboard() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showStats, setShowStats] = useState(true);
+  const [showStats, setShowStats] = useState(false);
   const [isStatsAnimating, setIsStatsAnimating] = useState(false);
   const [filters, setFilters] = useState({
     paymentStatus: '',
