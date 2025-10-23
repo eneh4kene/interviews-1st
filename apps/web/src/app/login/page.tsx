@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Input, Label, Alert, AlertDescription } from '@interview-me/ui';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Logo from '../../components/Logo';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { LoginRequest, LoginResponse } from '@interview-me/types';
 
 export default function LoginPage() {
@@ -64,21 +65,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center items-center gap-4 mb-6">
             <Link href="/">
-              <Button variant="outline" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+              <Button variant="outline" size="sm" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Home
               </Button>
             </Link>
+            <ThemeToggle />
           </div>
           <Logo size="lg" className="mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome back</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Sign in to your InterviewsFirst account
           </p>
         </div>
@@ -100,11 +102,11 @@ export default function LoginPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <Input
                     id="email"
                     type="email"
@@ -119,11 +121,11 @@ export default function LoginPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
@@ -137,7 +139,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -158,9 +160,9 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Need help? Contact support at{' '}
-            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 hover:underline font-medium">
+            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
               support@interviewsfirst.com
             </a>
           </p>

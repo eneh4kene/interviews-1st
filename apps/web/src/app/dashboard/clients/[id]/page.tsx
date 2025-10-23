@@ -389,12 +389,12 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "applied": return "text-blue-600 bg-blue-50";
-      case "interviewing": return "text-yellow-600 bg-yellow-50";
-      case "offered": return "text-green-600 bg-green-50";
-      case "accepted": return "text-green-700 bg-green-100";
-      case "rejected": return "text-red-600 bg-red-50";
-      default: return "text-gray-600 bg-gray-50";
+      case "applied": return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
+      case "interviewing": return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
+      case "offered": return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
+      case "accepted": return "text-green-700 bg-green-100 dark:text-green-400 dark:bg-green-900/20";
+      case "rejected": return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
+      default: return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
     }
   };
 
@@ -634,29 +634,32 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-center">
-                        <span className="text-gray-600 w-24">Status:</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-24">Status:</span>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(client.status)}`}>
                           {client.status}
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <span className="text-gray-600 w-24">Payment:</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-24">Payment:</span>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          client.paymentStatus === 'paid' ? 'text-green-600 bg-green-50' : 
-                          client.paymentStatus === 'pending' ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50'
+                          client.paymentStatus === 'paid' ? 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20' : 
+                          client.paymentStatus === 'pending' ? 'text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20' : 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20'
                         }`}>
                           {client.paymentStatus}
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <span className="text-gray-600 w-24">Assigned:</span>
+                        <span className="text-gray-600 dark:text-gray-400 w-24">Assigned:</span>
                         <span className="font-medium">{new Date(client.assignedAt).toLocaleDateString()}</span>
                       </div>
                       {client.isNew && (
                         <div className="flex items-center">
-                          <span className="text-gray-600 w-24">New Client:</span>
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                            🆕 Within 72 hours
+                          <span className="text-gray-600 dark:text-gray-400 w-24">New Client:</span>
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400">
+                            <span className="inline-flex items-center gap-1">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              Within 72 hours
+                            </span>
                           </span>
                         </div>
                       )}

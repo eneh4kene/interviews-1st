@@ -9,6 +9,7 @@ import { Label } from "@interview-me/ui";
 import { Shield, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { apiService } from "../../../lib/api";
 import Logo from "../../../components/Logo";
+import { ThemeToggle } from "../../../components/ThemeToggle";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -60,22 +61,23 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center items-center gap-4 mb-6">
             <Link href="/login">
-              <Button variant="outline" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+              <Button variant="outline" size="sm" className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Login
               </Button>
             </Link>
+            <ThemeToggle />
           </div>
-          <div className="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-            <Shield className="w-8 h-8 text-purple-600" />
+          <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mb-4">
+            <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Login</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Login</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Sign in to access the admin dashboard
           </p>
         </div>
@@ -90,8 +92,8 @@ export default function AdminLoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-3">
-                  <p className="text-sm text-red-600">{error}</p>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -128,9 +130,9 @@ export default function AdminLoginPage() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
+                      <EyeOff className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
+                      <Eye className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                     )}
                   </button>
                 </div>
@@ -146,7 +148,7 @@ export default function AdminLoginPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Admin access is restricted to authorized personnel only.
               </p>
             </div>
@@ -154,9 +156,9 @@ export default function AdminLoginPage() {
         </Card>
 
         <div className="text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Need help? Contact support at{' '}
-            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 hover:underline">
+            <a href="mailto:support@interviewsfirst.com" className="text-blue-600 dark:text-blue-400 hover:underline">
               support@interviewsfirst.com
             </a>
           </p>

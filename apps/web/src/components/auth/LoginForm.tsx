@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label, Alert, AlertDescription } from '@interview-me/ui';
 import { LoginRequest, LoginResponse, User } from '@interview-me/types';
 import Logo from '../Logo';
+import { ThemeToggle } from '../ThemeToggle';
 
 interface LoginFormProps {
   userType: 'worker' | 'client' | 'admin';
@@ -67,12 +68,15 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <ThemeToggle />
+          </div>
           <Logo size="lg" className="mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-          <p className="mt-2 text-sm text-gray-600">{description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{title}</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{description}</p>
         </div>
 
         <Card className="shadow-xl border-0">
@@ -91,7 +95,7 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email address
                 </Label>
                 <Input
@@ -107,7 +111,7 @@ export default function LoginForm({ userType, title, description, redirectTo }: 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Password
                 </Label>
                 <Input

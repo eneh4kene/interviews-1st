@@ -208,19 +208,19 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active": return "text-green-600 bg-green-50";
-      case "placed": return "text-blue-600 bg-blue-50";
-      case "inactive": return "text-gray-600 bg-gray-50";
-      default: return "text-gray-600 bg-gray-50";
+      case "active": return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
+      case "placed": return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
+      case "inactive": return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
+      default: return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "active": return "🟢";
-      case "placed": return "✅";
-      case "inactive": return "⚪";
-      default: return "⚪";
+      case "active": return <div className="w-2 h-2 bg-green-500 rounded-full"></div>;
+      case "placed": return <CheckCircle className="h-3 w-3 text-green-500" />;
+      case "inactive": return <div className="w-2 h-2 bg-gray-400 rounded-full"></div>;
+      default: return <div className="w-2 h-2 bg-gray-400 rounded-full"></div>;
     }
   };
 
@@ -852,8 +852,11 @@ export default function Dashboard() {
                       {getStatusIcon(client.status)} <span className="hidden sm:inline">{client.status}</span>
                     </span>
                     {client.isNew && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                        🆕 <span className="hidden sm:inline">NEW</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400">
+                        <span className="inline-flex items-center gap-1">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <span className="hidden sm:inline">NEW</span>
+                        </span>
                       </span>
                     )}
                   </div>
