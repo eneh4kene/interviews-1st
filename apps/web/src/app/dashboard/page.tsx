@@ -9,6 +9,7 @@ import { Search, Plus, Filter, TrendingUp, Users, Calendar, Target, CreditCard, 
 import Logo from '../../components/Logo';
 import ClientForm from '../../components/ClientForm';
 import ChangePasswordModal from '../../components/ChangePasswordModal';
+import { ThemeToggle } from '../../components/ThemeToggle';
 import { apiService } from '../../lib/api';
 
 export default function Dashboard() {
@@ -367,16 +368,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-x-hidden">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4 lg:py-6">
             <div className="flex items-center gap-3 lg:gap-4">
               {/* Mobile Menu Button */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Toggle mobile menu"
                 data-mobile-menu
               >
@@ -387,13 +388,14 @@ export default function Dashboard() {
               
               <Logo size="md" />
               <div className="min-w-0 flex-1">
-                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 truncate">Talent Portfolio Dashboard</h1>
-                <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage your talents' job search journeys</p>
+                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white truncate">Talent Portfolio Dashboard</h1>
+                <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 hidden sm:block">Manage your talents' job search journeys</p>
               </div>
             </div>
             
             {/* Desktop Actions */}
             <div className="hidden lg:flex items-center gap-3">
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 className="flex items-center justify-center gap-2 min-h-[44px]" 
@@ -470,7 +472,7 @@ export default function Dashboard() {
           }}
         >
           <div 
-            className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-out"
+            className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white dark:bg-gray-900 shadow-xl transform -translate-x-full transition-transform duration-300 ease-out"
             style={{ 
               animation: 'slideInLeft 300ms ease-out',
               transform: 'translateX(0)'
@@ -478,17 +480,17 @@ export default function Dashboard() {
           >
             <div className="flex flex-col h-full">
               {/* Sidebar Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3">
                   <Logo size="sm" />
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
-                    <p className="text-sm text-gray-600">Quick Actions</p>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard</h2>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Quick Actions</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   <X size={24} className="transition-transform duration-200 hover:rotate-90" />
                 </button>
@@ -498,8 +500,12 @@ export default function Dashboard() {
               <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {/* Quick Actions */}
                 <div className="animate-slide-in-up" style={{ animationDelay: '100ms' }}>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Quick Actions</h3>
                   <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Theme</span>
+                      <ThemeToggle />
+                    </div>
                     <Button 
                       className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
                       onClick={() => {
@@ -538,7 +544,7 @@ export default function Dashboard() {
 
                 {/* Account Actions */}
                 <div className="animate-slide-in-up" style={{ animationDelay: '200ms' }}>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Account</h3>
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Account</h3>
                   <div className="space-y-2">
                     <Button 
                       variant="outline" 

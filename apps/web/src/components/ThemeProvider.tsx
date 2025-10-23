@@ -1,15 +1,21 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
-    // Apply theme based on system preference
-    const applySystemTheme = () => {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    setMounted(true)
+    
+    // Apply theme based on localStorage or system preference
+    const applyTheme = () => {
+      const storedTheme = localStorage.getItem('theme')
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      const theme = storedTheme || systemTheme
       const root = document.documentElement
       
-      if (isDark) {
+      if (theme === 'dark') {
         root.classList.add('dark')
       } else {
         root.classList.remove('dark')
@@ -17,16 +23,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Apply initial theme
-    applySystemTheme()
+    applyTheme()
 
     // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener('change', applySystemTheme)
+    const handleChange = () => {
+      // Only apply system theme if no stored preference
+      if (!localStorage.getItem('theme')) {
+        applyTheme()
+      }
+    }
+    
+    mediaQuery.addEventListener('change', handleChange)
 
     return () => {
-      mediaQuery.removeEventListener('change', applySystemTheme)
+      mediaQuery.removeEventListener('change', handleChange)
     }
   }, [])
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return <>{children}</>
+  }
 
   return <>{children}</>
 } 
