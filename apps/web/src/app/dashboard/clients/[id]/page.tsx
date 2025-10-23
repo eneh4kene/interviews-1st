@@ -428,27 +428,30 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-6">
-            <div className="flex items-center gap-4">
-              <Button variant="outline" onClick={handleBackToDashboard}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
-                <p className="text-gray-600">{client.email}</p>
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <button
+                onClick={handleBackToDashboard}
+                className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center flex-shrink-0"
+                aria-label="Back to dashboard"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{client.name}</h1>
+                <p className="text-sm text-gray-600 truncate">{client.email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {client.linkedinUrl && (
-                <Button variant="outline" onClick={handleLinkedInClick}>
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  LinkedIn
+                <Button variant="outline" onClick={handleLinkedInClick} size="sm">
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  <span className="hidden sm:inline">LinkedIn</span>
                 </Button>
               )}
-              <Button onClick={handleEditProfile}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Profile
+              <Button onClick={handleEditProfile} size="sm">
+                <Edit className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Edit</span>
               </Button>
             </div>
           </div>
