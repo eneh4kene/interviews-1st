@@ -445,20 +445,27 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
 
   return (
     <div className="space-y-6">
-      {/* Large Search Bar */}
+      {/* Full Width Search Bar */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <input
-              type="text"
-              value={filters.keywords}
-              onChange={(e) => handleFilterChange({ keywords: e.target.value })}
-              placeholder="Search for jobs by title, skills, company, or location..."
-              className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-            />
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <input
+            type="text"
+            value={filters.keywords}
+            onChange={(e) => handleFilterChange({ keywords: e.target.value })}
+            placeholder="Search for jobs by title, skills, company, or location..."
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          />
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="bg-white rounded-lg shadow-sm border p-4">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {jobs.length} jobs found
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2">
             <Button 
               onClick={() => setShowFilters(!showFilters)}
               variant="outline" 
