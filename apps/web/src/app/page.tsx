@@ -27,7 +27,9 @@ import {
   Briefcase,
   MapPin,
   Clock,
-  Percent
+  Percent,
+  Menu,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -130,6 +132,7 @@ const howItWorks = [
 export default function Home() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const reducedMotion = useReducedMotion();
 
 
@@ -142,6 +145,21 @@ export default function Home() {
     
     return () => clearInterval(interval);
   }, [isAutoPlaying, reducedMotion]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobileMenuOpen) {
+        const target = event.target as Element;
+        if (!target.closest('header')) {
+          setIsMobileMenuOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -165,7 +183,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Logo size="md" className="text-text" />
-            <div className="flex items-center space-x-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-4">
               <Link href="/jobs">
                 <Button variant="ghost" size="sm" className="text-text hover:bg-surface">
                   Browse Jobs
@@ -182,7 +202,39 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden border-t border-border/50 bg-surface/95 backdrop-blur-sm">
+              <div className="px-2 pt-2 pb-3 space-y-1">
+                <Link href="/jobs" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-text hover:bg-surface min-h-[44px]">
+                    Browse Jobs
+                  </Button>
+                </Link>
+                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full justify-start border-border text-text hover:bg-surface min-h-[44px]">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup/client" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full justify-start bg-primary hover:bg-primary-600 text-white min-h-[44px]">
+                    Get Started
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
