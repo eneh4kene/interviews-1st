@@ -456,28 +456,25 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full overflow-x-hidden">
-        {/* Client Overview Card */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Client Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Client Overview Card - Compact */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{client.totalInterviews}</div>
-                <div className="text-sm text-gray-600">Total Interviews</div>
+                <div className="text-lg font-bold text-blue-600">{client.totalInterviews}</div>
+                <div className="text-xs text-gray-600">Interviews</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">£{client.totalPaid}</div>
-                <div className="text-sm text-gray-600">Total Paid</div>
+                <div className="text-lg font-bold text-green-600">£{client.totalPaid}</div>
+                <div className="text-xs text-gray-600">Total Paid</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{client.status}</div>
-                <div className="text-sm text-gray-600">Status</div>
+                <div className="text-lg font-bold text-purple-600 capitalize">{client.status}</div>
+                <div className="text-xs text-gray-600">Status</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">{client.paymentStatus}</div>
-                <div className="text-sm text-gray-600">Payment Status</div>
+                <div className="text-lg font-bold text-orange-600 capitalize">{client.paymentStatus}</div>
+                <div className="text-xs text-gray-600">Payment</div>
               </div>
             </div>
           </CardContent>
