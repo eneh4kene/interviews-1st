@@ -371,29 +371,17 @@ export default function Dashboard() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4 lg:py-6">
-            <div className="flex items-center gap-3 lg:gap-4">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Toggle mobile menu"
-                data-mobile-menu
-              >
-                <div className="transition-transform duration-300 ease-out">
-                  {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
-                </div>
-              </button>
-              
-              <Logo size="md" />
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 truncate">Talent Portfolio Dashboard</h1>
-                <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage your talents' job search journeys</p>
-              </div>
-            </div>
-            
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-3">
+                  <div className="flex items-center justify-between py-4 lg:py-6">
+                    <div className="flex items-center gap-3 lg:gap-4">
+                      <Logo size="md" />
+                      <div className="min-w-0 flex-1">
+                        <h1 className="text-xl lg:text-2xl font-bold text-gray-900 truncate">Talent Portfolio Dashboard</h1>
+                        <p className="text-sm lg:text-base text-gray-600 hidden sm:block">Manage your talents' job search journeys</p>
+                      </div>
+                    </div>
+                    
+                    {/* Desktop Actions */}
+                    <div className="hidden lg:flex items-center gap-3">
               <Button 
                 variant="outline" 
                 className="flex items-center justify-center gap-2 min-h-[44px]" 
@@ -452,12 +440,24 @@ export default function Dashboard() {
                       Logout
                     </button>
                   </div>
-                )}
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile Menu Button - Right Side */}
+                    <button
+                      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                      className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Toggle mobile menu"
+                      data-mobile-menu
+                    >
+                      <div className="transition-transform duration-300 ease-out">
+                        {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Mobile Sidebar */}
       {isMobileMenuOpen && (

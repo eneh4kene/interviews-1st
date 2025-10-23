@@ -181,39 +181,39 @@ export default function Home() {
       {/* Header */}
       <header className="relative z-10 border-b border-border/50 bg-surface/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Logo size="md" className="text-text" />
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4">
-              <Link href="/jobs">
-                <Button variant="ghost" size="sm" className="text-text hover:bg-surface">
-                  Browse Jobs
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
-                  Sign In
-                </Button>
-              </Link>
-              <Link href="/signup/client">
-                <Button size="sm" className="bg-primary hover:bg-primary-600 text-white">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
+                  <div className="flex items-center justify-between h-16">
+                    <Logo size="md" className="text-text" />
+                    
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex items-center space-x-4">
+                      <Link href="/jobs">
+                        <Button variant="ghost" size="sm" className="text-text hover:bg-surface">
+                          Browse Jobs
+                        </Button>
+                      </Link>
+                      <Link href="/login">
+                        <Button variant="outline" size="sm" className="border-border text-text hover:bg-surface">
+                          Sign In
+                        </Button>
+                      </Link>
+                      <Link href="/signup/client">
+                        <Button size="sm" className="bg-primary hover:bg-primary-600 text-white">
+                          Get Started
+                        </Button>
+                      </Link>
+                    </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Toggle mobile menu"
-            >
-              <div className="transition-transform duration-300 ease-out">
-                {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
-              </div>
-            </button>
-          </div>
+                    {/* Mobile Menu Button - Right Side */}
+                    <button
+                      onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                      className="md:hidden p-2 rounded-md text-text hover:bg-surface transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                      aria-label="Toggle mobile menu"
+                    >
+                      <div className="transition-transform duration-300 ease-out">
+                        {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
+                      </div>
+                    </button>
+                  </div>
 
           {/* Mobile Menu */}
           {isMobileMenuOpen && (
