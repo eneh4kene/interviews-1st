@@ -463,9 +463,9 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
 
       {/* Compact Filters */}
       <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-64 max-w-xs">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
@@ -475,8 +475,8 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               />
             </div>
-            <div className="text-sm text-gray-600">
-              {jobs.length} jobs found
+            <div className="text-sm text-gray-600 whitespace-nowrap">
+              {jobs.length} jobs
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -574,35 +574,36 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
           </Card>
         ) : (
           jobs.map((job) => (
-            <Card key={job.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {job.title}
-                      <span className="text-sm font-normal text-gray-500">
+            <Card key={job.id} className="hover:shadow-md transition-shadow overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="truncate">{job.title}</span>
+                      <span className="text-sm font-normal text-gray-500 whitespace-nowrap">
                         ({job.match_percentage}% match)
                       </span>
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-4 mt-1">
-                      <span className="flex items-center gap-1">
-                        <Building className="h-4 w-4" />
-                        {job.company}
+                    <CardDescription className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1">
+                      <span className="flex items-center gap-1 text-sm">
+                        <Building className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{job.company}</span>
                       </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {job.location}
+                      <span className="flex items-center gap-1 text-sm">
+                        <MapPin className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{job.location}</span>
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {new Date(job.posted_date).toLocaleDateString()}
+                      <span className="flex items-center gap-1 text-sm">
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="whitespace-nowrap">{new Date(job.posted_date).toLocaleDateString()}</span>
                       </span>
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${getAiStatusColor(job.is_ai_applicable, job.confidence_score)}`}>
+                  <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getAiStatusColor(job.is_ai_applicable, job.confidence_score)}`}>
                       {getAiStatusIcon(job.is_ai_applicable, job.confidence_score)}
-                      {job.is_ai_applicable ? 'AI Applicable' : 'Manual Only'}
+                      <span className="hidden sm:inline">{job.is_ai_applicable ? 'AI Applicable' : 'Manual Only'}</span>
+                      <span className="sm:hidden">{job.is_ai_applicable ? 'AI' : 'Manual'}</span>
                     </span>
                     {job.confidence_score > 0 && (
                       <span className="text-xs text-gray-500">
@@ -613,35 +614,40 @@ export default function JobDiscoveryTab({ clientId, onJobApply }: JobDiscoveryTa
                 </div>
               </CardHeader>
               
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{formatSalary(job)}</span>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <DollarSign className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs truncate">{formatSalary(job)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{formatWorkLocation(job.work_location)}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Briefcase className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs truncate">{formatWorkLocation(job.work_location)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm">{job.source}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Star className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                    <span className="text-xs truncate">{job.source}</span>
                   </div>
                 </div>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-xs text-gray-600 mb-3 line-clamp-2">
                   {job.description}
                 </p>
 
                 {job.classification_reasons.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-xs font-medium text-gray-500 mb-1">Classification Reasons:</p>
+                  <div className="mb-3">
+                    <p className="text-xs font-medium text-gray-500 mb-1">Classification:</p>
                     <div className="flex flex-wrap gap-1">
-                      {job.classification_reasons.map((reason, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                      {job.classification_reasons.slice(0, 3).map((reason, index) => (
+                        <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded truncate max-w-[120px]">
                           {reason}
                         </span>
                       ))}
+                      {job.classification_reasons.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                          +{job.classification_reasons.length - 3} more
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
