@@ -428,32 +428,18 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4 lg:py-6">
-            <div className="flex items-center gap-3 lg:gap-4 min-w-0 flex-1">
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                aria-label="Toggle mobile menu"
-                data-mobile-menu
-              >
-                <div className="transition-transform duration-300 ease-out">
-                  {isMobileMenuOpen ? <X size={24} className="rotate-180" /> : <Menu size={24} className="rotate-0" />}
-                </div>
-              </button>
-              
-              <Button variant="outline" onClick={handleBackToDashboard} className="hidden lg:flex">
+          <div className="flex items-center justify-between py-6">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" onClick={handleBackToDashboard}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 truncate">{client.name}</h1>
-                <p className="text-sm lg:text-base text-gray-600 truncate">{client.email}</p>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
+                <p className="text-gray-600">{client.email}</p>
               </div>
             </div>
-            
-            {/* Desktop Actions */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-3">
               {client.linkedinUrl && (
                 <Button variant="outline" onClick={handleLinkedInClick}>
                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -468,110 +454,6 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-
-      {/* Mobile Sidebar */}
-      {isMobileMenuOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-0 transition-all duration-300 ease-out data-[state=open]:bg-opacity-50" 
-          data-mobile-menu
-          style={{ 
-            animation: 'fadeIn 300ms ease-out',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
-        >
-          <div 
-            className="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-xl transform -translate-x-full transition-transform duration-300 ease-out"
-            style={{ 
-              animation: 'slideInLeft 300ms ease-out',
-              transform: 'translateX(0)'
-            }}
-          >
-            <div className="flex flex-col h-full">
-              {/* Sidebar Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                    {client.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 truncate">{client.name}</h2>
-                    <p className="text-sm text-gray-600 truncate">{client.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                >
-                  <X size={24} className="transition-transform duration-200 hover:rotate-90" />
-                </button>
-              </div>
-
-              {/* Sidebar Content */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {/* Quick Actions */}
-                <div className="animate-slide-in-up" style={{ animationDelay: '100ms' }}>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h3>
-                  <div className="space-y-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
-                      onClick={() => {
-                        handleBackToDashboard();
-                        setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:-translate-x-1" />
-                      Back to Dashboard
-                    </Button>
-                    {client.linkedinUrl && (
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
-                        onClick={() => {
-                          handleLinkedInClick();
-                          setIsMobileMenuOpen(false);
-                        }}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:scale-110" />
-                        LinkedIn
-                      </Button>
-                    )}
-                    <Button 
-                      className="w-full justify-start min-h-[44px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md" 
-                      onClick={() => {
-                        handleEditProfile();
-                        setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      <Edit className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:rotate-12" />
-                      Edit Profile
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Client Stats */}
-                <div className="animate-slide-in-up" style={{ animationDelay: '200ms' }}>
-                  <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Client Stats</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600">Total Interviews</span>
-                      <span className="text-lg font-semibold text-blue-600">{client.totalInterviews}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600">Total Paid</span>
-                      <span className="text-lg font-semibold text-green-600">£{client.totalPaid}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="text-sm text-gray-600">Status</span>
-                      <span className="text-lg font-semibold text-purple-600 capitalize">{client.status}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full overflow-x-hidden">
         {/* Client Overview Card */}
@@ -602,9 +484,10 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
         </Card>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border mb-8">
+        <div className="bg-white rounded-lg shadow-sm border mb-8 w-full overflow-x-hidden">
           <div className="border-b">
-            <nav className="flex space-x-8 px-6">
+            {/* Desktop Tabs */}
+            <nav className="hidden lg:flex space-x-8 px-6">
               {[
                 { id: 'overview', label: 'Overview', icon: Users },
                 { id: 'resumes', label: 'Resumes', icon: FileText },
@@ -631,9 +514,85 @@ export default function ClientProfile({ params }: { params: { id: string } }) {
                 );
               })}
             </nav>
+
+            {/* Mobile Tab Selector */}
+            <div className="lg:hidden px-4 py-3 border-b">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {(() => {
+                    const currentTab = [
+                      { id: 'overview', label: 'Overview', icon: Users },
+                      { id: 'resumes', label: 'Resumes', icon: FileText },
+                      { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
+                      { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
+                      { id: 'applications', label: 'All Applications', icon: CheckCircle },
+                      { id: 'ai-applications', label: 'AI Applications', icon: Bot },
+                      { id: 'emails', label: 'Emails', icon: Mail },
+                    ].find(tab => tab.id === activeTab);
+                    const Icon = currentTab?.icon;
+                    return (
+                      <>
+                        {Icon && <Icon className="h-5 w-5 text-blue-600" />}
+                        <span className="font-medium text-gray-900">{currentTab?.label}</span>
+                      </>
+                    );
+                  })()}
+                </div>
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-all duration-200 hover:scale-110 active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  aria-label="Toggle tabs menu"
+                  data-mobile-menu
+                >
+                  <div className="transition-transform duration-300 ease-out">
+                    {isMobileMenuOpen ? <X size={20} className="rotate-180" /> : <Menu size={20} className="rotate-0" />}
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="p-6">
+          {/* Mobile Tabs Menu */}
+          {isMobileMenuOpen && (
+            <div 
+              className="lg:hidden border-b bg-gray-50 animate-slide-in-up"
+              data-mobile-menu
+            >
+              <div className="px-4 py-2 space-y-1">
+                {[
+                  { id: 'overview', label: 'Overview', icon: Users },
+                  { id: 'resumes', label: 'Resumes', icon: FileText },
+                  { id: 'preferences', label: 'Job Preferences', icon: Briefcase },
+                  { id: 'job-discovery', label: 'Job Discovery', icon: TrendingUp },
+                  { id: 'applications', label: 'All Applications', icon: CheckCircle },
+                  { id: 'ai-applications', label: 'AI Applications', icon: Bot },
+                  { id: 'emails', label: 'Emails', icon: Mail },
+                ].map((tab, index) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200 hover:scale-[1.02] hover:shadow-sm min-h-[44px] ${
+                        activeTab === tab.id
+                          ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                          : 'text-gray-700 hover:bg-white hover:shadow-sm'
+                      }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 w-full overflow-x-hidden">
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
